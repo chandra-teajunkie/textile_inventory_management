@@ -1,0 +1,92 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+*.pyd
+build/
+dist/
+wheels/
+*.egg-info
+*.pth
+
+# Virtual environments
+.venv/
+venv/
+env/
+*/env/
+*/.venv/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+*.backup
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+*.swp
+._*
+
+# JetBrains IDEs (IntelliJ, PyCharm, etc.)
+.idea/
+*.iml
+
+# Editor-specific files
+*.tmp
+*~
+*.log
+*.orig
+*.py.save
+
+# Dependency management
+requirements.txt  # Often tracked, but can be excluded if auto-generated
+poetry.lock       # If using Poetry
+pip-log.txt*
+
+# Data files (if not meant to be tracked)
+*.csv
+# Allow sample_size_chart.csv
+!sample_size_chart.csv
+
+*.xlsx
+*.xls
+*.json
+
+# Temporary files and directories
+tmp/
+temp/
+tmp.*
+temp.*
+.tmp.*
+
+# Compiled source
+*.o
+*.so
+
+# Packaging
+MANIFEST
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Other
+# Log files
+*.log
+
+# Security-sensitive files (add any other files containing secrets)
+.env
+secrets.ini
+*.key
+*.pem
+
+# Backup files (add any other backup file extensions)
+*.~
+*.swp
+*.bkp
+*.tmp
