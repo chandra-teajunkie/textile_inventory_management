@@ -1,0 +1,16 @@
+[project]
+name = "inventory-management"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.11",
+    "pandas>=2.2.3",
+    "pre-commit>=4.2.0",
+    "psycopg2-binary>=2.9.10",
+    "python-multipart>=0.0.20",
+    "sqlalchemy>=2.0.39",
+    "sqlmodel>=0.0.24",
+    "uvicorn>=0.34.0",
+]
