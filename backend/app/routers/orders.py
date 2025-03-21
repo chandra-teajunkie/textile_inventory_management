@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 import uuid  # Import the uuid module
 import pandas as pd
 from io import StringIO  # Import StringIO
-from typing import Optional
+from typing import Optional, List
 from app.models.orders_models import Order, OrderCreate
 from app.database import get_session
 import json
@@ -11,7 +11,7 @@ import json
 router = APIRouter()
 
 
-@router.post("/create", response_model=Order)
+@router.post("/", response_model=Order)
 async def create_order(
     order: str = Form(...),  # Accept as a string
     size_chart_file: Optional[UploadFile] = File(None),
@@ -61,3 +61,9 @@ async def create_order(
     session.refresh(db_order)
 
     return db_order
+
+
+@router.get("/", response_model=List[Order])
+def read_orders(session: Session = Depends(get_session)):
+    orders = session.exec(select(Order)).all()
+    return orders

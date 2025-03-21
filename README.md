@@ -12,3 +12,8 @@ This repo contains both the frontend and backend components for the Textile Inve
 - [Backend Setup](docs/backend.md)
 - [Frontend Setup](docs/frontend.md)
 
+## Change Logs
+
+We maintain a changelog under in [changelog.md](changelog.md)
+We can refer this website for basic guidelines for maintaining a good changelog 
+[How do I make a good changelog?](https://keepachangelog.com/en/1.1.0/#how)
