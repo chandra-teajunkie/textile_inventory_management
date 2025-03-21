@@ -1,11 +1,10 @@
-# app/routers/order_router.py
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form
 from sqlmodel import Session, select
 import uuid  # Import the uuid module
 import pandas as pd
 from io import StringIO  # Import StringIO
 from typing import Optional
-from app.models import Order, OrderCreate
+from app.models.orders_models import Order, OrderCreate
 from app.database import get_session
 import json
 
