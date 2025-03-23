@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-
+from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel
 from app.database import engine
 import uvicorn
@@ -9,6 +9,17 @@ from app.routers.orders import router as orders_router
 from app.routers.tasks import router as tasks_router
 
 app = FastAPI()
+
+# Allow requests from your frontend origin
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3001"
+    ],  # or ["*"] for all origins (not recommended for prod)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @asynccontextmanager

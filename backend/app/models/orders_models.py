@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .tasks_models import Task  # Import Task model
+    from app.models.tasks_models import Task  # Import Task model
 
 
 class Order(SQLModel, table=True):
