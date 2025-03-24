@@ -9,8 +9,8 @@ This repo contains both the frontend and backend components for the Textile Inve
 
 ## Dev Setup for Frontend and Backend
 
-- [Backend Setup](docs/backend.md)
-- [Frontend Setup](docs/frontend.md)
+- [Backend Setup](docs/backend_setup.md)
+- [Frontend Setup](docs/frontend_setup.md)
 
 ## Change Logs
 
