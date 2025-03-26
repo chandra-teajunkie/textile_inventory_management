@@ -110,6 +110,8 @@
 .p-toast-message-error svg,
 .p-toast-message-error button {
     color: white !important;
+    border: none !important;
+
 }
 
 
@@ -125,13 +127,35 @@
 .p-toast-message-success svg,
 .p-toast-message-success button {
     color: white !important;
+    border: none !important;
+}
+
+
+.p-toast-message-warning {
+    background: #ffa5007a !important;
+    padding: 1rem;
+    border-radius: 6px;
+    border: .1px solid white;
+    backdrop-filter: blur(5px);
+}
+
+.p-toast-message-warning div,
+.p-toast-message-warning svg,
+.p-toast-message-warning button {
+    color: white !important;
+    border: none !important;
 }
 
 
 .p-toast-message-success svg,
-.p-toast-message-error svg
+.p-toast-message-error svg,
+.p-toast-message-warning svg
 {
     width : 20px;
     height: 20px;
     margin-right: 0.5rem;
 }
+
+
+
+

@@ -47,17 +47,17 @@ export default function EditTaskModal({ task, allTasks, onClose, onUpdate, selec
             if (response.ok) {
                 const updated = await response.json();
                 onUpdate(updated);
-                toast.current.show({ severity: 'success', summary: 'Updated', detail: 'Task updated successfully!', life: 1000 });
+                toast.current.show({ severity: 'success', summary: 'Updated', detail: 'Task updated successfully!', life: 1500 });
                 onClose();
             } else {
                 // alert('Failed to update task');
-                toast.current.show({ severity: 'error', summary: 'Error', detail: "Failed to update task", life: 1000 });
+                toast.current.show({ severity: 'error', summary: 'Error', detail: "Failed to update task", life: 1500 });
 
             }
         } catch (error) {
             console.error('Update error:', error);
             // alert('Error updating task');
-            toast.current.show({ severity: 'error', summary: 'Error', detail: "Failed while updating task", life: 1000 });
+            toast.current.show({ severity: 'error', summary: 'Error', detail: "Failed while updating task", life: 1500 });
 
         } finally {
             setLoading(false);
