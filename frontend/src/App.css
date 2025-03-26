@@ -1,0 +1,134 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+.formStyle {
+  padding: 2rem;
+  border-radius: 6px;
+  border: 0.1px solid lightslategray !important;
+  overflow: auto;
+  height: -webkit-fill-available;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  background-color: lightslategray !important;
+  backdrop-filter: blur(1px);
+  filter: drop-shadow(1px 1px 5px black);
+  max-height: 90vh;
+}
+
+#root {
+  padding: 2rem;
+  height: -webkit-fill-available;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: -webkit-fill-available;
+}
+
+.rowTextfieldFlex {
+  display: flex;
+  /* width: -webkit-fill-available; */
+  flex-direction: column;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.rowDatepickerfieldFlex {
+  display: flex;
+  /* width: -webkit-fill-available; */
+  flex-direction: column;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.mainPage {
+  width: -webkit-fill-available;
+}
+
+.flexSubmit {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+  padding: 1rem;
+}
+
+.chartTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between
+}
+
+.chartOptions {
+  display: flex;
+
+}
+
+.sizeChartTable {
+  width: -webkit-fill-available;
+}
+
+.cutomFieldTable {
+  width: -webkit-fill-available;
+
+}
+
+button {
+  border: 0.1px solid slategray;
+  border-radius: 6px;
+}
+
+button:hover {
+  border: 0.1px solid slategray;
+  border-radius: 6px;
+  scale: 1.1;
+  border-color: #61dafb;
+}
+
+.w-full {
+  width: -webkit-fill-available !important;
+}
+
+.react-datepicker-wrapper {
+  width: -webkit-fill-available;
+}
