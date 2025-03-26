@@ -84,7 +84,7 @@ export default function OrderForm() {
     formData.append('size_chart_file', uploadedFile);       // 🔵 key: size_chart_file
 
     try {
-      const response = await fetch('http://localhost:8000/orders/', {
+      const response = await fetch(process.env.REACT_APP_POST_ALL_ORDERS, {
         method: 'POST',
         body: formData,
       });
