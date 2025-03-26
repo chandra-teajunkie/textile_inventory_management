@@ -80,7 +80,7 @@ MANIFEST
 *.log
 
 # Security-sensitive files (add any other files containing secrets)
-.env
+# .env
 secrets.ini
 *.key
 *.pem
