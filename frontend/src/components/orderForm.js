@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import TextField from './textField';
 import DropdownCreatable from './dropdownCreatable';
 import DatePickerField from './datePicker';
 import SizeChartTable from './sizeChart'; // from earlier
 import ImportFile from './importExcel';
+import { Toast } from 'primereact/toast';
 
 export default function OrderForm() {
   const [form, setForm] = useState({
@@ -29,6 +30,9 @@ export default function OrderForm() {
     specs: ['Floral', 'Plain', 'Striped'],
     customers: ['CUST001', 'CUST002', 'CUST003'],
   });
+
+  const toast = useRef(null);
+
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -89,27 +93,46 @@ export default function OrderForm() {
         body: formData,
       });
 
-      console.log(await response.json());
+      // console.log(await response.json());
 
       if (response.ok) {
-        alert('✅ Order with size chart uploaded!');
-        console.log(await response.json());
+        toast.current.show({ severity: 'success', summary: 'Success', detail: 'Order Created', life: 100000 });
+        // alert('✅ Order with size chart uploaded!');
+        // console.log(await response.json());
+        setForm({
+          // orderId: '',
+          overallPieces: '',
+          type: '',
+          color: '',
+          designSpec: '',
+          customerId: '',
+          specialNotes: '',
+          orderDate: new Date(),
+          startDate: new Date(),
+          dueDate: new Date(),
+        });
+        setUploadedFile(null)
       } else {
-        alert('❌ Upload failed.', `${response}`);
+        // alert('❌ Upload failed.', `${response}`);
+        toast.current.show({ severity: 'error', summary: 'Error', detail: `${response}`, life: 100000 });
+
       }
     } catch (err) {
       console.error(err);
-      alert('❌ Network or server error.', `${err}`);
+      // alert('❌ Network or server error.', `${err}`);
+      toast.current.show({ severity: 'error', summary: 'Error', detail: `${err}`, life: 100000 });
     }
   };
 
 
   return (
     <div className='createOrder'>
+      <Toast ref={toast} position="top-right" className='toastPopUp' />
+
       <h1 className="text-2xl font-semibold mb-6 text-indigo-700">Order Entry</h1>
       <form className="p-6 max-w-5xl mx-auto rounded-lg shadow-md orderEntryForm">
 
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6"
             style={{
               width: "-webkit-fill-available", padding: " 0rem 2rem",
@@ -181,7 +204,7 @@ export default function OrderForm() {
             style={{
               width: "-webkit-fill-available", padding: " 0rem 2rem",
             }}>
-            <h2 className="text-xl font-bold text-gray-700 mb-2">Size Chart (View Only)</h2>
+            <h4 className="text-xl font-bold text-gray-700 mb-2">Size Chart</h4>
 
             <ImportFile
               onDataImported={setSizeChartData}

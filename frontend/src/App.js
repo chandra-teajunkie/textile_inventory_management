@@ -11,6 +11,8 @@ import Nav from 'react-bootstrap/Nav';
 const OrderForm = lazy(() => import('./components/orderForm'));
 const OrderList = lazy(() => import('./components/orderList/orderList'));
 
+const TaskList = lazy(() => import('./components/orderList/viewTasks'));
+
 function App() {
   const [activeTab, setActiveTab] = useState('create');
 
@@ -33,6 +35,13 @@ function App() {
           {activeTab === 'view' && (
             <Suspense fallback={<Spinner animation="border" className="m-4" />}>
               <OrderList />
+            </Suspense>
+          )}
+        </Tab>
+        <Tab title="View Tasks" eventKey="task">
+          {activeTab === 'task' && (
+            <Suspense fallback={<Spinner animation="border" className="m-4" />}>
+              <TaskList />
             </Suspense>
           )}
         </Tab>

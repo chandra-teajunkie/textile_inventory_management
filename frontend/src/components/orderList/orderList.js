@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import TaskModal from './taskModel';
 import OverlayPopup from '../overlay/overlay';
+import { Toast } from 'primereact/toast';
 
 export default function OrderList() {
     const [orders, setOrders] = useState([]);
@@ -8,6 +9,7 @@ export default function OrderList() {
     const [showModal, setShowModal] = useState(false);
     const [taskMap, setTaskMap] = useState({});
     const [expandedOrderId, setExpandedOrderId] = useState(null);
+    const toast = useRef(null);
 
     const fetchOrders = async () => {
         try {
@@ -52,6 +54,8 @@ export default function OrderList() {
 
     return (
         <div className="p-6">
+            <Toast ref={toast} position="top-right" className='toastPopUp' />
+
             <h2 className="text-xl font-semibold mb-4">Orders</h2>
 
             <div className="overflow-x-auto">
@@ -82,12 +86,12 @@ export default function OrderList() {
                                             >
                                                 Create Task
                                             </button>
-                                            <button
+                                            {/* <button
                                                 className="bg-gray-500 text-black px-3 py-1 rounded"
                                                 onClick={() => toggleTaskList(order.order_id)}
                                             >
                                                 {expandedOrderId === order.order_id ? 'Hide Tasks' : 'Show Tasks'}
-                                            </button>
+                                            </button> */}
                                         </div>
                                     </td>
                                 </tr>
@@ -130,7 +134,8 @@ export default function OrderList() {
                             setTaskMap({})
                             fetchOrders()
                         }}
-                        refreshOrders={fetchOrders()}
+                        // refreshOrders={fetchOrders()}
+                        toast={toast}
                     />} />
 
             )}

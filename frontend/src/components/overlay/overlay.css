@@ -95,3 +95,43 @@
     right: 0 !important;
     bottom: 0 !important;
 }
+
+
+.p-toast-message-error {
+    background: #b365628a !important;
+    padding: 1rem;
+    border-radius: 6px;
+    border: .1px solid white;
+    backdrop-filter: blur(5px);
+
+}
+
+.p-toast-message-error div,
+.p-toast-message-error svg,
+.p-toast-message-error button {
+    color: white !important;
+}
+
+
+.p-toast-message-success {
+    background: #1ea97c8a !important;
+    padding: 1rem;
+    border-radius: 6px;
+    border: .1px solid white;
+    backdrop-filter: blur(5px);
+}
+
+.p-toast-message-success div,
+.p-toast-message-success svg,
+.p-toast-message-success button {
+    color: white !important;
+}
+
+
+.p-toast-message-success svg,
+.p-toast-message-error svg
+{
+    width : 20px;
+    height: 20px;
+    margin-right: 0.5rem;
+}
