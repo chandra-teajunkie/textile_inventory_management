@@ -56,7 +56,7 @@ pip-log.txt*
 
 *.xlsx
 *.xls
-*.json
+# *.json
 
 # Temporary files and directories
 tmp/

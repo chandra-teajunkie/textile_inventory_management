@@ -126,7 +126,11 @@ export default function OrderList() {
                         onClose={() => {
                             setShowModal(false);
                             setSelectedOrder(null);
+                            setExpandedOrderId(null);
+                            setTaskMap({})
+                            fetchOrders()
                         }}
+                        refreshOrders={fetchOrders()}
                     />} />
 
             )}

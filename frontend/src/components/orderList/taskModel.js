@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 
 const STATUS_OPTIONS = ['NOT STARTED', 'IN PROGRESS', 'COMPLETED'];
 
-export default function TaskModal({ orderId, onClose, selectedOrder }) {
+export default function TaskModal({ orderId, onClose, selectedOrder, refreshOrders }) {
     const [taskName, setTaskName] = useState('');
     const [status, setStatus] = useState(STATUS_OPTIONS[0]);
     const [loading, setLoading] = useState(false);
