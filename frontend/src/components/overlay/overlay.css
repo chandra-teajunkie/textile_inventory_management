@@ -131,17 +131,6 @@
 }
 
 
-.p-toast-message-success svg,
-.p-toast-message-error svg,
-.p-toast-message-warning svg
-{
-    width : 20px;
-    height: 20px;
-    margin-right: 0.5rem;
-}
-
-
-
 .p-toast-message-warning {
     background: #ffa5007a !important;
     padding: 1rem;
@@ -155,6 +144,18 @@
 .p-toast-message-warning button {
     color: white !important;
     border: none !important;
-
 }
+
+
+.p-toast-message-success svg,
+.p-toast-message-error svg,
+.p-toast-message-warning svg
+{
+    width : 20px;
+    height: 20px;
+    margin-right: 0.5rem;
+}
+
+
+
 

@@ -1,6 +1,6 @@
 import React, { useState, Suspense, lazy } from 'react';
 import './App.css';
-
+import './components/overlay/overlay.css'
 import Tab from 'react-bootstrap/Tab';
 import Tabs from 'react-bootstrap/Tabs';
 import Spinner from 'react-bootstrap/Spinner';

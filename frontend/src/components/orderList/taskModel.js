@@ -45,14 +45,14 @@ export default function TaskModal({ orderId, onClose, selectedOrder, toast }) {
             });
 
             if (response.ok) {
-                toast.current.show({ severity: 'success', summary: 'Success', detail: 'Task created successfully!', life: 1000 });
+                toast.current.show({ severity: 'success', summary: 'Success', detail: 'Task created successfully!', life: 1500 });
                 onClose();
             } else {
-                toast.current.show({ severity: 'error', summary: 'Error', detail: "Failed to create task", life: 1000 });
+                toast.current.show({ severity: 'error', summary: 'Error', detail: "Failed to create task", life: 1500 });
             }
         } catch (error) {
             console.error(error);
-            toast.current.show({ severity: 'error', summary: 'Error', detail: "Failed while creating task", life: 1000 });
+            toast.current.show({ severity: 'error', summary: 'Error', detail: "Failed while creating task", life: 1500 });
         } finally {
             setLoading(false);
         }
