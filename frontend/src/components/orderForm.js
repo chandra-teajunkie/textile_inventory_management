@@ -105,120 +105,118 @@ export default function OrderForm() {
 
 
   return (
-    <div className='createOrder formStyle'>
+    <div className='createOrder'>
       <h1 className="text-2xl font-semibold mb-6 text-indigo-700">Order Entry</h1>
-      <form className="p-6 max-w-5xl mx-auto rounded-lg shadow-md">
+      <form className="p-6 max-w-5xl mx-auto rounded-lg shadow-md orderEntryForm">
 
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* <TextField
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            style={{
+              width: "-webkit-fill-available", padding: " 0rem 2rem",
+            }}>
+            {/* <TextField
     label="Order ID"
     value={form.orderId}
     onChange={(val) => handleChange('orderId', val)}
   /> */}
-          <TextField
-            label="Number of Pieces"
-            value={form.overallPieces}
-            onChange={(val) => handleChange('overallPieces', val)}
-          />
+            <TextField
+              label="Number of Pieces"
+              value={form.overallPieces}
+              onChange={(val) => handleChange('overallPieces', val)}
+            />
 
-          <DropdownCreatable
-            label="Type"
-            options={dropdownOptions.types}
-            value={form.type}
-            onChange={(val) => handleChange('type', val)}
-          />
-          <DropdownCreatable
-            label="Color"
-            options={dropdownOptions.colors}
-            value={form.color}
-            onChange={(val) => handleChange('color', val)}
-          />
+            <DropdownCreatable
+              label="Type"
+              options={dropdownOptions.types}
+              value={form.type}
+              onChange={(val) => handleChange('type', val)}
+            />
+            <DropdownCreatable
+              label="Color"
+              options={dropdownOptions.colors}
+              value={form.color}
+              onChange={(val) => handleChange('color', val)}
+            />
 
-          <DropdownCreatable
-            label="Design Spec"
-            options={dropdownOptions.specs}
-            value={form.designSpec}
-            onChange={(val) => handleChange('designSpec', val)}
-          />
-          <DropdownCreatable
-            label="Customer ID"
-            options={dropdownOptions.customers}
-            value={form.customerId}
-            onChange={(val) => handleChange('customerId', val)}
-          />
+            <DropdownCreatable
+              label="Design Spec"
+              options={dropdownOptions.specs}
+              value={form.designSpec}
+              onChange={(val) => handleChange('designSpec', val)}
+            />
+            <DropdownCreatable
+              label="Customer ID"
+              options={dropdownOptions.customers}
+              value={form.customerId}
+              onChange={(val) => handleChange('customerId', val)}
+            />
 
-          <TextField
-            label="Special Notes"
-            value={form.specialNotes}
-            onChange={(val) => handleChange('specialNotes', val)}
-            multiline // ✅ this makes it a textarea
-          />
+            <TextField
+              label="Special Notes"
+              value={form.specialNotes}
+              onChange={(val) => handleChange('specialNotes', val)}
+              multiline // ✅ this makes it a textarea
+            />
 
 
-          <DatePickerField
-            label="Order Date"
-            value={form.orderDate}
-            onChange={(date) => handleChange('orderDate', date)}
-          />
-          <DatePickerField
-            label="Start Date"
-            value={form.startDate}
-            onChange={(date) => handleChange('startDate', date)}
-          />
-          <DatePickerField
-            label="Due Date"
-            value={form.dueDate}
-            onChange={(date) => handleChange('dueDate', date)}
-          />
+            <DatePickerField
+              label="Order Date"
+              value={form.orderDate}
+              onChange={(date) => handleChange('orderDate', date)}
+            />
+            <DatePickerField
+              label="Start Date"
+              value={form.startDate}
+              onChange={(date) => handleChange('startDate', date)}
+            />
+            <DatePickerField
+              label="Due Date"
+              value={form.dueDate}
+              onChange={(date) => handleChange('dueDate', date)}
+            />
+          </div>
+
+
+          <div className="my-8"
+            style={{
+              width: "-webkit-fill-available", padding: " 0rem 2rem",
+            }}>
+            <h2 className="text-xl font-bold text-gray-700 mb-2">Size Chart (View Only)</h2>
+
+            <ImportFile
+              onDataImported={setSizeChartData}
+              onFileSelected={setUploadedFile}
+            />
+
+
+            {sizeChartData.length > 0 && (
+              <div className="overflow-x-auto max-h-64 border rounded shadow">
+                <table className="min-w-full table-auto">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      {Object.keys(sizeChartData[0]).map((header) => (
+                        <th key={header} className="border px-4 py-2 text-left font-medium">{header}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sizeChartData.map((row, rowIndex) => (
+                      <tr key={rowIndex}>
+                        {Object.values(row).map((value, colIndex) => (
+                          <td key={colIndex} className="border px-4 py-2">{value}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
         </div>
-
         {errors.sizeChart && (
           <p className="text-red-500 font-medium mt-4">{errors.sizeChart}</p>
         )}
-
-        {/* <div className="my-8">
-  <h2 className="text-xl font-bold text-gray-700 mb-2">Size Chart</h2>
-  <div className="overflow-x-auto">
-    <SizeChartTable
-      value={sizeChartData}
-      onChange={(updated) => setSizeChartData(updated)}
-    />
-  </div>
-</div> */}
-
-        <div className="my-8">
-          <h2 className="text-xl font-bold text-gray-700 mb-2">Size Chart (View Only)</h2>
-
-          <ImportFile
-            onDataImported={setSizeChartData}
-            onFileSelected={setUploadedFile}
-          />
-
-
-          {sizeChartData.length > 0 && (
-            <div className="overflow-x-auto max-h-64 border rounded shadow">
-              <table className="min-w-full table-auto">
-                <thead>
-                  <tr className="bg-gray-100">
-                    {Object.keys(sizeChartData[0]).map((header) => (
-                      <th key={header} className="border px-4 py-2 text-left font-medium">{header}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sizeChartData.map((row, rowIndex) => (
-                    <tr key={rowIndex}>
-                      {Object.values(row).map((value, colIndex) => (
-                        <td key={colIndex} className="border px-4 py-2">{value}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
 
         <div className='flexSubmit'>
           <button

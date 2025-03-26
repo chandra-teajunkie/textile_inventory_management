@@ -1,37 +1,44 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import './App.css';
 
-import OrderForm from "./components/orderForm";
-import OrderList from "./components/orderList/orderList";
+import Tab from 'react-bootstrap/Tab';
+import Tabs from 'react-bootstrap/Tabs';
+import Spinner from 'react-bootstrap/Spinner';
+import Nav from 'react-bootstrap/Nav';
+
+
+// ✅ Lazy-loaded components
+const OrderForm = lazy(() => import('./components/orderForm'));
+const OrderList = lazy(() => import('./components/orderList/orderList'));
 
 function App() {
-  // return (
-  //   <div className="p-6 bg-gray-100 min-h-screen mainPage">
-  //     <OrderForm />
-  //   </div>
-  // );
-
   const [activeTab, setActiveTab] = useState('create');
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="flex gap-4 mb-6">
-        <button
-          className={`px-4 py-2 rounded ${activeTab === 'create' ? 'bg-indigo-600 text-dark' : 'bg-white border'}`}
-          onClick={() => setActiveTab('create')}
-        >
-          Create Order
-        </button>
-        <button
-          className={`px-4 py-2 rounded ${activeTab === 'view' ? 'bg-indigo-600 text-dark' : 'bg-white border'}`}
-          onClick={() => setActiveTab('view')}
-        >
-          View Orders
-        </button>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-6 formStyle">
+      <Tabs
+        activeKey={activeTab}
+        onSelect={(k) => setActiveTab(k)}
+        className="mb-3"
+      >
+        <Tab title="Create Order" eventKey="create">
+          {activeTab === 'create' && (
+            <Suspense fallback={<Spinner animation="border" className="m-4" />}>
+              <OrderForm />
+            </Suspense>
+          )}
+        </Tab>
 
-      {activeTab === 'create' ? <OrderForm /> : <OrderList />}
+        <Tab title="View Orders" eventKey="view">
+          {activeTab === 'view' && (
+            <Suspense fallback={<Spinner animation="border" className="m-4" />}>
+              <OrderList />
+            </Suspense>
+          )}
+        </Tab>
+      </Tabs>
     </div>
   );
 }
+
 export default App;

@@ -10,16 +10,7 @@ from app.routers.tasks import router as tasks_router
 
 app = FastAPI()
 
-# Allow requests from your frontend origin
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3001/"
-    ],  # or ["*"] for all origins (not recommended for prod)
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
 
 
 @asynccontextmanager
@@ -33,9 +24,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Allow requests from your frontend origin
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "*"
+    ],  # or ["*"] for all origins (not recommended for prod)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Include the product router with the "/products" prefix
 app.include_router(orders_router, prefix="/orders")
 app.include_router(tasks_router, prefix="/tasks")
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="127.0.0.1", port=3002, reload=True)

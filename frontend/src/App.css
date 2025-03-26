@@ -51,7 +51,8 @@
   background-color: lightslategray !important;
   backdrop-filter: blur(1px);
   filter: drop-shadow(1px 1px 5px black);
-  max-height: 90vh;
+  /* max-height: 90vh; */
+  width: -webkit-fill-available;
 }
 
 #root {
@@ -131,4 +132,22 @@ button:hover {
 
 .react-datepicker-wrapper {
   width: -webkit-fill-available;
+}
+
+/* Add to App.css */
+.nav-item .nav-link {
+  color: white !important;
+}
+
+.nav-item .nav-link.active {
+  color: black !important;
+}
+
+.orderEntryForm {
+  overflow: auto;
+  height: -webkit-fill-available;
+  display: grid;
+  position: absolute;
+  width: -webkit-fill-available;
+  padding-right: 2rem;
 }
