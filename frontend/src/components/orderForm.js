@@ -62,12 +62,14 @@ export default function OrderForm() {
 
   const handleSubmit = async () => {
     if (!uploadedFile) {
-      alert('Please upload a Size Chart file.');
+      // alert('Please upload a Size Chart file.');
+      toast.current.show({ severity: 'warning', summary: 'Warning', detail: 'Please upload a Size Chart file', life: 10000 });
       return;
     }
 
     if (!validateForm()) {
-      alert('Please fill all fields and upload a size chart.');
+      // alert('Please fill all fields and upload a size chart.');
+      toast.current.show({ severity: 'warning', summary: 'Warning', detail: 'Please fill all fields and upload a size chart', life: 10000 });
       return;
     }
 
@@ -96,7 +98,7 @@ export default function OrderForm() {
       // console.log(await response.json());
 
       if (response.ok) {
-        toast.current.show({ severity: 'success', summary: 'Success', detail: 'Order Created', life: 100000 });
+        toast.current.show({ severity: 'success', summary: 'Success', detail: 'Order Created', life: 1000 });
         // alert('✅ Order with size chart uploaded!');
         // console.log(await response.json());
         setForm({
@@ -114,13 +116,13 @@ export default function OrderForm() {
         setUploadedFile(null)
       } else {
         // alert('❌ Upload failed.', `${response}`);
-        toast.current.show({ severity: 'error', summary: 'Error', detail: `${response}`, life: 100000 });
+        toast.current.show({ severity: 'error', summary: 'Error', detail: `${response}`, life: 1000 });
 
       }
     } catch (err) {
       console.error(err);
       // alert('❌ Network or server error.', `${err}`);
-      toast.current.show({ severity: 'error', summary: 'Error', detail: `${err}`, life: 100000 });
+      toast.current.show({ severity: 'error', summary: 'Error', detail: `${err}`, life: 1000 });
     }
   };
 
