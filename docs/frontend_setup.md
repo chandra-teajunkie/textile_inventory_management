@@ -37,13 +37,33 @@ This section outlines the steps to set up the backend development environment.
 
 ### Installation
 
-1.  **Clone the repository:**
+1. **🧩 Install Node.js and npm**
+
+    To run this app, you need [Node.js](https://nodejs.org/) and npm (comes with Node.js).
+
+    #### ✅ Recommended Version
+
+    - Node.js: `v18+` or `LTS`
+    - npm: `v9+`
+
+    #### 🔗 Download Link
+
+    👉 [https://nodejs.org/en/download](https://nodejs.org/en/download)
+
+    After installation, verify using:
+
+    ```bash
+    node -v
+    npm -v
+    ```
+
+2.  **Clone the repository:**
 
     ```bash
     git clone <your_repository_url>
     ```
 
-2.  **Navigate to the `frontend` directory:**
+3.  **Navigate to the `frontend` directory:**
 
     ```bash
     cd frontend
