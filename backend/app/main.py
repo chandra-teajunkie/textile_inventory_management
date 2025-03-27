@@ -7,10 +7,9 @@ import uvicorn
 
 from app.routers.orders import router as orders_router
 from app.routers.tasks import router as tasks_router
+from app.routers.inventory import router as inventory_router
 
 app = FastAPI()
-
-
 
 
 @asynccontextmanager
@@ -27,9 +26,7 @@ app = FastAPI(lifespan=lifespan)
 # Allow requests from your frontend origin
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "*"
-    ],  # or ["*"] for all origins (not recommended for prod)
+    allow_origins=["*"],  # or ["*"] for all origins (not recommended for prod)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,6 +35,7 @@ app.add_middleware(
 # Include the product router with the "/products" prefix
 app.include_router(orders_router, prefix="/orders")
 app.include_router(tasks_router, prefix="/tasks")
+app.include_router(inventory_router, prefix="/inventory")
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="127.0.0.1", port=3002, reload=True)

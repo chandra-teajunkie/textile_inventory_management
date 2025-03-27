@@ -16,6 +16,15 @@ class TaskStatus(str, Enum):
     BLOCKED = "BLOCKED"
 
 
+class TaskUnit(str, Enum):
+    CUTTING = "CUTTING"
+    PRINTING = "PRINTING"
+    EMBROIDERY = "EMBROIDERY"
+    STITCHING = "STITCHING"
+    PACKAGING = "PACKAGING"
+    UNASSIGNED = "UNASSIGNED"
+
+
 class Task(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     task_id: str = Field(
@@ -24,17 +33,27 @@ class Task(SQLModel, table=True):
     order_id: str = Field(foreign_key="order.order_id")
     order: "Order" = Relationship(back_populates="tasks")
     name: str
+    product: str
+    color: str
     status: TaskStatus = Field(default=TaskStatus.NOT_STARTED)
+    task_unit: TaskUnit = Field(default=TaskUnit.UNASSIGNED)
     dependencies: Optional[str] = Field(default="[]")  # JSON list of task_ids
 
 
 class TaskCreate(SQLModel):
     order_id: str
     name: str
+    product: str
+    color: str
     status: TaskStatus = Field(default=TaskStatus.NOT_STARTED)
+    task_unit: TaskUnit = Field(default=TaskUnit.UNASSIGNED)
     dependencies: List[str] = []  # List of task_ids
 
 
 class TaskUpdate(SQLModel):
+    name: Optional[str] = None
+    product: Optional[str] = None
+    color: Optional[str] = None
     status: Optional[TaskStatus] = None
+    task_unit: Optional[TaskUnit] = None
     dependencies: Optional[List[str]] = []  # List of task_ids

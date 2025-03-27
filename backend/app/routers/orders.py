@@ -1,12 +1,10 @@
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form
 from sqlmodel import Session, select
-import uuid  # Import the uuid module
-import pandas as pd
-from io import StringIO  # Import StringIO
 from typing import Optional, List
-from app.models.orders_models import Order, OrderCreate
+from app.models.orders_models import Order, OrderCreate, OrderUpdate
 from app.models.tasks_models import Task
 from app.database import get_session
+from app.utils.utils import generate_unique_id, process_size_chart
 import json
 
 router = APIRouter()
@@ -18,45 +16,23 @@ async def create_order(
     size_chart_file: Optional[UploadFile] = File(None),
     session: Session = Depends(get_session),
 ):
-    order_data = json.loads(order)  # Convert string to dictionary
-    order = OrderCreate(**order_data)  # Convert to Pydantic model
+    # Convert string JSON data to dictionary
+    order_data = json.loads(order)
+    order_create = OrderCreate(**order_data)
 
     # Generate a unique order_id
-    while True:
-        unique_order_id = str(uuid.uuid4())
-        # Check if the order_id already exists
-        existing_order = session.exec(
-            select(Order).where(Order.order_id == unique_order_id)
-        ).first()
-        if not existing_order:
-            break  # If not found, the ID is unique, exit the loop
+    unique_order_id = generate_unique_id(Order, session, "order_id")
 
-    # Handle the file upload
-    size_chart_data = None
-    if size_chart_file:
-        try:
-            contents = await size_chart_file.read()
-            decoded_contents = contents.decode("utf-8")  # Assuming UTF-8 encoding
-            df = pd.read_csv(StringIO(decoded_contents))
-            # Convert DataFrame to JSON string
-            size_chart_data = df.to_json()
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Error processing file: {e}")
+    # Process the uploaded size chart file
+    size_chart_data = await process_size_chart(size_chart_file)
 
-    # Create the Order
+    # Create the Order using unpacking for order_create fields
     db_order = Order(
         order_id=unique_order_id,  # Assign the generated ID
-        number_of_overall_pieces=order.number_of_overall_pieces,
-        types=order.types,
-        colors=order.colors,
-        design_specs=order.design_specs,
-        customer_id=order.customer_id,
-        order_date=order.order_date,
-        start_date=order.start_date,
-        due_date=order.due_date,
-        special_notes=order.special_notes,
-        size_chart=size_chart_data,  # Store the dataframe as JSON
+        size_chart=size_chart_data,  # Store the processed size chart data
+        **order_create.model_dump(),  # Unpacks all fields from OrderCreate model
     )
+
     session.add(db_order)
     session.commit()
     session.refresh(db_order)
@@ -68,6 +44,44 @@ async def create_order(
 def read_orders(session: Session = Depends(get_session)):
     orders = session.exec(select(Order)).all()
     return orders
+
+
+@router.patch("/{order_id}", response_model=Order)
+async def update_order(
+    order_id: str,
+    order_update: str = Form(...),  # JSON data as a string
+    size_chart_file: Optional[UploadFile] = File(None),
+    session: Session = Depends(get_session),
+):
+    # Retrieve the order from the database
+    db_order = session.exec(select(Order).where(Order.order_id == order_id)).first()
+    if not db_order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Convert string JSON data to dictionary
+    update_data = json.loads(order_update)
+
+    # Convert to Pydantic model (optional validation)
+    order_update_model = OrderUpdate(**update_data)
+
+    # Apply updates dynamically using ** to unpack fields
+    update_fields = order_update_model.dict(
+        exclude_unset=True
+    )  # Only fields that are set
+    for key, value in update_fields.items():
+        setattr(db_order, key, value)
+
+    # Handle the file upload for size_chart
+    if size_chart_file:
+        # Process the uploaded file
+        size_chart_data = await process_size_chart(size_chart_file)
+        db_order.size_chart = size_chart_data  # Update size_chart with new data
+
+    session.add(db_order)
+    session.commit()
+    session.refresh(db_order)
+
+    return db_order
 
 
 @router.delete("/{order_id}", response_model=Order)
