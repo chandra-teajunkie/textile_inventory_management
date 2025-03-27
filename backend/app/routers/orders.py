@@ -5,6 +5,7 @@ import pandas as pd
 from io import StringIO  # Import StringIO
 from typing import Optional, List
 from app.models.orders_models import Order, OrderCreate
+from app.models.tasks_models import Task
 from app.database import get_session
 import json
 
@@ -67,3 +68,24 @@ async def create_order(
 def read_orders(session: Session = Depends(get_session)):
     orders = session.exec(select(Order)).all()
     return orders
+
+
+@router.delete("/{order_id}", response_model=Order)
+def delete_order(order_id: str, session: Session = Depends(get_session)):
+    # Check if the order exists
+    order = session.exec(select(Order).where(Order.order_id == order_id)).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Find all tasks associated with the order
+    tasks = session.exec(select(Task).where(Task.order_id == order_id)).all()
+
+    # Delete all tasks associated with this order
+    for task in tasks:
+        session.delete(task)
+
+    # Delete the order
+    session.delete(order)
+    session.commit()
+
+    return order  # Returning the deleted order details
