@@ -1,5 +1,5 @@
 html {
-  display: block;
+  display: flex;
   height: 100%;
   background: lightslategrey;
   width: 100%;
@@ -14,10 +14,10 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  display: block;
+  display: flex;
   height: 100%;
   background: lightslategrey;
-  width: 100%;
+  width: -webkit-fill-available;
   position: relative;
 }
 
@@ -26,5 +26,107 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+
+#root {
+
+  height: -webkit-fill-available;
+  display: flex;
+  width: -webkit-fill-available;
+
+}
+
+
+.mainPage {
+  max-height: -webkit-fill-available;
+  width: -webkit-fill-available;
+  display: flex;
+  /* flex-grow: 1; */
+  /* flex-shrink: 1; */
+  position: relative;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pageBody {
+  height: -webkit-fill-available;
+  width: -webkit-fill-available;
+  /* flex-wrap: wrap; */
+  position: relative;
+  overflow: auto;
+}
+
+nav {
+  height: -webkit-fill-available;
+  position: sticky;
+}
+
+
+.toastPopUpDefault {
+  position: fixed;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
+
+.p-toast-message-error {
+  background: #b365628a !important;
+  padding: 1rem;
+  border-radius: 6px;
+  border: .1px solid white;
+  backdrop-filter: blur(5px);
+
+}
+
+.p-toast-message-error div,
+.p-toast-message-error svg,
+.p-toast-message-error button {
+  color: white !important;
+  border: none !important;
+
+}
+
+
+.p-toast-message-success {
+  background: #1ea97c8a !important;
+  padding: 1rem;
+  border-radius: 6px;
+  border: .1px solid white;
+  backdrop-filter: blur(5px);
+}
+
+.p-toast-message-success div,
+.p-toast-message-success svg,
+.p-toast-message-success button {
+  color: white !important;
+  border: none !important;
+}
+
+
+.p-toast-message-warning {
+  background: #ffa5007a !important;
+  padding: 1rem;
+  border-radius: 6px;
+  border: .1px solid white;
+  backdrop-filter: blur(5px);
+}
+
+.p-toast-message-warning div,
+.p-toast-message-warning svg,
+.p-toast-message-warning button {
+  color: white !important;
+  border: none !important;
+}
+
+
+.p-toast-message-success svg,
+.p-toast-message-error svg,
+.p-toast-message-warning svg
+{
+  width : 20px;
+  height: 20px;
+  margin-right: 0.5rem;
 }
 

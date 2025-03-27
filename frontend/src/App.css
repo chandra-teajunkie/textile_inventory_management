@@ -1,3 +1,87 @@
+/* General Styles */
+body {
+  background-color: #f8f9fa;
+}
+
+.toastPopUp {
+  z-index: 9999;
+}
+
+/* Dashboard Cards */
+.card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Navigation */
+.btn-white {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.btn-white:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Tables */
+.table th {
+  font-weight: 600;
+  color: #495057;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Forms */
+.form-control:focus,
+.form-select:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Progress Bars */
+.progress {
+  background-color: #e9ecef;
+  border-radius: 0.25rem;
+  height: 0.5rem;
+}
+
+/* Badges */
+.badge {
+  font-weight: 500;
+  padding: 0.35em 0.65em;
+}
+
+/* Task Cards */
+.task-list .card {
+  border-left: 3px solid #dee2e6;
+}
+
+.task-list .card:hover {
+  border-left-color: #007bff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .btn-group .btn {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+
 .App {
   text-align: center;
 }
@@ -55,14 +139,14 @@
   width: -webkit-fill-available;
 }
 
-#root {
+/* #root {
   padding: 2rem;
   height: -webkit-fill-available;
   display: flex;
   align-items: center;
   justify-content: center;
   width: -webkit-fill-available;
-}
+} */
 
 .rowTextfieldFlex {
   display: flex;
@@ -150,4 +234,11 @@ button:hover {
   position: absolute;
   width: -webkit-fill-available;
   padding-right: 2rem;
+}
+
+
+.overlayBody {
+  display: flex;
+  flex-direction: column;
+  width: -webkit-fill-available;
 }

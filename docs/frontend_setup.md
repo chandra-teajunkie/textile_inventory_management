@@ -73,7 +73,7 @@ This section outlines the steps to set up the backend development environment.
 3.  **Install dependencies**
 
     ```bash
-    npm install
+    npm install -f
     ```
 
 4. **Ensure the PORT and Enpoints from `.env` file**
