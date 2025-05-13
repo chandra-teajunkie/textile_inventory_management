@@ -1,0 +1,5 @@
+# .dockerignore file
+backend/sqllite/textile_inventory.db
+.venv
+.vscode
+logs/

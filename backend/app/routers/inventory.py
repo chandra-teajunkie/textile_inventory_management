@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlmodel import Session, select
-from app.database import get_session
+from app.database.database import get_session
 from app.models.inventory_models import Inventory, InventoryCreate, InventoryUpdate
 from typing import List
 from app.utils.utils import generate_unique_id
