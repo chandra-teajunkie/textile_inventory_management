@@ -6,6 +6,9 @@ from app.models.orders_models import Order
 from app.database.database import get_session
 from app.utils.utils import generate_unique_id, process_size_chart
 import json
+from fastapi.responses import StreamingResponse
+import pandas as pd
+from io import StringIO
 
 router = APIRouter()
 
@@ -210,3 +213,53 @@ def delete_task(task_id: str, session: Session = Depends(get_session)):
     session.commit()
 
     return task  # Returning the deleted task details
+
+
+@router.get("/download-chart/{task_id}", response_class=StreamingResponse)
+async def download_task_chart(
+    task_id: str,
+    chart_type: str = "incoming",  # Default is "incoming", can be "outgoing" as well
+    session: Session = Depends(get_session),
+):
+    # Get the task
+    db_task = session.exec(select(Task).where(Task.task_id == task_id)).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Determine which chart to download
+    if chart_type == "incoming":
+        chart_data = db_task.incoming_chart
+    elif chart_type == "outgoing":
+        chart_data = db_task.outgoing_chart
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid chart type. Choose 'incoming' or 'outgoing'.",
+        )
+
+    if not chart_data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"{chart_type.capitalize()} chart not found for the task.",
+        )
+
+    # Convert the JSON chart data back to a DataFrame
+    try:
+        chart_json = json.loads(chart_data)
+        chart_df = pd.DataFrame.from_dict(chart_json)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing chart data: {e}")
+
+    # Convert the DataFrame to CSV format
+    csv_buffer = StringIO()
+    chart_df.to_csv(csv_buffer, index=False)
+    csv_buffer.seek(0)
+
+    # Return the CSV as a downloadable file
+    return StreamingResponse(
+        csv_buffer,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=task_{task_id}_{chart_type}_chart.csv"
+        },
+    )
