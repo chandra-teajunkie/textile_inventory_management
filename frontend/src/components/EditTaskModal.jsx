@@ -57,7 +57,7 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, selectedOrder, toast
 
     try {
       setLoading(true)
-      const response = await fetch(`http://localhost:3002/tasks/${task.task_id}`, {
+      const response = await fetch(`${process.env.REACT_APP_PATCH_ALL_TASKS}${task.task_id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

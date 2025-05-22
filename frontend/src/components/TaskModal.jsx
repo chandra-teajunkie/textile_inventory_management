@@ -100,7 +100,7 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast }) {
       toast.current.show({
         severity: "error",
         summary: "Error",
-        detail: "Failed to create task",
+        detail: "Failed to create task : " + `${error}`,
         life: 3000,
       })
     } finally {

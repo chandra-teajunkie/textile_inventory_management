@@ -19,6 +19,9 @@ body {
   background: lightslategrey;
   width: -webkit-fill-available;
   position: relative;
+
+  background: linear-gradient(130deg, #96d0d79e, #844fbdbf);
+  background-color: blue;
 }
 
 
@@ -34,6 +37,7 @@ code {
   height: -webkit-fill-available;
   display: flex;
   width: -webkit-fill-available;
+  background-color: #f4fffb99 !important;
 
 }
 
@@ -47,6 +51,7 @@ code {
   position: relative;
   flex-direction: column;
   overflow: hidden;
+  background-color: #f4fffb99 !important;
 }
 
 .pageBody {
@@ -123,10 +128,13 @@ nav {
 
 .p-toast-message-success svg,
 .p-toast-message-error svg,
-.p-toast-message-warning svg
-{
-  width : 20px;
+.p-toast-message-warning svg {
+  width: 20px;
   height: 20px;
   margin-right: 0.5rem;
 }
 
+.btn-light {
+  background: linear-gradient(130deg, #96d0d79e, #b98fe579);
+  background-color: rgba(156, 209, 223, 0.445);
+}

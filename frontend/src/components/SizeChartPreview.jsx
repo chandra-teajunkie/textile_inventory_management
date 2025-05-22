@@ -1,17 +1,17 @@
 
 import React from 'react';
 
-export default function SizeChartPreview({ data }) {
+export default function SizeChartPreview({ data, csvHeader }) {
   if (!data || data.length === 0) return null;
 
   return (
     <div className="overflow-x-auto mt-4">
       {console.log(data)}
 
-      <table className="border table-auto min-w-full text-center">
+      <table className="border table-auto min-w-full text-center w-full">
         <thead className="bg-gray-100">
           <tr>
-            {Object.keys(data[0]).map((key) => (
+            {csvHeader.map((key) => (
               <th className="border px-3 py-2" key={key}>{key}</th>
             ))}
           </tr>
@@ -19,9 +19,9 @@ export default function SizeChartPreview({ data }) {
         <tbody>
           {data.map((row, idx) => (
             <tr key={idx}>
-              {Object.values(row).map((val, i) => (
+              {csvHeader.map((val, i) => (
                 <td className="border px-3 py-2" key={i}>
-                  {val !== null && val !== undefined ? val : ''}
+                  {row[val] ?? ''}
                 </td>
               ))}
             </tr>

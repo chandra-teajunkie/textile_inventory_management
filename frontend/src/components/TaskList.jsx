@@ -14,6 +14,7 @@ function TaskList({ toast }) {
   const [editTask, setEditTask] = useState(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [filterStatus, setFilterStatus] = useState("all")
+  const [taskToDelete, setTaskToDelete] = useState(null);
 
   const fetchOrders = async () => {
     try {
@@ -55,6 +56,21 @@ function TaskList({ toast }) {
       setLoading(false)
     }
   }
+
+  const deleteTask = async () => {
+    if (!taskToDelete) return;
+    console.log(process.env.REACT_APP_DELETE_TASK,taskToDelete)
+    try {
+      const response = await fetch(`${process.env.REACT_APP_DELETE_TASK}${taskToDelete.task_id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete task");
+      setTasks(tasks.filter((t) => t.task_id !== taskToDelete.task_id));
+      toast.current.show({ severity: "success", summary: "Deleted", detail: "Task deleted successfully", life: 3000 });
+    } catch (err) {
+      toast.current.show({ severity: "error", summary: "Error", detail: "Failed to delete task", life: 3000 });
+    } finally {
+      setTaskToDelete(null);
+    }
+  };
 
   useEffect(() => {
     fetchOrders()
@@ -291,9 +307,10 @@ function TaskList({ toast }) {
                             : "—"}
                         </td>
                         <td className="text-end">
-                          <Button variant="primary" size="sm" onClick={() => handleEditTask(task)}>
+                          <Button variant="primary" size="sm" onClick={() => handleEditTask(task)} className="me-3">
                             Edit
                           </Button>
+                          <Button variant="danger" size="sm" onClick={() => setTaskToDelete(task)}>Delete</Button>
                         </td>
                       </tr>
                     ))}
@@ -329,6 +346,19 @@ function TaskList({ toast }) {
             {/* </Modal> */}
           </div>
         </div></div>}
+
+      <Modal show={!!taskToDelete} onHide={() => setTaskToDelete(null)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Deletion</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Are you sure you want to delete task "{taskToDelete?.name}"?
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setTaskToDelete(null)}>Cancel</Button>
+          <Button variant="danger" onClick={deleteTask}>Delete</Button>
+        </Modal.Footer>
+      </Modal>
 
     </div >
   )

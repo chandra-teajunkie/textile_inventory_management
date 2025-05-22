@@ -5,6 +5,7 @@ import { Form, Button, Row, Col, Card } from "react-bootstrap"
 import DatePicker from "react-datepicker"
 import * as XLSX from "xlsx"
 import "react-datepicker/dist/react-datepicker.css"
+import CreatableSelect from "react-select/creatable"
 import SizeChart from './SizeChartPreview'
 
 function OrderForm({ toast }) {
@@ -23,8 +24,9 @@ function OrderForm({ toast }) {
   const [sizeChartData, setSizeChartData] = useState([])
   const [uploadedFile, setUploadedFile] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [csvHeader, setCSVHeader] = useState([])
 
-  const [dropdownOptions] = useState({
+  const [dropdownOptions, setDropdownOptions] = useState({
     types: ["Top", "Bottom", "Pant"],
     colors: ["Red", "Blue", "Green"],
     specs: ["Floral", "Plain", "Striped"],
@@ -32,24 +34,53 @@ function OrderForm({ toast }) {
   })
 
   const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }))
-  }
+    setForm((prev) => ({ ...prev, [field]: value }));
+
+    const fieldMap = {
+      type: "types",
+      color: "colors",
+      designSpec: "specs",
+      customerId: "customers",
+    };
+
+    const key = fieldMap[field];
+
+    if (key && value && !dropdownOptions[key]?.includes(value)) {
+      setDropdownOptions((prev) => ({
+        ...prev,
+        [key]: Array.isArray(prev[key]) ? [...prev[key], value] : [value]
+      }));
+    }
+  };
+
 
   const handleFileUpload = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
+    const file = e.target.files[0];
+    if (!file) return;
 
-    setUploadedFile(file)
+    setUploadedFile(file);
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (evt) => {
-      const data = new Uint8Array(evt.target.result)
-      const workbook = XLSX.read(data, { type: "array" })
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-      const jsonData = XLSX.utils.sheet_to_json(worksheet)
-      setSizeChartData(jsonData)
-    }
-    reader.readAsArrayBuffer(file)
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      const [header, ...rows] = rawData;
+      setCSVHeader(header);
+
+      const formattedData = rows.map(row => {
+        const rowObj = {};
+        header.forEach((col, i) => {
+          rowObj[col] = row[i] ?? "";
+        });
+        return rowObj;
+      });
+
+      setSizeChartData(formattedData);
+    };
+    reader.readAsArrayBuffer(file);
   }
 
   const validateForm = () => {
@@ -87,9 +118,7 @@ function OrderForm({ toast }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!validateForm()) {
-      return
-    }
+    if (!validateForm()) return
 
     setIsSubmitting(true)
 
@@ -124,7 +153,6 @@ function OrderForm({ toast }) {
           life: 3000,
         })
 
-        // Reset form
         setForm({
           overallPieces: "",
           type: "",
@@ -169,7 +197,7 @@ function OrderForm({ toast }) {
       <Card className="shadow-sm border-0">
         <Card.Header className="bg-white">
           <Card.Title>Order Details</Card.Title>
-          <Card.Subtitle className="text-muted">Enter order information and upload size chart</Card.Subtitle>
+          <Card.Subtitle className="text-muted">Enter order info and upload size chart</Card.Subtitle>
         </Card.Header>
         <Card.Body>
           <Form onSubmit={handleSubmit}>
@@ -187,77 +215,46 @@ function OrderForm({ toast }) {
 
                 <Form.Group className="mb-3">
                   <Form.Label>Type</Form.Label>
-                  <Form.Select value={form.type} onChange={(e) => handleChange("type", e.target.value)}>
-                    <option value="">Select type</option>
-                    {dropdownOptions.types.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                    <option value="custom">Custom...</option>
-                  </Form.Select>
-                  {form.type === "custom" && (
-                    <Form.Control
-                      type="text"
-                      className="mt-2"
-                      placeholder="Enter custom type"
-                      onChange={(e) => handleChange("type", e.target.value)}
-                    />
-                  )}
+                  <CreatableSelect
+                    isClearable
+                    placeholder="Select or enter a type"
+                    onChange={(val) => handleChange("type", val ? val.value : "")}
+                    options={dropdownOptions.types.map((t) => ({ value: t, label: t }))}
+                    value={form.type ? { label: form.type, value: form.type } : null}
+                  />
                 </Form.Group>
 
                 <Form.Group className="mb-3">
                   <Form.Label>Color</Form.Label>
-                  <Form.Select value={form.color} onChange={(e) => handleChange("color", e.target.value)}>
-                    <option value="">Select color</option>
-                    {dropdownOptions.colors.map((color) => (
-                      <option key={color} value={color}>
-                        {color}
-                      </option>
-                    ))}
-                    <option value="custom">Custom...</option>
-                  </Form.Select>
-                  {form.color === "custom" && (
-                    <Form.Control
-                      type="text"
-                      className="mt-2"
-                      placeholder="Enter custom color"
-                      onChange={(e) => handleChange("color", e.target.value)}
-                    />
-                  )}
+                  <CreatableSelect
+                    isClearable
+                    placeholder="Select or enter a color"
+                    onChange={(val) => handleChange("color", val ? val.value : "")}
+                    options={dropdownOptions.colors.map((t) => ({ value: t, label: t }))}
+                    value={form.color ? { label: form.color, value: form.color } : null}
+                  />
                 </Form.Group>
 
                 <Form.Group className="mb-3">
                   <Form.Label>Design Specification</Form.Label>
-                  <Form.Select value={form.designSpec} onChange={(e) => handleChange("designSpec", e.target.value)}>
-                    <option value="">Select specification</option>
-                    {dropdownOptions.specs.map((spec) => (
-                      <option key={spec} value={spec}>
-                        {spec}
-                      </option>
-                    ))}
-                    <option value="custom">Custom...</option>
-                  </Form.Select>
-                  {form.designSpec === "custom" && (
-                    <Form.Control
-                      type="text"
-                      className="mt-2"
-                      placeholder="Enter custom specification"
-                      onChange={(e) => handleChange("designSpec", e.target.value)}
-                    />
-                  )}
+                  <CreatableSelect
+                    isClearable
+                    placeholder="Select or enter a design spec"
+                    onChange={(val) => handleChange("designSpec", val ? val.value : "")}
+                    options={dropdownOptions.specs.map((t) => ({ value: t, label: t }))}
+                    value={form.designSpec ? { label: form.designSpec, value: form.designSpec } : null}
+                  />
                 </Form.Group>
 
                 <Form.Group className="mb-3">
                   <Form.Label>Customer ID</Form.Label>
-                  <Form.Select value={form.customerId} onChange={(e) => handleChange("customerId", e.target.value)}>
-                    <option value="">Select customer</option>
-                    {dropdownOptions.customers.map((customer) => (
-                      <option key={customer} value={customer}>
-                        {customer}
-                      </option>
-                    ))}
-                  </Form.Select>
+                  <CreatableSelect
+                    isClearable
+                    placeholder="Select or enter customer ID"
+                    onChange={(val) => handleChange("customerId", val ? val.value : "")}
+                    options={dropdownOptions.customers.map((t) => ({ value: t, label: t }))}
+                    value={form.customerId ? { label: form.customerId, value: form.customerId } : null}
+                  />
                 </Form.Group>
               </Col>
 
@@ -313,29 +310,7 @@ function OrderForm({ toast }) {
               <Form.Text className="text-muted">Upload a CSV or Excel file with size chart details</Form.Text>
             </Form.Group>
 
-            {sizeChartData.length > 0 && (
-              <SizeChart data={sizeChartData} />
-              // <div className="table-responsive mt-3 mb-3 border rounded">
-              //   <table className="table table-striped table-hover mb-0">
-              //     <thead>
-              //       <tr>
-              //         {Object.keys(sizeChartData[0]).map((header) => (
-              //           <th key={header}>{header}</th>
-              //         ))}
-              //       </tr>
-              //     </thead>
-              //     <tbody>
-              //       {sizeChartData.map((row, rowIndex) => (
-              //         <tr key={rowIndex}>
-              //           {Object.values(row).map((value, colIndex) => (
-              //             <td key={colIndex}>{value}</td>
-              //           ))}
-              //         </tr>
-              //       ))}
-              //     </tbody>
-              //   </table>
-              // </div>
-            )}
+            {sizeChartData.length > 0 && <SizeChart data={sizeChartData} csvHeader={csvHeader} />}
 
             <div className="d-flex justify-content-end mt-4">
               <Button variant="primary" type="submit" disabled={isSubmitting} className="px-4">
@@ -357,4 +332,3 @@ function OrderForm({ toast }) {
 }
 
 export default OrderForm
-
