@@ -6,6 +6,7 @@ from app.models.tasks_models import Task
 from app.database.database import get_session
 from app.utils.utils import generate_unique_id, process_size_chart
 import json
+import pandas as pd
 
 router = APIRouter()
 
@@ -14,17 +15,27 @@ router = APIRouter()
 async def create_order(
     order: str = Form(...),  # Accept as a string
     size_chart_file: Optional[UploadFile] = File(None),
+    size_chart_json: Optional[str] = Form(None),
     session: Session = Depends(get_session),
 ):
     # Convert string JSON data to dictionary
     order_data = json.loads(order)
     order_create = OrderCreate(**order_data)
-
     # Generate a unique order_id
     unique_order_id = generate_unique_id(Order, session, "order_id")
 
-    # Process the uploaded size chart file
-    size_chart_data = await process_size_chart(size_chart_file)
+    # Process chart:
+    size_chart_data = None
+
+    if size_chart_file:
+        size_chart_data = await process_size_chart(size_chart_file)
+    elif size_chart_json:
+        try:
+            # Validate JSON is parseable to a DataFrame
+            pd.read_json(size_chart_json)  # validation step
+            size_chart_data = size_chart_json
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid size_chart_json: {e}")
 
     # Create the Order using unpacking for order_create fields
     db_order = Order(
