@@ -38,6 +38,12 @@ class Task(SQLModel, table=True):
     status: TaskStatus = Field(default=TaskStatus.NOT_STARTED)
     task_unit: TaskUnit = Field(default=TaskUnit.UNASSIGNED)
     dependencies: Optional[str] = Field(default="[]")  # JSON list of task_ids
+    incoming_chart: Optional[str] = Field(
+        default=None
+    )  # JSON string of size chart data
+    outgoing_chart: Optional[str] = Field(
+        default=None
+    )  # JSON string of updated size chart data
 
 
 class TaskCreate(SQLModel):

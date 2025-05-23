@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, Body
+from fastapi import APIRouter, Depends, HTTPException, Path, Body, File, UploadFile
 from sqlmodel import Session, select
 from typing import List
 from app.models.tasks_models import Task, TaskCreate, TaskUpdate, TaskStatus
 from app.models.orders_models import Order
-from app.database import get_session
-from app.utils.utils import generate_unique_id
+from app.database.database import get_session
+from app.utils.utils import generate_unique_id, process_size_chart
 import json
+from fastapi.responses import StreamingResponse
+import pandas as pd
+from io import StringIO
 
 router = APIRouter()
 
@@ -34,18 +37,35 @@ def create_task(task: TaskCreate, session: Session = Depends(get_session)):
     # Generate a unique task_id using the utility function
     unique_task_id = generate_unique_id(Task, session, "task_id")
 
-    # Verify that the dependencies exist
-    process_dependencies(task, session)
+    # If task has no dependencies, assign the order's size chart as the incoming chart
+    if not task.dependencies:
+        incoming_chart = order.size_chart  # Use the size chart from the order
+    else:
+        # Use the process_dependencies function to validate the dependencies
+        process_dependencies(task, session)
+
+        # If there are dependencies, check their outgoing charts and assign them as incoming chart
+        for dep_id in task.dependencies:
+            dep_task = session.exec(select(Task).where(Task.task_id == dep_id)).first()
+            if dep_task:
+                if (
+                    dep_task.outgoing_chart
+                ):  # If the dependency has an outgoing chart, use it
+                    incoming_chart = dep_task.outgoing_chart
+                else:
+                    incoming_chart = (
+                        None  # No outgoing chart, set incoming chart to None
+                    )
 
     # Create the task using unpacking for task_create fields
     db_task = Task(
         task_id=unique_task_id,
-        dependencies=json.dumps(task.dependencies)
-        if task.dependencies
-        else None,  # Convert dependencies to JSON if present
+        dependencies=json.dumps(task.dependencies) if task.dependencies else None,
+        incoming_chart=incoming_chart,  # Set the determined incoming chart
+        outgoing_chart=None,  # Outgoing chart will be updated later, so set to None initially
         **task.model_dump(
-            exclude={"dependencies"}
-        ),  # Unpacks all fields, excluding dependencies
+            exclude={"dependencies", "incoming_chart", "outgoing_chart"}
+        ),  # Unpack other fields
     )
 
     session.add(db_task)
@@ -119,6 +139,68 @@ def update_task(
     return db_task
 
 
+@router.patch("/outgoing-chart-upload/{task_id}", response_model=Task)
+async def upload_task_outgoing_chart(
+    task_id: str,
+    outgoing_chart_file: UploadFile = File(
+        ..., description="CSV file containing outgoing chart"
+    ),
+    session: Session = Depends(get_session),
+):
+    # Get the task
+    db_task = session.exec(select(Task).where(Task.task_id == task_id)).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    outgoing_chart_json = await process_size_chart(outgoing_chart_file)
+
+    # Save to outgoing_chart
+    db_task.outgoing_chart = outgoing_chart_json
+    session.add(db_task)
+    session.commit()
+    session.refresh(db_task)
+
+    # Propagate to dependent tasks within the same order
+    dependent_tasks = session.exec(
+        select(Task).where(Task.order_id == db_task.order_id)
+    ).all()
+
+    for task in dependent_tasks:
+        if task.dependencies:
+            dependency_ids = json.loads(task.dependencies)
+            if task_id in dependency_ids:
+                task.incoming_chart = outgoing_chart_json
+                session.add(task)
+
+        session.commit()
+
+    return db_task
+
+
+@router.patch("/incoming-chart-upload/{task_id}", response_model=Task)
+async def upload_task_incoming_chart(
+    task_id: str,
+    incoming_chart_file: UploadFile = File(
+        ..., description="CSV file containing incoming chart"
+    ),
+    session: Session = Depends(get_session),
+):
+    # Get the task
+    db_task = session.exec(select(Task).where(Task.task_id == task_id)).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Process the incoming chart file
+    incoming_chart_json = await process_size_chart(incoming_chart_file)
+
+    # Save the incoming chart to the task
+    db_task.incoming_chart = incoming_chart_json
+    session.add(db_task)
+    session.commit()
+
+    return db_task
+
+
 @router.delete("/{task_id}", response_model=Task)
 def delete_task(task_id: str, session: Session = Depends(get_session)):
     # Check if the task exists
@@ -131,3 +213,53 @@ def delete_task(task_id: str, session: Session = Depends(get_session)):
     session.commit()
 
     return task  # Returning the deleted task details
+
+
+@router.get("/download-chart/{task_id}", response_class=StreamingResponse)
+async def download_task_chart(
+    task_id: str,
+    chart_type: str = "incoming",  # Default is "incoming", can be "outgoing" as well
+    session: Session = Depends(get_session),
+):
+    # Get the task
+    db_task = session.exec(select(Task).where(Task.task_id == task_id)).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Determine which chart to download
+    if chart_type == "incoming":
+        chart_data = db_task.incoming_chart
+    elif chart_type == "outgoing":
+        chart_data = db_task.outgoing_chart
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid chart type. Choose 'incoming' or 'outgoing'.",
+        )
+
+    if not chart_data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"{chart_type.capitalize()} chart not found for the task.",
+        )
+
+    # Convert the JSON chart data back to a DataFrame
+    try:
+        chart_json = json.loads(chart_data)
+        chart_df = pd.DataFrame.from_dict(chart_json)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing chart data: {e}")
+
+    # Convert the DataFrame to CSV format
+    csv_buffer = StringIO()
+    chart_df.to_csv(csv_buffer, index=False)
+    csv_buffer.seek(0)
+
+    # Return the CSV as a downloadable file
+    return StreamingResponse(
+        csv_buffer,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=task_{task_id}_{chart_type}_chart.csv"
+        },
+    )

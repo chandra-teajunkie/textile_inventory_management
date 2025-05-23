@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 from typing import Optional, List
 from app.models.orders_models import Order, OrderCreate, OrderUpdate
 from app.models.tasks_models import Task
-from app.database import get_session
+from app.database.database import get_session
 from app.utils.utils import generate_unique_id, process_size_chart
 import json
 
