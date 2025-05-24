@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, Body, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Path, Body, Form
 from sqlmodel import Session, select
 from typing import List
 from app.models.tasks_models import Task, TaskCreate, TaskUpdate, TaskStatus
 from app.models.orders_models import Order
 from app.database.database import get_session
-from app.utils.utils import generate_unique_id, process_size_chart
+from app.utils.utils import generate_unique_id
 import json
 from fastapi.responses import StreamingResponse
 import pandas as pd
@@ -29,6 +29,9 @@ def process_dependencies(task_update: TaskUpdate, session: Session):
 
 @router.post("/", response_model=Task)
 def create_task(task: TaskCreate, session: Session = Depends(get_session)):
+    if not task.dependencies or all(not d for d in task.dependencies):
+        task.dependencies = None
+
     # Verify that the order exists
     order = session.exec(select(Order).where(Order.order_id == task.order_id)).first()
     if not order:
@@ -81,6 +84,27 @@ def get_tasks_for_order(order_id: str, session: Session = Depends(get_session)):
         raise HTTPException(status_code=400, detail="Order not found")
     tasks = session.exec(select(Task).where(Task.order_id == order.order_id)).all()
     return tasks
+
+
+@router.get("/task-details/{task_id}")
+def get_task_details(task_id: str, session: Session = Depends(get_session)):
+    task = session.exec(select(Task).where(Task.task_id == task_id)).first()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    return {
+        "task_id": task.task_id,
+        "order_id": task.order_id,
+        "name": task.name,
+        "product": task.product,
+        "color": task.color,
+        "status": task.status,
+        "task_unit": task.task_unit,
+        "dependencies": task.dependencies,
+        "incoming_chart": task.incoming_chart,
+        "outgoing_chart": task.outgoing_chart,
+    }
 
 
 @router.patch("/{task_id}", response_model=Task)
@@ -142,8 +166,8 @@ def update_task(
 @router.patch("/outgoing-chart-upload/{task_id}", response_model=Task)
 async def upload_task_outgoing_chart(
     task_id: str,
-    outgoing_chart_file: UploadFile = File(
-        ..., description="CSV file containing outgoing chart"
+    outgoing_chart_json: str = Form(
+        ..., description="JSON string containing outgoing chart"
     ),
     session: Session = Depends(get_session),
 ):
@@ -151,8 +175,6 @@ async def upload_task_outgoing_chart(
     db_task = session.exec(select(Task).where(Task.task_id == task_id)).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
-
-    outgoing_chart_json = await process_size_chart(outgoing_chart_file)
 
     # Save to outgoing_chart
     db_task.outgoing_chart = outgoing_chart_json
@@ -180,8 +202,8 @@ async def upload_task_outgoing_chart(
 @router.patch("/incoming-chart-upload/{task_id}", response_model=Task)
 async def upload_task_incoming_chart(
     task_id: str,
-    incoming_chart_file: UploadFile = File(
-        ..., description="CSV file containing incoming chart"
+    incoming_chart_json: str = Form(
+        ..., description="JSON string containing incoming chart"
     ),
     session: Session = Depends(get_session),
 ):
@@ -189,9 +211,6 @@ async def upload_task_incoming_chart(
     db_task = session.exec(select(Task).where(Task.task_id == task_id)).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
-
-    # Process the incoming chart file
-    incoming_chart_json = await process_size_chart(incoming_chart_file)
 
     # Save the incoming chart to the task
     db_task.incoming_chart = incoming_chart_json
