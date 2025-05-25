@@ -78,6 +78,11 @@
     height: 70%;
 }
 
+.table-responsive {
+    overflow-x: unset;
+    -webkit-overflow-scrolling: touch;
+}
+
 /* .overlayCloseButton {
     padding: 0rem !important;
 }

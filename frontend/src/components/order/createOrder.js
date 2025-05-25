@@ -107,7 +107,7 @@ function OrderForm({ toast }) {
             types: form.type,
             colors: form.color,
             design_specs: form.designSpec,
-            customer_id: form.customerId,
+            customer_name: form.customerId,
             order_date: form.orderDate.toISOString(),
             start_date: form.startDate.toISOString(),
             due_date: form.dueDate.toISOString(),
@@ -244,7 +244,7 @@ function OrderForm({ toast }) {
                                 </Form.Group>
 
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Customer ID</Form.Label>
+                                    <Form.Label>Customer Name</Form.Label>
                                     <CreatableSelect
                                         isClearable
                                         placeholder="Select or enter customer ID"

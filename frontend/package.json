@@ -42,6 +42,7 @@
     "zod": "^3.24.2"
   },
   "scripts": {
+    "update": "npm i -f",
     "start": "set PORT=3001 && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
