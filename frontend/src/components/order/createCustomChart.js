@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useEffect, useRef } from "react"
 import { DataGrid } from "react-data-grid"
+import { Button, Form, Modal, Badge } from "react-bootstrap"
+import { FaTrash, FaPlus, FaUpload, FaTimes } from "react-icons/fa"
 import "react-data-grid/lib/styles.css"
 import * as XLSX from "xlsx"
 
@@ -27,6 +29,7 @@ const dataTypeEditors = {
         })
       }
       className="rdg-text-editor"
+      style={{ width: "100%", height: "100%", border: "none", padding: "8px", outline: "none" }}
       autoFocus
     />
   ),
@@ -41,6 +44,7 @@ const dataTypeEditors = {
         })
       }
       className="rdg-text-editor"
+      style={{ width: "100%", height: "100%", border: "none", padding: "8px", outline: "none" }}
       autoFocus
     />
   ),
@@ -54,6 +58,7 @@ const dataTypeEditors = {
           [props.column.key]: e.target.checked,
         })
       }
+      style={{ margin: "auto", display: "block" }}
       autoFocus
     />
   ),
@@ -68,6 +73,7 @@ const dataTypeEditors = {
         })
       }
       className="rdg-text-editor"
+      style={{ width: "100%", height: "100%", border: "none", padding: "8px", outline: "none" }}
       autoFocus
     />
   ),
@@ -81,23 +87,54 @@ const dataTypeFormatters = {
   date: (value) => (value ? new Date(value).toLocaleDateString() : ""),
 }
 
+const COLUMN_SUGGESTIONS = [
+  "Size",
+  "Quantity",
+  "Price",
+  "Name",
+  "Description",
+  "Category",
+  "Status",
+  "Date",
+  "Email",
+  "Phone",
+  "Weight",
+  "Color",
+  "Material",
+]
+
+const DATA_TYPES = [
+  { value: "string", label: "Text", icon: "📝" },
+  { value: "number", label: "Number", icon: "🔢" },
+  { value: "boolean", label: "Boolean", icon: "☑️" },
+  { value: "date", label: "Date", icon: "📅" },
+]
+
 export default function EnhancedDataGrid({ onSubmit }) {
   const [columns, setColumns] = useState([])
   const [rows, setRows] = useState([])
   const [fileName, setFileName] = useState("")
+  const [isAddColumnOpen, setIsAddColumnOpen] = useState(false)
+  const [newColumnName, setNewColumnName] = useState("")
+  const [newColumnType, setNewColumnType] = useState("string")
   const gridRef = useRef(null)
+  const submitTimeoutRef = useRef(null)
+  const lastSubmittedDataRef = useRef(null)
 
   // Initialize with sample data
   useEffect(() => {
     if (columns.length === 0 && rows.length === 0) {
-      setColumns([
+      const initialColumns = [
         {
           key: "Size",
           name: "Size",
           dataType: "string",
           editable: true,
           renderEditCell: dataTypeEditors.string,
-          renderCell: (props) => dataTypeFormatters.string(props.row[props.column.key]),
+          formatter: (props) => dataTypeFormatters.string(props.row[props.column.key]),
+          headerRenderer: (props) => (
+            <div style={{ fontWeight: 'bold', color: 'blue' }}>HI</div>
+          ),
         },
         {
           key: "Quantity",
@@ -105,29 +142,66 @@ export default function EnhancedDataGrid({ onSubmit }) {
           dataType: "number",
           editable: true,
           renderEditCell: dataTypeEditors.number,
-          renderCell: (props) => dataTypeFormatters.number(props.row[props.column.key]),
+          formatter: (props) => dataTypeFormatters.number(props.row[props.column.key]),
         },
         {
           key: "actions",
           name: "Actions",
+          width: 100,
+          resizable: false,
+          sortable: false,
           renderCell: (props) => (
-            <button onClick={() => deleteRow(props.row.__index)} className="delete-row-btn">
-              Delete
-            </button>
+            <div className="d-flex justify-content-center align-items-center h-100">
+              <Button
+                variant="link"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  deleteRow(props.row.__index)
+                }}
+                className="p-1 text-danger"
+                style={{ border: "none", background: "none" }}
+                title="Delete row"
+              >
+                <FaTrash />
+              </Button>
+            </div>
           ),
         },
-      ])
-      setRows([
+      ]
+
+      const initialRows = [
         { Size: "S", Quantity: 10, __index: 0 },
         { Size: "M", Quantity: 20, __index: 1 },
         { Size: "L", Quantity: 15, __index: 2 },
-      ])
+      ]
+
+      setColumns(initialColumns)
+      setRows(initialRows)
     }
   }, [])
 
-  // Fix for ResizeObserver error - update grid when container size changes
+  // Debounced submit function to prevent duplicate submissions
+  const debouncedSubmit = useCallback(
+    (result) => {
+      if (submitTimeoutRef.current) {
+        clearTimeout(submitTimeoutRef.current)
+      }
+
+      submitTimeoutRef.current = setTimeout(() => {
+        // Check if data actually changed
+        const currentDataString = JSON.stringify(result)
+        if (lastSubmittedDataRef.current !== currentDataString) {
+          lastSubmittedDataRef.current = currentDataString
+          onSubmit(result)
+        }
+      }, 500) // Increased debounce time
+    },
+    [onSubmit],
+  )
+
+  // Submit data when it changes
   useEffect(() => {
-    // Auto-submit when data changes
     if (columns.length > 0 && rows.length > 0) {
       const result = {}
       columns.forEach((col) => {
@@ -138,15 +212,15 @@ export default function EnhancedDataGrid({ onSubmit }) {
           })
         }
       })
-
-      // Debounce the submission to avoid too many updates
-      // const timer = setTimeout(() => {
-      onSubmit(result)
-      // }, 500)
-
-      // return () => clearTimeout(timer)
+      debouncedSubmit(result)
     }
-  }, [columns, rows])
+
+    return () => {
+      if (submitTimeoutRef.current) {
+        clearTimeout(submitTimeoutRef.current)
+      }
+    }
+  }, [columns, rows, debouncedSubmit])
 
   // Process uploaded file with data type detection
   const handleFileUpload = useCallback((e) => {
@@ -198,17 +272,32 @@ export default function EnhancedDataGrid({ onSubmit }) {
           dataType: columnTypes[header],
           editable: true,
           renderEditCell: dataTypeEditors[columnTypes[header]],
-          renderCell: (props) => dataTypeFormatters[columnTypes[header]](props.row[header]),
+          formatter: (props) => dataTypeFormatters[columnTypes[header]](props.row[header]),
         }))
 
         // Add actions column
         newColumns.push({
           key: "actions",
           name: "Actions",
+          width: 100,
+          resizable: false,
+          sortable: false,
           renderCell: (props) => (
-            <button onClick={() => deleteRow(props.row.__index)} className="delete-row-btn">
-              Delete
-            </button>
+            <div className="d-flex justify-content-center align-items-center h-100">
+              <Button
+                variant="link"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  deleteRow(props.row.__index)
+                }}
+                className="p-1 text-danger"
+                style={{ border: "none", background: "none" }}
+                title="Delete row"
+              >
+                <FaTrash />
+              </Button>
+            </div>
           ),
         })
 
@@ -246,7 +335,7 @@ export default function EnhancedDataGrid({ onSubmit }) {
     reader.readAsArrayBuffer(file)
   }, [])
 
-  // Add new row with null values
+  // Add new row
   const addRow = () => {
     if (columns.length === 0) {
       alert("Please add columns first")
@@ -264,28 +353,21 @@ export default function EnhancedDataGrid({ onSubmit }) {
     setRows([...rows, newRow])
   }
 
-  // Add new column with specified type
-  const addColumn = () => {
-    const name = prompt("Column name:")
-    if (!name) return
+  // Add new column
+  const handleAddColumn = () => {
+    if (!newColumnName.trim()) return
 
-    let type = prompt("Data type (string/number/boolean/date):", "string")
-    if (!["string", "number", "boolean", "date"].includes(type)) {
-      alert("Invalid data type. Using string as default.")
-      type = "string"
-    }
-
-    const key = name.replace(/\s+/g, "_")
+    const key = newColumnName.replace(/\s+/g, "_")
     const newColumn = {
       key,
-      name,
-      dataType: type,
+      name: newColumnName,
+      dataType: newColumnType,
       editable: true,
-      renderEditCell: dataTypeEditors[type],
-      renderCell: (props) => dataTypeFormatters[type](props.row[key]),
+      renderEditCell: dataTypeEditors[newColumnType],
+      formatter: (props) => dataTypeFormatters[newColumnType](props.row[key]),
     }
 
-    // Insert before actions column or at the end
+    // Insert before actions column
     const newColumns = [...columns]
     const actionsIndex = newColumns.findIndex((col) => col.key === "actions")
     if (actionsIndex !== -1) {
@@ -298,9 +380,21 @@ export default function EnhancedDataGrid({ onSubmit }) {
     setRows(
       rows.map((row) => ({
         ...row,
-        [key]: type === "string" ? "" : type === "number" ? null : type === "boolean" ? false : null, // date
+        [key]:
+          newColumnType === "string"
+            ? ""
+            : newColumnType === "number"
+              ? null
+              : newColumnType === "boolean"
+                ? false
+                : null,
       })),
     )
+
+    // Reset form
+    setNewColumnName("")
+    setNewColumnType("string")
+    setIsAddColumnOpen(false)
   }
 
   // Delete a column
@@ -317,13 +411,11 @@ export default function EnhancedDataGrid({ onSubmit }) {
     )
   }
 
-  // Delete a row
+  // Delete a row - Fixed to prevent reordering issues
   const deleteRow = (rowIdx) => {
     setRows((prevRows) => {
-      // Create a new array without the row to delete
       const newRows = prevRows.filter((row) => row.__index !== rowIdx)
-
-      // Update the __index values to be sequential
+      // Re-index the remaining rows to maintain sequential order
       return newRows.map((row, idx) => ({
         ...row,
         __index: idx,
@@ -336,96 +428,71 @@ export default function EnhancedDataGrid({ onSubmit }) {
     setRows(newRows)
   }
 
-
   return (
     <div style={{ padding: "20px", maxWidth: "100%", overflowX: "auto" }}>
-      <div
-        style={{
-          marginBottom: "16px",
-          display: "flex",
-          gap: "8px",
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        <label
-          className="file-upload-button"
-          style={{
-            padding: "8px 12px",
-            backgroundColor: "#f0f0f0",
-            borderRadius: "4px",
-            cursor: "pointer",
-            border: "1px solid #ccc",
-          }}
-        >
-          📁 Upload CSV/Excel
-          <input type="file" accept=".csv,.xls,.xlsx" onChange={handleFileUpload} style={{ display: "none" }} />
-        </label>
+      {/* Action Buttons */}
+      <div className="d-flex gap-2 mb-3 flex-wrap">
+        <div className="position-relative">
+          <input
+            type="file"
+            accept=".csv,.xls,.xlsx"
+            onChange={handleFileUpload}
+            className="position-absolute w-100 h-100 opacity-0"
+            style={{ cursor: "pointer", zIndex: 2 }}
+            id="file-upload"
+          />
+          <Button variant="outline-primary" size="sm" className="position-relative">
+            <FaUpload className="me-1" />
+            Upload CSV/Excel
+          </Button>
+        </div>
 
-        <button
-          onClick={addRow}
-          style={{
-            padding: "8px 12px",
-            backgroundColor: "#e3f2fd",
-            border: "1px solid #bbdefb",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          ➕ Add Row
-        </button>
+        <Button onClick={addRow} variant="outline-success" size="sm">
+          <FaPlus className="me-1" />
+          Add Row
+        </Button>
 
-        <button
-          onClick={addColumn}
-          style={{
-            padding: "8px 12px",
-            backgroundColor: "#e8f5e9",
-            border: "1px solid #c8e6c9",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          ➕ Add Column
-        </button>
+        <Button onClick={() => setIsAddColumnOpen(true)} variant="outline-info" size="sm">
+          <FaPlus className="me-1" />
+          Add Column
+        </Button>
 
-        {fileName && <span style={{ marginLeft: "auto", alignSelf: "center", color: "#666" }}>Loaded: {fileName}</span>}
+        {fileName && (
+          <Badge bg="light" text="dark" className="ms-auto align-self-center">
+            📁 {fileName}
+          </Badge>
+        )}
       </div>
 
+      {/* Data Grid */}
       {columns.length > 0 && (
-        <>
+        <div className="border rounded overflow-hidden" style={{ backgroundColor: "#f8f9fa" }}>
           <div
             ref={gridRef}
             style={{
               height: "400px",
               width: "100%",
-              position: "relative",
-              contain: "strict", // Helps with ResizeObserver issues
             }}
           >
             <DataGrid
               columns={columns.map((col) => ({
                 ...col,
-                headerRenderer: (p) => (
+                renderHeader: () => (
                   <div
+                    className="d-flex align-items-center justify-content-between w-100 h-100 px-2"
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      width: "100%",
+                      minHeight: "35px",
+                      backgroundColor: "#343a40", // Dark background
+                      color: "#ffffff", // White text
+                      fontWeight: "bold",
                     }}
                   >
-                    <div>
-                      <span>{col.name}</span>
+                    <div className="d-flex align-items-center gap-2 flex-grow-1">
+                      <span className="fw-bold text-truncate small text-white">{col.name}</span>
                       {col.dataType && (
-                        <span
-                          style={{
-                            fontSize: "0.8em",
-                            color: "#666",
-                            marginLeft: "8px",
-                          }}
-                        >
-                          ({col.dataType})
-                        </span>
+                        <Badge bg="secondary" className="small" style={{ fontSize: "9px" }}>
+                          {col.dataType}
+                        </Badge>
                       )}
                     </div>
                     {col.key !== "actions" && (
@@ -435,16 +502,18 @@ export default function EnhancedDataGrid({ onSubmit }) {
                           deleteColumn(col.key)
                         }}
                         style={{
-                          background: "none",
                           border: "none",
-                          color: "red",
+                          background: "none",
+                          color: "#dc3545",
                           cursor: "pointer",
-                          fontSize: "16px",
-                          padding: "0 4px",
+                          padding: "2px 4px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                         title="Delete column"
                       >
-                        ×
+                        <FaTimes size={12} />
                       </button>
                     )}
                   </div>
@@ -457,36 +526,71 @@ export default function EnhancedDataGrid({ onSubmit }) {
                 sortable: true,
               }}
               rowKeyGetter={(row) => row.__index}
+              style={{
+                "--rdg-header-background-color": "#343a40", // Dark header
+                "--rdg-header-foreground-color": "#ffffff", // White text
+                "--rdg-border-color": "#dee2e6",
+                fontSize: "14px",
+              }}
             />
           </div>
-
-          <div style={{ marginTop: "16px", color: "#666" }}>
-            <p>
-              <strong>Editing Tips:</strong> Click cells to edit.
-            </p>
-          </div>
-        </>
+        </div>
       )}
 
-      <style jsx>{`
-        .delete-row-btn {
-          background: #ffebee;
-          border: 1px solid #ffcdd2;
-          border-radius: 4px;
-          padding: 2px 6px;
-          cursor: pointer;
-          color: #c62828;
-        }
-        .delete-row-btn:hover {
-          background: #ffcdd2;
-        }
-        .rdg-text-editor {
-          width: 100%;
-          height: 100%;
-          border: none;
-          padding: 0 8px;
-        }
-      `}</style>
+      {/* Add Column Modal */}
+      <Modal show={isAddColumnOpen} onHide={() => setIsAddColumnOpen(false)} centered>
+        <Modal.Header closeButton className="bg-primary text-white">
+          <Modal.Title className="d-flex align-items-center">
+            <FaPlus className="me-2" />
+            Add New Column
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-bold">Column Name</Form.Label>
+            <Form.Select value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} className="mb-2">
+              <option value="">Select suggested name...</option>
+              {COLUMN_SUGGESTIONS.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Control
+              placeholder="Or enter custom name"
+              value={newColumnName}
+              onChange={(e) => setNewColumnName(e.target.value)}
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-bold">Data Type</Form.Label>
+            <Form.Select value={newColumnType} onChange={(e) => setNewColumnType(e.target.value)}>
+              {DATA_TYPES.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.icon} {type.label}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={() => setIsAddColumnOpen(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleAddColumn} disabled={!newColumnName.trim()}>
+            Add Column
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Tips */}
+      <div className="mt-3 text-muted">
+        <small>
+          <strong>Tips:</strong> Click cells to edit • Use column delete (×) buttons to remove columns • Upload
+          CSV/Excel files to import data
+        </small>
+      </div>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react"
 import { Card, Button, Badge, Dropdown, Modal, Form } from "react-bootstrap"
 import { TaskModal } from "./TaskModal"
 import { EditTaskModal } from "./EditTaskModal";
+import { FaTrash } from "react-icons/fa"
 
 import { GrLanguage, GrClose } from "react-icons/gr";
 import './overlay.css'
@@ -19,6 +20,8 @@ function OrderList({ toast, setActiveTab }) {
 
   const [editTask, setEditTask] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [deletingId, setDeletingId] = useState(null)
+
 
 
   const fetchOrders = async () => {
@@ -44,6 +47,24 @@ function OrderList({ toast, setActiveTab }) {
       setLoading(false)
     }
   }
+
+  // 2) Delete an order
+  const deleteOrder = async (orderId) => {
+    if (!window.confirm("Are you sure you want to delete this order?")) return
+    setDeletingId(orderId)
+    try {
+      const res = await fetch(`${process.env.REACT_APP_DELETE_ORDER}${orderId}`, { method: "DELETE" })
+      if (!res.ok) throw new Error(`Status ${res.status}`)
+      toast.current.show({ severity: "success", summary: "Deleted", detail: "Order removed", life: 3000 })
+      await fetchOrders()
+    } catch (err) {
+      console.error(err)
+      toast.current.show({ severity: "error", summary: "Error", detail: "Could not delete order", life: 3000 })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
 
   const fetchTasksForOrder = async (orderId) => {
     try {
@@ -263,7 +284,15 @@ function OrderList({ toast, setActiveTab }) {
                             >
                               {expandedOrderId === order.order_id ? "Hide Tasks" : "Show Tasks"}
                             </Button>
-                            <Dropdown align="end">
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => deleteOrder(order.order_id)}
+                              disabled={deletingId === order.order_id}
+                            >
+                              <FaTrash />
+                            </Button>
+                            {/* <Dropdown align="end">
                               <Dropdown.Toggle variant="light" size="sm" id={`dropdown-${order.order_id}`}>
                                 <i className="bi bi-three-dots"></i>
                               </Dropdown.Toggle>
@@ -274,7 +303,7 @@ function OrderList({ toast, setActiveTab }) {
                                 <Dropdown.Item href="#">Generate Invoice</Dropdown.Item>
                                 <Dropdown.Item href="#">Print Packing Slip</Dropdown.Item>
                               </Dropdown.Menu>
-                            </Dropdown>
+                            </Dropdown> */}
                           </div>
                         </td>
                       </tr>

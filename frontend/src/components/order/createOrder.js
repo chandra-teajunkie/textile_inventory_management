@@ -1,9 +1,8 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Form, Button, Row, Col, Card } from "react-bootstrap"
+import { Form, Button, Row, Col, Card, Badge } from "react-bootstrap"
 import DatePicker from "react-datepicker"
-import * as XLSX from "xlsx"
 import "react-datepicker/dist/react-datepicker.css"
 import CreatableSelect from "react-select/creatable"
 import EnhancedDataGrid from "./createCustomChart"
@@ -11,10 +10,10 @@ import EnhancedDataGrid from "./createCustomChart"
 function OrderForm({ toast }) {
     const [form, setForm] = useState({
         overallPieces: "",
-        type: "",
-        color: "",
-        designSpec: "",
-        customerId: "",
+        types: [], // Changed to array for multi-select
+        colors: [], // Changed to array for multi-select
+        design_specs: [], // Changed to array for multi-select
+        customer_name: "", // Remains single select
         specialNotes: "",
         orderDate: new Date(),
         startDate: new Date(),
@@ -22,73 +21,142 @@ function OrderForm({ toast }) {
     })
 
     const [sizeChartData, setSizeChartData] = useState(null)
-    const [uploadedFile, setUploadedFile] = useState(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [csvHeader, setCSVHeader] = useState([])
-    const gridContainerRef = useRef(null)
-
     const [dropdownOptions, setDropdownOptions] = useState({
-        types: ["Top", "Bottom", "Pant"],
-        colors: ["Red", "Blue", "Green"],
-        specs: ["Floral", "Plain", "Striped"],
-        customers: ["CUST001", "CUST002", "CUST003"],
+        types: [],
+        colors: [],
+        design_specs: [],
+        customer_name: [],
     })
 
-    // Fix for ResizeObserver error - add cleanup for any observers
+    // Track toast to prevent duplicates
+    const lastToastTimeRef = useRef(0)
+
+    // Fetch dropdown options on component mount
     useEffect(() => {
-        return () => {
-            // This empty cleanup function helps prevent ResizeObserver errors
-            // when the component unmounts during an active resize observation
-        }
+        fetchDropdownOptions()
     }, [])
+
+    const fetchDropdownOptions = async () => {
+        try {
+            // Single endpoint for all dropdown options
+            const response = await fetch(process.env.REACT_APP_GET_DROPDOWN_OPTIONS)
+
+            if (response.ok) {
+                const data = await response.json()
+
+                // Expected format: { types: [], colors: [], design_specs: [], customer_name: [] }
+                setDropdownOptions({
+                    types: data.types || ["Top", "Bottom", "Pant"],
+                    colors: data.colors || ["Red", "Blue", "Green"],
+                    design_specs: data.design_specs || data.design_specs || ["Floral", "Plain", "Striped"],
+                    customer_name: data.customer_name || ["CUST001", "CUST002", "CUST003"],
+                })
+            } else {
+                throw new Error("Failed to fetch dropdown options")
+            }
+        } catch (error) {
+            console.error("Error fetching dropdown options:", error)
+            // Use fallback data if API fails
+            setDropdownOptions({
+                types: ["Top", "Bottom", "Pant"],
+                colors: ["Red", "Blue", "Green"],
+                design_specs: ["Floral", "Plain", "Striped"],
+                customer_name: ["CUST001", "CUST002", "CUST003"],
+            })
+        }
+    }
+
+    const postCustomLabel = async (value, type) => {
+        try {
+            // Single endpoint for posting custom labels
+            const formData = new FormData()
+            formData.append("label", value)
+            formData.append("type", type) // Specify which dropdown type
+
+            const response = await fetch(process.env.REACT_APP_POST_CUSTOM_LABEL, {
+                method: "POST",
+                body: formData,
+            })
+
+            if (response.ok) {
+                // Refresh dropdown options after successful post
+                await fetchDropdownOptions()
+                showToast("success", "Custom Label Added", `"${value}" has been added to ${type}`)
+            } else {
+                throw new Error("Failed to post custom label")
+            }
+        } catch (error) {
+            console.error(`Error posting custom ${type}:`, error)
+            showToast("error", "Error", `Failed to add custom ${type}`)
+        }
+    }
+
+    const showToast = (severity, summary, detail) => {
+        const now = Date.now()
+        if (now - lastToastTimeRef.current > 2000) {
+            // Prevent duplicate toasts within 2 seconds
+            lastToastTimeRef.current = now
+            toast.current.show({
+                severity,
+                summary,
+                detail,
+                life: 3000,
+            })
+        }
+    }
+
+    const handleMultiSelectChange = (field, selectedOptions) => {
+        const values = selectedOptions ? selectedOptions.map((option) => option.value) : []
+        setForm((prev) => ({ ...prev, [field]: values }))
+    }
+
+    const handleSingleSelectChange = (field, selectedOption) => {
+        const value = selectedOption ? selectedOption.value : ""
+        setForm((prev) => ({ ...prev, [field]: value }))
+    }
+
+    const handleCreateOption = async (inputValue, field) => {
+        // Add to local state immediately for better UX
+        setDropdownOptions((prev) => ({
+            ...prev,
+            [field]: [...prev[field], inputValue],
+        }))
+
+        // Post to backend
+        // await postCustomLabel(inputValue, field)
+
+        // Update form state
+        if (field === "customer_name") {
+            handleSingleSelectChange(field, { value: inputValue, label: inputValue })
+        } else {
+            const currentValues = form[field] || []
+            setForm((prev) => ({ ...prev, [field]: [...currentValues, inputValue] }))
+        }
+    }
 
     const handleChange = (field, value) => {
         setForm((prev) => ({ ...prev, [field]: value }))
-
-        const fieldMap = {
-            type: "types",
-            color: "colors",
-            designSpec: "specs",
-            customerId: "customers",
-        }
-
-        const key = fieldMap[field]
-
-        if (key && value && !dropdownOptions[key]?.includes(value)) {
-            setDropdownOptions((prev) => ({
-                ...prev,
-                [key]: Array.isArray(prev[key]) ? [...prev[key], value] : [value],
-            }))
-        }
     }
 
     const validateForm = () => {
         const emptyFields = []
 
-        Object.entries(form).forEach(([key, value]) => {
-            if (!value || (typeof value === "string" && value.trim() === "")) {
-                emptyFields.push(key)
-            }
-        })
+        // Check required fields
+        if (!form.overallPieces || form.overallPieces.trim() === "") emptyFields.push("overallPieces")
+        if (!form.types || form.types.length === 0) emptyFields.push("types")
+        if (!form.colors || form.colors.length === 0) emptyFields.push("colors")
+        if (!form.design_specs || form.design_specs.length === 0) emptyFields.push("design_specs")
+        if (!form.customer_name || form.customer_name.trim() === "") emptyFields.push("customer_name")
+        if (!form.specialNotes || form.specialNotes.trim() === "") emptyFields.push("specialNotes")
 
         if (emptyFields.length > 0) {
-            toast.current.show({
-                severity: "warn",
-                summary: "Missing Fields",
-                detail: `Please fill in all required fields: ${emptyFields.join(", ")}`,
-                life: 3000,
-            })
+            showToast("warn", "Missing Fields", `Please fill in all required fields: ${emptyFields.join(", ")}`)
             return false
         }
 
-        // Updated validation - check for size chart data instead of file
         if (!sizeChartData) {
-            toast.current.show({
-                severity: "warn",
-                summary: "Missing Size Chart",
-                detail: "Please create or upload a Size Chart",
-                life: 3000,
-            })
+            showToast("warn", "Missing Size Chart", "Please create or upload a Size Chart")
             return false
         }
 
@@ -104,10 +172,10 @@ function OrderForm({ toast }) {
 
         const orderPayload = {
             number_of_overall_pieces: Number.parseInt(form.overallPieces),
-            types: form.type,
-            colors: form.color,
-            design_specs: form.designSpec,
-            customer_name: form.customerId,
+            types: form.types.join(", "), // Join with commas
+            colors: form.colors.join(", "), // Join with commas
+            design_specs: form.design_specs.join(", "), // Join with commas
+            customer_name: form.customer_name,
             order_date: form.orderDate.toISOString(),
             start_date: form.startDate.toISOString(),
             due_date: form.dueDate.toISOString(),
@@ -115,19 +183,9 @@ function OrderForm({ toast }) {
         }
 
         try {
-            // Create FormData
             const formData = new FormData()
-
-            // Add order data
             formData.append("order", JSON.stringify(orderPayload))
-
-            // Add size chart JSON instead of file
             formData.append("size_chart_json", JSON.stringify(sizeChartData))
-
-            // If file is still needed for backward compatibility
-            if (uploadedFile) {
-                formData.append("size_chart_file", uploadedFile)
-            }
 
             const response = await fetch(process.env.REACT_APP_POST_ALL_ORDERS, {
                 method: "POST",
@@ -136,53 +194,44 @@ function OrderForm({ toast }) {
 
             if (response.ok) {
                 const result = await response.json()
-                toast.current.show({
-                    severity: "success",
-                    summary: "Success",
-                    detail: `Order created successfully with ID: ${result.order_id}`,
-                    life: 3000,
-                })
+                showToast("success", "Success", `Order created successfully with ID: ${result.order_id}`)
 
                 // Reset form
                 setForm({
                     overallPieces: "",
-                    type: "",
-                    color: "",
-                    designSpec: "",
-                    customerId: "",
+                    types: [],
+                    colors: [],
+                    design_specs: [],
+                    customer_name: "",
                     specialNotes: "",
                     orderDate: new Date(),
                     startDate: new Date(),
                     dueDate: new Date(),
                 })
                 setSizeChartData(null)
-                setUploadedFile(null)
             } else {
                 const errorData = await response.json()
-                toast.current.show({
-                    severity: "error",
-                    summary: "Error",
-                    detail: errorData.message || "Failed to create order",
-                    life: 3000,
-                })
+                showToast("error", "Error", errorData.message || "Failed to create order")
             }
         } catch (err) {
             console.error("Error creating order:", err)
-            toast.current.show({
-                severity: "error",
-                summary: "Error",
-                detail: "Network or server error occurred",
-                life: 3000,
-            })
+            showToast("error", "Error", "Network or server error occurred")
         } finally {
             setIsSubmitting(false)
         }
     }
 
     const handleTableSubmit = (json) => {
-        // console.log("Table JSON →", JSON.stringify(json))
-        // Store the JSON data directly
         setSizeChartData(json)
+    }
+
+    // Convert arrays to react-select format
+    const formatOptionsForSelect = (options) => {
+        return options.map((option) => ({ value: option, label: option }))
+    }
+
+    const formatValuesForSelect = (values) => {
+        return values.map((value) => ({ value, label: value }))
     }
 
     return (
@@ -201,99 +250,141 @@ function OrderForm({ toast }) {
                         <Row>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Number of Pieces</Form.Label>
+                                    <Form.Label>Number of Pieces *</Form.Label>
                                     <Form.Control
                                         type="number"
                                         value={form.overallPieces}
                                         onChange={(e) => handleChange("overallPieces", e.target.value)}
                                         placeholder="Enter total pieces"
+                                        required
                                     />
                                 </Form.Group>
 
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Type</Form.Label>
+                                    <Form.Label>Types * (Multi-select)</Form.Label>
                                     <CreatableSelect
+                                        isMulti
                                         isClearable
-                                        placeholder="Select or enter a type"
-                                        onChange={(val) => handleChange("type", val ? val.value : "")}
-                                        options={dropdownOptions.types.map((t) => ({ value: t, label: t }))}
-                                        value={form.type ? { label: form.type, value: form.type } : null}
+                                        placeholder="Select or enter types"
+                                        value={formatValuesForSelect(form.types)}
+                                        onChange={(selectedOptions) => handleMultiSelectChange("types", selectedOptions)}
+                                        onCreateOption={(inputValue) => handleCreateOption(inputValue, "types")}
+                                        options={formatOptionsForSelect(dropdownOptions.types)}
                                     />
+                                    {form.types.length > 0 && (
+                                        <div className="mt-2">
+                                            <small className="text-muted">Selected: </small>
+                                            {form.types.map((type, index) => (
+                                                <Badge key={index} bg="primary" className="me-1">
+                                                    {type}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
                                 </Form.Group>
 
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Color</Form.Label>
+                                    <Form.Label>Colors * (Multi-select)</Form.Label>
                                     <CreatableSelect
+                                        isMulti
                                         isClearable
-                                        placeholder="Select or enter a color"
-                                        onChange={(val) => handleChange("color", val ? val.value : "")}
-                                        options={dropdownOptions.colors.map((t) => ({ value: t, label: t }))}
-                                        value={form.color ? { label: form.color, value: form.color } : null}
+                                        placeholder="Select or enter colors"
+                                        value={formatValuesForSelect(form.colors)}
+                                        onChange={(selectedOptions) => handleMultiSelectChange("colors", selectedOptions)}
+                                        onCreateOption={(inputValue) => handleCreateOption(inputValue, "colors")}
+                                        options={formatOptionsForSelect(dropdownOptions.colors)}
                                     />
+                                    {form.colors.length > 0 && (
+                                        <div className="mt-2">
+                                            <small className="text-muted">Selected: </small>
+                                            {form.colors.map((color, index) => (
+                                                <Badge key={index} bg="success" className="me-1">
+                                                    {color}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
                                 </Form.Group>
 
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Design Specification</Form.Label>
+                                    <Form.Label>Design Specifications * (Multi-select)</Form.Label>
                                     <CreatableSelect
+                                        isMulti
                                         isClearable
-                                        placeholder="Select or enter a design spec"
-                                        onChange={(val) => handleChange("designSpec", val ? val.value : "")}
-                                        options={dropdownOptions.specs.map((t) => ({ value: t, label: t }))}
-                                        value={form.designSpec ? { label: form.designSpec, value: form.designSpec } : null}
+                                        placeholder="Select or enter design specs"
+                                        value={formatValuesForSelect(form.design_specs)}
+                                        onChange={(selectedOptions) => handleMultiSelectChange("design_specs", selectedOptions)}
+                                        onCreateOption={(inputValue) => handleCreateOption(inputValue, "design_specs")}
+                                        options={formatOptionsForSelect(dropdownOptions.design_specs)}
                                     />
+                                    {form.design_specs.length > 0 && (
+                                        <div className="mt-2">
+                                            <small className="text-muted">Selected: </small>
+                                            {form.design_specs.map((spec, index) => (
+                                                <Badge key={index} bg="warning" className="me-1">
+                                                    {spec}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
                                 </Form.Group>
 
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Customer Name</Form.Label>
+                                    <Form.Label>Customer Name * (Single select)</Form.Label>
                                     <CreatableSelect
                                         isClearable
-                                        placeholder="Select or enter customer ID"
-                                        onChange={(val) => handleChange("customerId", val ? val.value : "")}
-                                        options={dropdownOptions.customers.map((t) => ({ value: t, label: t }))}
-                                        value={form.customerId ? { label: form.customerId, value: form.customerId } : null}
+                                        placeholder="Select or enter customer name"
+                                        value={form.customer_name ? { label: form.customer_name, value: form.customer_name } : null}
+                                        onChange={(selectedOption) => handleSingleSelectChange("customer_name", selectedOption)}
+                                        onCreateOption={(inputValue) => handleCreateOption(inputValue, "customer_name")}
+                                        options={formatOptionsForSelect(dropdownOptions.customer_name)}
                                     />
                                 </Form.Group>
                             </Col>
 
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Special Notes</Form.Label>
+                                    <Form.Label>Special Notes *</Form.Label>
                                     <Form.Control
                                         as="textarea"
                                         rows={3}
                                         value={form.specialNotes}
                                         onChange={(e) => handleChange("specialNotes", e.target.value)}
                                         placeholder="Enter any special instructions"
+                                        required
                                     />
                                 </Form.Group>
 
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Order Date</Form.Label>
+                                    <Form.Label>Order Date *</Form.Label>
                                     <DatePicker
                                         selected={form.orderDate}
                                         onChange={(date) => handleChange("orderDate", date)}
                                         className="form-control"
                                         dateFormat="MMMM d, yyyy"
+                                        required
                                     />
                                 </Form.Group>
 
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Start Date</Form.Label>
+                                    <Form.Label>Start Date *</Form.Label>
                                     <DatePicker
                                         selected={form.startDate}
                                         onChange={(date) => handleChange("startDate", date)}
                                         className="form-control"
                                         dateFormat="MMMM d, yyyy"
+                                        required
                                     />
                                 </Form.Group>
 
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Due Date</Form.Label>
+                                    <Form.Label>Due Date *</Form.Label>
                                     <DatePicker
                                         selected={form.dueDate}
                                         onChange={(date) => handleChange("dueDate", date)}
                                         className="form-control"
                                         dateFormat="MMMM d, yyyy"
+                                        required
                                     />
                                 </Form.Group>
                             </Col>
@@ -301,16 +392,10 @@ function OrderForm({ toast }) {
 
                         <hr />
 
-                        <h5 className="mb-3">Size Chart</h5>
+                        <h5 className="mb-3">Size Chart *</h5>
                         <p className="text-muted mb-4">Create a size chart or upload a file to generate one</p>
 
-                        {/* <div className="mb-3">
-                            <Form.Label>Upload Size Chart (Optional)</Form.Label>
-                            <Form.Control type="file" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} />
-                            <Form.Text className="text-muted">Upload a CSV or Excel file with size chart details</Form.Text>
-                        </div> */}
-
-                        <div ref={gridContainerRef} className="size-chart-container">
+                        <div className="size-chart-container">
                             <EnhancedDataGrid onSubmit={handleTableSubmit} />
                         </div>
 
@@ -331,11 +416,11 @@ function OrderForm({ toast }) {
             </Card>
 
             <style jsx>{`
-                .size-chart-container {
-                    margin-bottom: 20px;
-                    overflow: hidden; /* Helps with ResizeObserver issues */
-                }
-            `}</style>
+        .size-chart-container {
+          margin-bottom: 20px;
+          overflow: hidden;
+        }
+      `}</style>
         </div>
     )
 }
