@@ -1,7 +1,8 @@
 from typing import Optional, List
-from sqlmodel import Field, SQLModel, Relationship
+from sqlmodel import Field, SQLModel, Relationship, UniqueConstraint
 from datetime import datetime
 from typing import TYPE_CHECKING
+import uuid
 
 if TYPE_CHECKING:
     from app.models.tasks_models import Task  # Import Task model
@@ -14,7 +15,7 @@ class Order(SQLModel, table=True):
     types: str
     colors: str
     design_specs: Optional[str] = None
-    customer_id: str
+    customer_name: str
     order_date: datetime
     start_date: datetime
     due_date: datetime
@@ -28,7 +29,7 @@ class OrderCreate(SQLModel):
     types: str
     colors: str
     design_specs: Optional[str] = None
-    customer_id: str
+    customer_name: str
     order_date: datetime
     start_date: datetime
     due_date: datetime
@@ -40,9 +41,17 @@ class OrderUpdate(SQLModel):
     types: Optional[str] = None
     colors: Optional[str] = None
     design_specs: Optional[str] = None
-    customer_id: Optional[str] = None
+    customer_name: Optional[str] = None
     order_date: Optional[datetime] = None
     start_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
     special_notes: Optional[str] = None
     size_chart: Optional[str] = Field(default=None)
+
+
+class OrderMetadata(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    category: str  # e.g., 'color', 'type', 'product'
+    value: str  # e.g., 'Red', 'Pant', etc.
+
+    __table_args__ = (UniqueConstraint("category", "value"),)

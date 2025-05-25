@@ -4,6 +4,8 @@ import uuid
 import pandas as pd
 from io import StringIO
 from typing import Optional
+from sqlmodel import Session
+from app.models.orders_models import OrderMetadata
 
 
 def generate_unique_id(model, session, field_name: str):
@@ -28,3 +30,18 @@ async def process_size_chart(size_chart_file: Optional[UploadFile]) -> Optional[
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error processing file: {e}")
     return None
+
+
+def update_order_metadata_if_new(category: str, value: str, session: Session):
+    category = category.strip().lower()
+    value = value.strip().lower()
+
+    existing = session.exec(
+        select(OrderMetadata).where(
+            OrderMetadata.category == category, OrderMetadata.value == value
+        )
+    ).first()
+    if not existing:
+        metadata = OrderMetadata(category=category, value=value)
+        session.add(metadata)
+        session.commit()

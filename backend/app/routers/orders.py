@@ -1,12 +1,17 @@
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form
 from sqlmodel import Session, select
 from typing import Optional, List
-from app.models.orders_models import Order, OrderCreate, OrderUpdate
+from app.models.orders_models import Order, OrderCreate, OrderUpdate, OrderMetadata
 from app.models.tasks_models import Task
 from app.database.database import get_session
-from app.utils.utils import generate_unique_id, process_size_chart
+from app.utils.utils import (
+    generate_unique_id,
+    process_size_chart,
+    update_order_metadata_if_new,
+)
 import json
 import pandas as pd
+from collections import defaultdict
 
 router = APIRouter()
 
@@ -23,6 +28,21 @@ async def create_order(
     order_create = OrderCreate(**order_data)
     # Generate a unique order_id
     unique_order_id = generate_unique_id(Order, session, "order_id")
+
+    metadata_fields = ["types", "colors", "customer_name", "design_specs"]
+
+    for field_name in metadata_fields:
+        raw_value = order_data.get(field_name)
+        if raw_value:
+            # If comma-separated (e.g., "Red, Blue"), split into individual values
+            values = (
+                [v.strip().lower() for v in raw_value.split(",")]
+                if isinstance(raw_value, str)
+                else [raw_value]
+            )
+            for val in values:
+                if val:  # Avoid empty strings
+                    update_order_metadata_if_new(field_name, val, session)
 
     # Process chart:
     size_chart_data = None
@@ -52,7 +72,7 @@ async def create_order(
 
 
 @router.get("/", response_model=List[Order])
-def read_orders(session: Session = Depends(get_session)):
+def get_all_orders(session: Session = Depends(get_session)):
     orders = session.exec(select(Order)).all()
     return orders
 
@@ -114,3 +134,17 @@ def delete_order(order_id: str, session: Session = Depends(get_session)):
     session.commit()
 
     return order  # Returning the deleted order details
+
+
+@router.get("/metadata", response_model=dict)
+def get_all_metadata(session: Session = Depends(get_session)):
+    results = session.exec(select(OrderMetadata)).all()
+
+    metadata = defaultdict(list)
+    for item in results:
+        metadata[item.category].append(item.value)
+
+    # Optionally, remove duplicates (if any)
+    metadata = {k: sorted(set(v)) for k, v in metadata.items()}
+
+    return metadata
