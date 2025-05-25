@@ -14,9 +14,13 @@ import { GiSewingMachine } from "react-icons/gi";
 
 // Lazy-loaded components
 const Dashboard = lazy(() => import("./components/Dashboard"))
-const OrderForm = lazy(() => import("./components/OrderForm"))
-const OrderList = lazy(() => import("./components/OrderList"))
-const TaskList = lazy(() => import("./components/TaskList"))
+// const OrderForm = lazy(() => import("./components/OrderForm"))
+// const OrderList = lazy(() => import("./components/OrderList"))
+// const TaskList = lazy(() => import("./components/TaskList"))
+
+const OrderForm = lazy(() => import("./components/order/createOrder"))
+const OrderList = lazy(() => import("./components/task/OrderList"))
+const TaskList = lazy(() => import("./components/updateTask/TaskList"))
 const InventoryOverview = lazy(() => import("./components/InventoryOverview"))
 
 function App() {

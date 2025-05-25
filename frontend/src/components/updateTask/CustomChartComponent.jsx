@@ -1,0 +1,703 @@
+"use client"
+
+import { useState, useCallback, useEffect, useRef } from "react"
+import { DataGrid } from "react-data-grid"
+import { Button, Form, Modal, Badge, Card } from "react-bootstrap"
+import { FaTrash, FaPlus, FaUpload, FaEdit, FaTimes } from "react-icons/fa"
+import "react-data-grid/lib/styles.css"
+import * as XLSX from "xlsx"
+
+// Helper function to detect data type
+const detectDataType = (value) => {
+  if (value === null || value === undefined || value === "") return "string"
+  if (!isNaN(value) && value.toString().trim() !== "") return "number"
+  if (typeof value === "boolean") return "boolean"
+  if (Date.parse(value)) return "date"
+  return "string"
+}
+
+// Data type editors
+const dataTypeEditors = {
+  number: (props) => (
+    <input
+      type="number"
+      value={props.row[props.column.key] ?? ""}
+      onChange={(e) =>
+        props.onRowChange({
+          ...props.row,
+          [props.column.key]: e.target.value === "" ? null : Number(e.target.value),
+        })
+      }
+      className="rdg-text-editor"
+      style={{ width: "100%", height: "100%", border: "none", padding: "8px", outline: "none" }}
+      autoFocus
+    />
+  ),
+  string: (props) => (
+    <input
+      type="text"
+      value={props.row[props.column.key] ?? ""}
+      onChange={(e) =>
+        props.onRowChange({
+          ...props.row,
+          [props.column.key]: e.target.value === "" ? null : e.target.value,
+        })
+      }
+      className="rdg-text-editor"
+      style={{ width: "100%", height: "100%", border: "none", padding: "8px", outline: "none" }}
+      autoFocus
+    />
+  ),
+  boolean: (props) => (
+    <input
+      type="checkbox"
+      checked={!!props.row[props.column.key]}
+      onChange={(e) =>
+        props.onRowChange({
+          ...props.row,
+          [props.column.key]: e.target.checked,
+        })
+      }
+      style={{ margin: "auto", display: "block" }}
+      autoFocus
+    />
+  ),
+  date: (props) => (
+    <input
+      type="date"
+      value={props.row[props.column.key] ? new Date(props.row[props.column.key]).toISOString().split("T")[0] : ""}
+      onChange={(e) =>
+        props.onRowChange({
+          ...props.row,
+          [props.column.key]: e.target.value ? new Date(e.target.value) : null,
+        })
+      }
+      className="rdg-text-editor"
+      style={{ width: "100%", height: "100%", border: "none", padding: "8px", outline: "none" }}
+      autoFocus
+    />
+  ),
+}
+
+// Data type formatters
+const dataTypeFormatters = {
+  number: (value) => value,
+  string: (value) => value,
+  boolean: (value) => (value ? "✓" : "✗"),
+  date: (value) => (value ? new Date(value).toLocaleDateString() : ""),
+}
+
+const COLUMN_SUGGESTIONS = [
+  "Size",
+  "Quantity",
+  "Price",
+  "Name",
+  "Description",
+  "Category",
+  "Status",
+  "Date",
+  "Email",
+  "Phone",
+  "Weight",
+  "Color",
+  "Material",
+]
+
+const DATA_TYPES = [
+  { value: "string", label: "Text", icon: "📝" },
+  { value: "number", label: "Number", icon: "🔢" },
+  { value: "boolean", label: "Boolean", icon: "☑️" },
+  { value: "date", label: "Date", icon: "📅" },
+]
+
+function CustomChartComponent({ data, onSubmit, chartType = "chart", onResetToOrderChart }) {
+  const [columns, setColumns] = useState([])
+  const [rows, setRows] = useState([])
+  const [fileName, setFileName] = useState("")
+  const [isAddColumnOpen, setIsAddColumnOpen] = useState(false)
+  const [editingColumn, setEditingColumn] = useState(null)
+  const [newColumnName, setNewColumnName] = useState("")
+  const [newColumnType, setNewColumnType] = useState("string")
+  const [editColumnName, setEditColumnName] = useState("")
+  const [isInitialized, setIsInitialized] = useState(false)
+  const gridRef = useRef(null)
+  const submitTimeoutRef = useRef(null)
+
+  // Convert Python backend JSON format to grid format
+  const loadDataFromBackend = useCallback((backendData) => {
+    if (!backendData || typeof backendData !== "object") {
+      // Initialize with default data if no data provided
+      initializeDefaultData()
+      return
+    }
+
+    const keys = Object.keys(backendData)
+    if (keys.length === 0) {
+      initializeDefaultData()
+      return
+    }
+
+    // Get all possible row indices
+    const allIndices = new Set()
+    keys.forEach((key) => {
+      if (typeof backendData[key] === "object" && backendData[key] !== null) {
+        Object.keys(backendData[key]).forEach((index) => allIndices.add(Number.parseInt(index)))
+      }
+    })
+
+    const sortedIndices = Array.from(allIndices).sort((a, b) => a - b)
+
+    // Create columns
+    const newColumns = keys.map((key) => {
+      // Detect data type from first non-null value
+      let dataType = "string"
+      for (const index of sortedIndices) {
+        const value = backendData[key][index]
+        if (value !== null && value !== undefined) {
+          dataType = detectDataType(value)
+          break
+        }
+      }
+
+      return {
+        key,
+        name: key,
+        dataType,
+        editable: true,
+        renderEditCell: dataTypeEditors[dataType],
+        formatter: (props) => dataTypeFormatters[dataType](props.row[props.column.key]),
+      }
+    })
+
+    // Add actions column
+    newColumns.push({
+      key: "actions",
+      name: "Actions",
+      width: 100,
+      resizable: false,
+      sortable: false,
+      renderCell: (props) => (
+        <div className="d-flex justify-content-center align-items-center h-100">
+          <Button
+            variant="link"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              deleteRow(props.row.__index)
+            }}
+            className="p-1 text-danger"
+            style={{ border: "none", background: "none" }}
+            title="Delete row"
+          >
+            <FaTrash />
+          </Button>
+        </div>
+      ),
+    })
+
+    // Create rows
+    const newRows = sortedIndices.map((index, rowIndex) => {
+      const row = { __index: rowIndex }
+      keys.forEach((key) => {
+        row[key] = backendData[key][index] ?? null
+      })
+      return row
+    })
+
+    setColumns(newColumns)
+    setRows(newRows)
+  }, [])
+
+  const initializeDefaultData = () => {
+    const defaultColumns = [
+      {
+        key: "Size",
+        name: "Size",
+        dataType: "string",
+        editable: true,
+        renderEditCell: dataTypeEditors.string,
+        formatter: (props) => dataTypeFormatters.string(props.row[props.column.key]),
+      },
+      {
+        key: "Quantity",
+        name: "Quantity",
+        dataType: "number",
+        editable: true,
+        renderEditCell: dataTypeEditors.number,
+        formatter: (props) => dataTypeFormatters.number(props.row[props.column.key]),
+      },
+      {
+        key: "actions",
+        name: "Actions",
+        width: 100,
+        resizable: false,
+        sortable: false,
+        renderCell: (props) => (
+          <div className="d-flex justify-content-center align-items-center h-100">
+            <Button
+              variant="link"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                deleteRow(props.row.__index)
+              }}
+              className="p-1 text-danger"
+              style={{ border: "none", background: "none" }}
+              title="Delete row"
+            >
+              <FaTrash />
+            </Button>
+          </div>
+        ),
+      },
+    ]
+
+    const defaultRows = [
+      { Size: "S", Quantity: 10, __index: 0 },
+      { Size: "M", Quantity: 20, __index: 1 },
+      { Size: "L", Quantity: 15, __index: 2 },
+    ]
+
+    setColumns(defaultColumns)
+    setRows(defaultRows)
+  }
+
+  // Initialize with provided data or default - only run once
+  useEffect(() => {
+    if (!isInitialized) {
+      if (data) {
+        loadDataFromBackend(data)
+      } else {
+        initializeDefaultData()
+      }
+      setIsInitialized(true)
+    }
+  }, [data, loadDataFromBackend, isInitialized])
+
+  // Debounced submit function to prevent infinite loops
+  const debouncedSubmit = useCallback(
+    (result) => {
+      if (submitTimeoutRef.current) {
+        clearTimeout(submitTimeoutRef.current)
+      }
+
+      submitTimeoutRef.current = setTimeout(() => {
+        onSubmit(result)
+      }, 300) // 300ms debounce
+    },
+    [onSubmit],
+  )
+
+  // Convert grid data back to backend format and submit - with debouncing
+  useEffect(() => {
+    if (isInitialized && columns.length > 0 && rows.length > 0) {
+      const result = {}
+      columns.forEach((col) => {
+        if (col.key !== "actions") {
+          result[col.key] = {}
+          rows.forEach((row, index) => {
+            result[col.key][index] = row[col.key]
+          })
+        }
+      })
+      debouncedSubmit(result)
+    }
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (submitTimeoutRef.current) {
+        clearTimeout(submitTimeoutRef.current)
+      }
+    }
+  }, [columns, rows, isInitialized, debouncedSubmit])
+
+  // File upload handler
+  const handleFileUpload = useCallback(
+    (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+
+      setFileName(file.name)
+
+      const reader = new FileReader()
+      reader.onload = (evt) => {
+        try {
+          const wb = XLSX.read(evt.target.result, { type: "array" })
+          const ws = wb.Sheets[wb.SheetNames[0]]
+          const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null })
+
+          if (jsonData.length === 0) {
+            alert("Empty file or no data found")
+            return
+          }
+
+          const headers = jsonData[0].map((h, i) => h || `Column_${i + 1}`)
+          const dataRows = jsonData.slice(1)
+
+          // Convert to backend format
+          const convertedData = {}
+          headers.forEach((header, colIndex) => {
+            convertedData[header] = {}
+            dataRows.forEach((row, rowIndex) => {
+              convertedData[header][rowIndex] = row[colIndex] ?? null
+            })
+          })
+
+          loadDataFromBackend(convertedData)
+        } catch (error) {
+          console.error("Error parsing file:", error)
+          alert("Error parsing file. Please check the file format.")
+        }
+      }
+      reader.readAsArrayBuffer(file)
+    },
+    [loadDataFromBackend],
+  )
+
+  // Add new row
+  const addRow = () => {
+    if (columns.length === 0) {
+      alert("Please add columns first")
+      return
+    }
+    const newRow = columns.reduce(
+      (obj, col) => {
+        if (col.key !== "actions") {
+          obj[col.key] = col.dataType === "string" ? "" : null
+        }
+        return obj
+      },
+      { __index: rows.length },
+    )
+    setRows([...rows, newRow])
+  }
+
+  // Add new column
+  const handleAddColumn = () => {
+    if (!newColumnName.trim()) return
+
+    const key = newColumnName.replace(/\s+/g, "_")
+    const newColumn = {
+      key,
+      name: newColumnName,
+      dataType: newColumnType,
+      editable: true,
+      renderEditCell: dataTypeEditors[newColumnType],
+      formatter: (props) => dataTypeFormatters[newColumnType](props.row[key]),
+    }
+
+    // Insert before actions column
+    const newColumns = [...columns]
+    const actionsIndex = newColumns.findIndex((col) => col.key === "actions")
+    if (actionsIndex !== -1) {
+      newColumns.splice(actionsIndex, 0, newColumn)
+    } else {
+      newColumns.push(newColumn)
+    }
+
+    setColumns(newColumns)
+    setRows(
+      rows.map((row) => ({
+        ...row,
+        [key]:
+          newColumnType === "string"
+            ? ""
+            : newColumnType === "number"
+              ? null
+              : newColumnType === "boolean"
+                ? false
+                : null,
+      })),
+    )
+
+    // Reset form
+    setNewColumnName("")
+    setNewColumnType("string")
+    setIsAddColumnOpen(false)
+  }
+
+  // Edit column name
+  const handleEditColumn = (columnKey) => {
+    if (!editColumnName.trim() || editColumnName === columnKey) {
+      setEditingColumn(null)
+      setEditColumnName("")
+      return
+    }
+
+    const newKey = editColumnName.replace(/\s+/g, "_")
+
+    setColumns((cols) =>
+      cols.map((col) => (col.key === columnKey ? { ...col, key: newKey, name: editColumnName } : col)),
+    )
+
+    setRows((rs) =>
+      rs.map((row) => {
+        const newRow = { ...row }
+        if (columnKey !== newKey) {
+          newRow[newKey] = newRow[columnKey]
+          delete newRow[columnKey]
+        }
+        return newRow
+      }),
+    )
+
+    setEditingColumn(null)
+    setEditColumnName("")
+  }
+
+  // Delete a column
+  const deleteColumn = (key) => {
+    if (key === "actions") return
+
+    setColumns((cols) => cols.filter((c) => c.key !== key))
+    setRows((rs) =>
+      rs.map((row) => {
+        const newRow = { ...row }
+        delete newRow[key]
+        return newRow
+      }),
+    )
+  }
+
+  // Delete a row
+  const deleteRow = (rowIdx) => {
+    setRows((prevRows) => {
+      const newRows = prevRows.filter((row) => row.__index !== rowIdx)
+      return newRows.map((row, idx) => ({
+        ...row,
+        __index: idx,
+      }))
+    })
+  }
+
+  // Handle cell value changes
+  const onRowsChange = (newRows) => {
+    setRows(newRows)
+  }
+
+  const getChartTypeColor = () => {
+    switch (chartType) {
+      case "incoming":
+        return "primary"
+      case "outgoing":
+        return "success"
+      default:
+        return "info"
+    }
+  }
+
+  const getChartTypeIcon = () => {
+    switch (chartType) {
+      case "incoming":
+        return "📥"
+      case "outgoing":
+        return "📤"
+      default:
+        return "📊"
+    }
+  }
+
+  const handleResetToOrderChart = () => {
+    if (onResetToOrderChart) {
+      onResetToOrderChart()
+      setIsInitialized(false)
+    }
+  }
+
+
+  return (
+    <Card className="border-0 shadow-sm">
+      {/* <Card.Header className={`bg-${getChartTypeColor()} text-white`}>
+        <div className="d-flex justify-content-between align-items-center">
+          <h6 className="mb-0">
+            {getChartTypeIcon()} {chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart
+          </h6>
+          {fileName && (
+            <Badge bg="light" text="dark">
+              📁 {fileName}
+            </Badge>
+          )}
+        </div>
+      </Card.Header> */}
+      <Card.Body className="p-3">
+        {/* Action Buttons */}
+        <div className="d-flex gap-2 mb-3 flex-wrap">
+          <div className="position-relative">
+            <input
+              type="file"
+              accept=".csv,.xls,.xlsx"
+              onChange={handleFileUpload}
+              className="position-absolute w-100 h-100 opacity-0"
+              style={{ cursor: "pointer", zIndex: 2 }}
+              id={`file-upload-${chartType}`}
+            />
+            <Button variant="outline-primary" size="sm" className="position-relative">
+              <FaUpload className="me-1" />
+              Upload
+            </Button>
+          </div>
+
+          <Button onClick={addRow} variant="outline-success" size="sm">
+            <FaPlus className="me-1" />
+            Add Row
+          </Button>
+
+          <Button onClick={() => setIsAddColumnOpen(true)} variant="outline-info" size="sm">
+            <FaPlus className="me-1" />
+            Add Column
+          </Button>
+
+          {onResetToOrderChart && (
+            <Button onClick={handleResetToOrderChart} variant="outline-warning" size="sm">
+              🔄 Reset to Order Chart
+            </Button>
+          )}
+        </div>
+
+        {/* Data Grid */}
+        {columns.length > 0 && (
+          <div className="border rounded overflow-hidden" style={{ backgroundColor: "#f8f9fa" }}>
+            <div
+              ref={gridRef}
+              style={{
+                height: "300px",
+                width: "100%",
+              }}
+            >
+              <DataGrid
+                columns={columns.map((col) => ({
+                  ...col,
+                  headerRenderer: () => (
+                    <div
+                      className="d-flex align-items-center justify-content-between w-100 h-100 px-2"
+                      style={{ minHeight: "35px" }}
+                    >
+                      <div className="d-flex align-items-center gap-2 flex-grow-1">
+                        {editingColumn === col.key ? (
+                          <Form.Control
+                            size="sm"
+                            value={editColumnName}
+                            onChange={(e) => setEditColumnName(e.target.value)}
+                            onBlur={() => handleEditColumn(col.key)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleEditColumn(col.key)
+                              } else if (e.key === "Escape") {
+                                setEditingColumn(null)
+                                setEditColumnName("")
+                              }
+                            }}
+                            autoFocus
+                            style={{ minWidth: "80px" }}
+                          />
+                        ) : (
+                          <div
+                            className="d-flex align-items-center gap-1 flex-grow-1"
+                            style={{
+                              cursor: col.key !== "actions" ? "pointer" : "default",
+                              minWidth: 0,
+                            }}
+                            onClick={() => {
+                              if (col.key !== "actions") {
+                                setEditingColumn(col.key)
+                                setEditColumnName(col.name)
+                              }
+                            }}
+                          >
+                            <span className="fw-bold text-truncate small">{col.name}</span>
+                            {col.key !== "actions" && <FaEdit size={8} className="opacity-50" />}
+                          </div>
+                        )}
+                        {col.dataType && (
+                          <Badge bg="light" text="dark" className="small" style={{ fontSize: "9px" }}>
+                            {col.dataType}
+                          </Badge>
+                        )}
+                      </div>
+                      {col.key !== "actions" && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deleteColumn(col.key)
+                          }}
+                          className="p-0 text-danger ms-1"
+                          style={{ border: "none", background: "none" }}
+                        >
+                          <FaTimes size={10} />
+                        </Button>
+                      )}
+                    </div>
+                  ),
+                }))}
+                rows={rows}
+                onRowsChange={onRowsChange}
+                defaultColumnOptions={{
+                  resizable: true,
+                  sortable: true,
+                }}
+                rowKeyGetter={(row) => row.__index}
+                style={{
+                  "--rdg-header-background-color": "#e9ecef",
+                  "--rdg-border-color": "#dee2e6",
+                  fontSize: "14px",
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Add Column Modal */}
+        <Modal show={isAddColumnOpen} onHide={() => setIsAddColumnOpen(false)} centered>
+          <Modal.Header closeButton className="bg-primary text-white">
+            <Modal.Title className="d-flex align-items-center">
+              <FaPlus className="me-2" />
+              Add New Column
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Column Name</Form.Label>
+              <Form.Select value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} className="mb-2">
+                <option value="">Select suggested name...</option>
+                {COLUMN_SUGGESTIONS.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </Form.Select>
+              <Form.Control
+                placeholder="Or enter custom name"
+                value={newColumnName}
+                onChange={(e) => setNewColumnName(e.target.value)}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Data Type</Form.Label>
+              <Form.Select value={newColumnType} onChange={(e) => setNewColumnType(e.target.value)}>
+                {DATA_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.icon} {type.label}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="outline-secondary" onClick={() => setIsAddColumnOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleAddColumn} disabled={!newColumnName.trim()}>
+              Add Column
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      </Card.Body>
+    </Card>
+  )
+}
+
+// Make sure this is at the very end of the CustomChartComponent.js file
+export default CustomChartComponent

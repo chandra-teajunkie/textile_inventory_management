@@ -241,4 +241,9 @@ button:hover {
   display: flex;
   flex-direction: column;
   width: -webkit-fill-available;
+  height: -webkit-fill-available;
+}
+
+.modal-body {
+  overflow: auto;
 }
