@@ -17,7 +17,9 @@ class TaskStatus(str, Enum):
 
 
 class TaskUnit(str, Enum):
+    PROCUREMENT = "PROCUREMENT"
     CUTTING = "CUTTING"
+    COLLAR = "COLLAR"
     PRINTING = "PRINTING"
     EMBROIDERY = "EMBROIDERY"
     STITCHING = "STITCHING"
@@ -35,9 +37,9 @@ class Task(SQLModel, table=True):
     name: str
     product: str
     color: str
-    design_specs: Optional[str] = None
     status: TaskStatus = Field(default=TaskStatus.NOT_STARTED)
     task_unit: TaskUnit = Field(default=TaskUnit.UNASSIGNED)
+    task_unit_name: Optional[str] = None
     dependencies: Optional[str] = Field(default="[]")  # JSON list of task_ids
     incoming_chart: Optional[str] = Field(
         default=None
@@ -52,9 +54,9 @@ class TaskCreate(SQLModel):
     name: str
     product: str
     color: str
-    design_specs: Optional[str] = None
-    status: TaskStatus = Field(default=TaskStatus.NOT_STARTED)
     task_unit: TaskUnit = Field(default=TaskUnit.UNASSIGNED)
+    task_unit_name: Optional[str] = None
+    status: TaskStatus = Field(default=TaskStatus.NOT_STARTED)
     dependencies: List[str] = []  # List of task_ids
 
 
@@ -62,7 +64,7 @@ class TaskUpdate(SQLModel):
     name: Optional[str] = None
     product: Optional[str] = None
     color: Optional[str] = None
-    design_specs: Optional[str] = None
-    status: Optional[TaskStatus] = None
     task_unit: Optional[TaskUnit] = None
+    task_unit_name: Optional[str] = None
+    status: Optional[TaskStatus] = None
     dependencies: Optional[List[str]] = []  # List of task_ids

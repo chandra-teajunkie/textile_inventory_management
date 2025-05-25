@@ -14,7 +14,6 @@ class Order(SQLModel, table=True):
     number_of_overall_pieces: int
     types: str
     colors: str
-    design_specs: Optional[str] = None
     customer_name: str
     order_date: datetime
     start_date: datetime
@@ -28,7 +27,6 @@ class OrderCreate(SQLModel):
     number_of_overall_pieces: int
     types: str
     colors: str
-    design_specs: Optional[str] = None
     customer_name: str
     order_date: datetime
     start_date: datetime
@@ -40,7 +38,6 @@ class OrderUpdate(SQLModel):
     number_of_overall_pieces: Optional[int] = None
     types: Optional[str] = None
     colors: Optional[str] = None
-    design_specs: Optional[str] = None
     customer_name: Optional[str] = None
     order_date: Optional[datetime] = None
     start_date: Optional[datetime] = None

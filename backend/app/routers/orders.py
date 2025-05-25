@@ -29,7 +29,7 @@ async def create_order(
     # Generate a unique order_id
     unique_order_id = generate_unique_id(Order, session, "order_id")
 
-    metadata_fields = ["types", "colors", "customer_name", "design_specs"]
+    metadata_fields = ["types", "colors", "customer_name"]
 
     for field_name in metadata_fields:
         raw_value = order_data.get(field_name)
