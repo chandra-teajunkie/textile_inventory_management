@@ -3,7 +3,7 @@ FROM node:18-alpine
 WORKDIR /app
 
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm install --production
+RUN npm install -f
 
 COPY frontend ./
 

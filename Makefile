@@ -22,7 +22,7 @@ k8s-delete:
 	kubectl delete -f k8s/
 
 # === Restart Kubernetes Deployment ===
-k8s-restart: k8s-delete k8s-deploy
+k8s-redeploy: k8s-delete k8s-deploy
 
 repeat-backend: k8s-delete build-backend k8s-deploy
 repeat-frontend: k8s-delete build-frontend k8s-deploy
@@ -30,4 +30,8 @@ repeat-all: k8s-delete build-all k8s-deploy
 
 # === Clean Up Docker ===
 docker-clean:
-	docker image prune -a -f
+	@for /F "tokens=*" %%i in ('docker ps -aq') do docker stop %%i
+	@for /F "tokens=*" %%i in ('docker ps -aq') do docker rm -f %%i
+	@for /F "tokens=*" %%i in ('docker images -aq') do docker rmi -f %%i
+	docker volume prune -f
+	docker network prune -f

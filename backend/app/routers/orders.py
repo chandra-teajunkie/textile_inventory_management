@@ -148,3 +148,11 @@ def get_all_metadata(session: Session = Depends(get_session)):
     metadata = {k: sorted(set(v)) for k, v in metadata.items()}
 
     return metadata
+
+
+@router.get("/order-details/{order_id}", response_model=Order)
+def get_order_details(order_id: str, session: Session = Depends(get_session)):
+    order = session.exec(select(Order).where(Order.order_id == order_id)).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
