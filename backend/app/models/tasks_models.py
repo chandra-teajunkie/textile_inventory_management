@@ -35,6 +35,7 @@ class Task(SQLModel, table=True):
     name: str
     product: str
     color: str
+    design_specs: Optional[str] = None
     status: TaskStatus = Field(default=TaskStatus.NOT_STARTED)
     task_unit: TaskUnit = Field(default=TaskUnit.UNASSIGNED)
     dependencies: Optional[str] = Field(default="[]")  # JSON list of task_ids
@@ -51,6 +52,7 @@ class TaskCreate(SQLModel):
     name: str
     product: str
     color: str
+    design_specs: Optional[str] = None
     status: TaskStatus = Field(default=TaskStatus.NOT_STARTED)
     task_unit: TaskUnit = Field(default=TaskUnit.UNASSIGNED)
     dependencies: List[str] = []  # List of task_ids
@@ -60,6 +62,7 @@ class TaskUpdate(SQLModel):
     name: Optional[str] = None
     product: Optional[str] = None
     color: Optional[str] = None
+    design_specs: Optional[str] = None
     status: Optional[TaskStatus] = None
     task_unit: Optional[TaskUnit] = None
     dependencies: Optional[List[str]] = []  # List of task_ids

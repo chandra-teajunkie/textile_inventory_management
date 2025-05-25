@@ -37,11 +37,12 @@ app = FastAPI(lifespan=lifespan)
 # Allow requests from your frontend origin
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # or ["*"] for all origins (not recommended for prod)
+    allow_origins=["http://localhost:30000"],  # Exact origin of your frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Include the product router with the "/products" prefix
 app.include_router(orders_router, prefix="/orders")
