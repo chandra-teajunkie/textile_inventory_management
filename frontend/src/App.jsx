@@ -174,7 +174,7 @@ function App() {
           </div>
         </nav>
 
-        <main className="flex-grow-1 p-4" style={{ overflow: "auto" }}>
+        <main className="flex-grow-1" style={{ overflow: "auto" }}>
           <Suspense
             fallback={
               <div className="text-center p-5">

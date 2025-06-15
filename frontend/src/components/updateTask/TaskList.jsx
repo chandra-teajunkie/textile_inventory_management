@@ -8,10 +8,15 @@ import { GrClose } from "react-icons/gr"
 import { FaCut, FaPrint, FaEdit, FaBox, FaQuestion, FaChartBar } from "react-icons/fa"
 import "./overlay.css"
 import { GiSewingMachine } from 'react-icons/gi'; // Sewing machine icon
-
+import { GiHeavyCollar } from "react-icons/gi";
+import { TbHttpGet } from "react-icons/tb";
 
 const getTaskUnitIcon = (unit) => {
   switch (unit) {
+    case "PROCUREMENT":
+      return <TbHttpGet />
+    case "COLLAR":
+      return <GiHeavyCollar />
     case "CUTTING":
       return <FaCut />
     case "PRINTING":
@@ -31,6 +36,10 @@ const getTaskUnitIcon = (unit) => {
 
 const getTaskUnitColor = (unit) => {
   switch (unit) {
+    case "PROCUREMENT":
+      return "primary"
+    case "COLLAR":
+      return "warning"
     case "CUTTING":
       return "danger"
     case "PRINTING":
@@ -140,163 +149,179 @@ export default function TaskList({ toast }) {
   })
 
   return (
-    <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3 fw-bold">Tasks Management</h1>
-      </div>
+    <>
+      <div className="p-4">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h1 className="h3 fw-bold">Tasks Management</h1>
+        </div>
 
-      <Card className="mb-4">
-        <Card.Body>
-          <Form.Group>
-            <Form.Label>Select Order</Form.Label>
-            <Form.Select value={selectedOrderId} onChange={handleOrderChange}>
-              <option value="">— pick one —</option>
-              {orders.map((o) => (
-                <option key={o.order_id} value={o.order_id}>
-                  {o.customer_id} ({o.order_id})
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-        </Card.Body>
-      </Card>
+        <Card className="mb-4">
+          <Card.Body>
+            <Form.Group>
+              <Form.Label>Select Order</Form.Label>
+              <Form.Select value={selectedOrderId} onChange={handleOrderChange}>
+                <option value="">— pick one —</option>
+                {orders.map((o) => (
+                  <option key={o.order_id} value={o.order_id}>
+                    {o.customer_name.toUpperCase()} ({o.types})
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Card.Body>
+        </Card>
 
-      {selectedOrderId && (
-        <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
-          <Tab eventKey="list" title="📋 Task List">
-            <Card className="mb-4">
-              <Card.Header>
-                <div className="d-flex flex-wrap gap-2 align-items-center">
-                  {/* Status Filters */}
-                  <div className="btn-group me-3">
-                    {["all", "NOT STARTED", "IN PROGRESS", "COMPLETED", "BLOCKED"].map((s) => (
+        {selectedOrderId && (
+          <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
+            <Tab eventKey="list" title="📋 Task List">
+              <Card className="mb-4">
+                <Card.Header>
+                  <div className="d-flex flex-wrap gap-2 align-items-center">
+                    {/* Status Filters */}
+                    <div className="btn-group me-3">
+                      {["all", "NOT STARTED", "IN PROGRESS", "COMPLETED", "BLOCKED"].map((s) => (
+                        <Button
+                          key={s}
+                          size="sm"
+                          variant={filterStatus === s ? "primary" : "outline-primary"}
+                          onClick={() => setFilterStatus(s)}
+                        >
+                          {s === "all" ? "All" : s}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Unit Filters */}
+                    <div className="btn-group">
                       <Button
-                        key={s}
                         size="sm"
-                        variant={filterStatus === s ? "primary" : "outline-primary"}
-                        onClick={() => setFilterStatus(s)}
+                        variant={filterUnit === "all" ? "success" : "outline-success"}
+                        onClick={() => setFilterUnit("all")}
                       >
-                        {s === "all" ? "All" : s}
+                        All Units
                       </Button>
-                    ))}
+                      {["PROCUREMENT", "COLLAR", "CUTTING", "PRINTING", "EMBROIDERY", "STITCHING", "PACKAGING", "UNASSIGNED"].map((unit) => (
+                        <Button
+                          key={unit}
+                          size="sm"
+                          variant={filterUnit === unit ? "success" : "outline-success"}
+                          onClick={() => setFilterUnit(unit)}
+                        >
+                          {getTaskUnitIcon(unit)} {unit}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
-
-                  {/* Unit Filters */}
-                  <div className="btn-group">
-                    <Button
-                      size="sm"
-                      variant={filterUnit === "all" ? "success" : "outline-success"}
-                      onClick={() => setFilterUnit("all")}
-                    >
-                      All Units
-                    </Button>
-                    {["CUTTING", "PRINTING", "EMBROIDERY", "STITCHING", "PACKAGING", "UNASSIGNED"].map((unit) => (
-                      <Button
-                        key={unit}
-                        size="sm"
-                        variant={filterUnit === unit ? "success" : "outline-success"}
-                        onClick={() => setFilterUnit(unit)}
-                      >
-                        {getTaskUnitIcon(unit)} {unit}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </Card.Header>
-              <Card.Body>
-                {loading ? (
-                  <div className="text-center p-5">
-                    <div className="spinner-border" role="status" />
-                    <p className="mt-2">Loading tasks...</p>
-                  </div>
-                ) : filteredTasks.length === 0 ? (
-                  <p className="text-center text-muted">No tasks match the current filters</p>
-                ) : (
-                  <div className="table-responsive">
-                    <table className="table table-hover">
-                      <thead>
-                        <tr>
-                          <th>Name</th>
-                          <th>Status</th>
-                          <th>Unit</th>
-                          <th>Product</th>
-                          <th>Charts</th>
-                          <th>Dependencies</th>
-                          <th className="text-end">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredTasks.map((t) => (
-                          <tr key={t.task_id}>
-                            <td className="fw-medium">{t.name}</td>
-                            <td>
-                              <Badge bg={getStatusColor(t.status)}>{t.status}</Badge>
-                            </td>
-                            <td>
-                              <Badge bg={getTaskUnitColor(t.task_unit)}>
-                                {getTaskUnitIcon(t.task_unit)} {t.task_unit}
-                              </Badge>
-                            </td>
-                            <td>
-                              <span className="text-muted">{t.product}</span>
-                              {t.color && (
-                                <Badge bg="light" text="dark" className="ms-1">
-                                  {t.color}
+                </Card.Header>
+                <Card.Body>
+                  {loading ? (
+                    <div className="text-center p-5">
+                      <div className="spinner-border" role="status" />
+                      <p className="mt-2">Loading tasks...</p>
+                    </div>
+                  ) : filteredTasks.length === 0 ? (
+                    <p className="text-center text-muted">No tasks match the current filters</p>
+                  ) : (
+                    <div className="table-responsive">
+                      <table className="table table-hover">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Unit</th>
+                            <th>Product</th>
+                            <th>Charts</th>
+                            <th>Dependencies</th>
+                            <th className="text-end">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredTasks.map((t) => (
+                            <tr key={t.task_id}>
+                              <td className="fw-medium">{t.name}</td>
+                              <td>
+                                <Badge bg={getStatusColor(t.status)}>{t.status}</Badge>
+                              </td>
+                              <td>
+                                <Badge bg={getTaskUnitColor(t.task_unit)}>
+                                  {getTaskUnitIcon(t.task_unit)} {t.task_unit}
                                 </Badge>
-                              )}
-                            </td>
-                            <td>
-                              <div className="d-flex gap-1">
-                                {t.incoming_chart && (
-                                  <Badge bg="primary" title="Has incoming chart">
-                                    📥 In
+                              </td>
+                              <td>
+                                <span className="text-muted">{t.product}</span>
+                                {t.color && (
+                                  <Badge bg="light" text="dark" className="ms-1">
+                                    {t.color}
                                   </Badge>
                                 )}
-                                {t.outgoing_chart && (
-                                  <Badge bg="success" title="Has outgoing chart">
-                                    📤 Out
-                                  </Badge>
-                                )}
-                                {!hasChartData(t) && (
-                                  <Badge bg="light" text="dark" title="No charts available">
-                                    📊 None
-                                  </Badge>
-                                )}
-                              </div>
-                            </td>
-                            <td>
-                              {t.dependencies && JSON.parse(t.dependencies).length > 0
-                                ? JSON.parse(t.dependencies)
+                              </td>
+                              <td>
+                                <div className="d-flex gap-1">
+                                  {t.incoming_chart && (
+                                    <Badge bg="primary" title="Has incoming chart">
+                                      📥 In
+                                    </Badge>
+                                  )}
+                                  {t.outgoing_chart && (
+                                    <Badge bg="success" title="Has outgoing chart">
+                                      📤 Out
+                                    </Badge>
+                                  )}
+                                  {!hasChartData(t) && (
+                                    <Badge bg="light" text="dark" title="No charts available">
+                                      📊 None
+                                    </Badge>
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                {t.dependencies && JSON.parse(t.dependencies).length > 0
+                                  ? JSON.parse(t.dependencies)
                                     .map((id) => {
                                       const dep = tasks.find((x) => x.task_id === id)
                                       return dep ? dep.name : id
                                     })
                                     .join(", ")
-                                : "—"}
-                            </td>
-                            <td className="text-end">
-                              <Button size="sm" onClick={() => handleEditTask(t)} className="me-2">
-                                Edit
-                              </Button>
-                              <Button size="sm" variant="danger" onClick={() => setTaskToDelete(t)}>
-                                Delete
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-          </Tab>
+                                  : "—"}
+                              </td>
+                              <td className="text-end">
+                                <Button size="sm" onClick={() => handleEditTask(t)} className="me-2">
+                                  Edit
+                                </Button>
+                                <Button size="sm" variant="danger" onClick={() => setTaskToDelete(t)}>
+                                  Delete
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Card.Body>
+              </Card>
+            </Tab>
 
-          <Tab eventKey="visualization" title="📊 Unit Visualization">
-            <TaskUnitVisualization tasks={tasks} />
-          </Tab>
-        </Tabs>
-      )}
+            <Tab eventKey="visualization" title="📊 Unit Visualization">
+              <TaskUnitVisualization tasks={tasks} />
+            </Tab>
+          </Tabs>
+        )}
+        <Modal show={!!taskToDelete} onHide={() => setTaskToDelete(null)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>Confirm Delete</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>Are you sure you want to delete "{taskToDelete?.name}"?</Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setTaskToDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={deleteTask}>
+              Delete
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      </div>
 
       {/* Edit Modal */}
       {showEditModal && editTask && (
@@ -322,21 +347,7 @@ export default function TaskList({ toast }) {
           </div>
         </div>
       )}
+    </>
 
-      <Modal show={!!taskToDelete} onHide={() => setTaskToDelete(null)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Delete</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Are you sure you want to delete "{taskToDelete?.name}"?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setTaskToDelete(null)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={deleteTask}>
-            Delete
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
   )
 }

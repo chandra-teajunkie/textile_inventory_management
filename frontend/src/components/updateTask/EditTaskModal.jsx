@@ -33,6 +33,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
   const [outgoingData, setOutgoingData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("details")
+  const [taskUnitName, setTaskUnitName] = useState("")
 
   // Parse dependencies once
   useEffect(() => {
@@ -81,6 +82,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
         product,
         color,
         task_unit: taskUnit,
+        task_unit_name: taskUnitName,
         status,
         dependencies
       }
@@ -224,6 +226,17 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
                     placeholder="e.g., Red, Blue, Green"
+                  />
+                </Form.Group>
+              </div>
+              <div className="col-md-6">
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-bold">Task Unit Name</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={taskUnitName}
+                    onChange={(e) => setTaskUnitName(e.target.value)}
+                    placeholder="e.g., A, B, C"
                   />
                 </Form.Group>
               </div>

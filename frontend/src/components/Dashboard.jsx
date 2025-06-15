@@ -99,7 +99,7 @@ function Dashboard({ setActiveTab, toast }) {
   }, [toast])
 
   return (
-    <div className="dashboard">
+    <div className="dashboard p-4" >
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="h3 fw-bold">Dashboard</h1>
         <div className="d-flex gap-2">

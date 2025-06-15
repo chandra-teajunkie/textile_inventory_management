@@ -12,7 +12,7 @@ function OrderForm({ toast }) {
         overallPieces: "",
         types: [], // Changed to array for multi-select
         colors: [], // Changed to array for multi-select
-        design_specs: [], // Changed to array for multi-select
+        // design_specs: [], // Changed to array for multi-select
         customer_name: "", // Remains single select
         specialNotes: "",
         orderDate: new Date(),
@@ -25,7 +25,7 @@ function OrderForm({ toast }) {
     const [dropdownOptions, setDropdownOptions] = useState({
         types: [],
         colors: [],
-        design_specs: [],
+        // design_specs: [],
         customer_name: [],
     })
 
@@ -49,7 +49,7 @@ function OrderForm({ toast }) {
                 setDropdownOptions({
                     types: data.types || ["Top", "Bottom", "Pant"],
                     colors: data.colors || ["Red", "Blue", "Green"],
-                    design_specs: data.design_specs || data.design_specs || ["Floral", "Plain", "Striped"],
+                    // design_specs: data.design_specs || data.design_specs || ["Floral", "Plain", "Striped"],
                     customer_name: data.customer_name || ["CUST001", "CUST002", "CUST003"],
                 })
             } else {
@@ -61,7 +61,7 @@ function OrderForm({ toast }) {
             setDropdownOptions({
                 types: ["Top", "Bottom", "Pant"],
                 colors: ["Red", "Blue", "Green"],
-                design_specs: ["Floral", "Plain", "Striped"],
+                // design_specs: ["Floral", "Plain", "Striped"],
                 customer_name: ["CUST001", "CUST002", "CUST003"],
             })
         }
@@ -146,7 +146,7 @@ function OrderForm({ toast }) {
         if (!form.overallPieces || form.overallPieces.trim() === "") emptyFields.push("overallPieces")
         if (!form.types || form.types.length === 0) emptyFields.push("types")
         if (!form.colors || form.colors.length === 0) emptyFields.push("colors")
-        if (!form.design_specs || form.design_specs.length === 0) emptyFields.push("design_specs")
+        // if (!form.design_specs || form.design_specs.length === 0) emptyFields.push("design_specs")
         if (!form.customer_name || form.customer_name.trim() === "") emptyFields.push("customer_name")
         if (!form.specialNotes || form.specialNotes.trim() === "") emptyFields.push("specialNotes")
 
@@ -174,7 +174,7 @@ function OrderForm({ toast }) {
             number_of_overall_pieces: Number.parseInt(form.overallPieces),
             types: form.types.join(", "), // Join with commas
             colors: form.colors.join(", "), // Join with commas
-            design_specs: form.design_specs.join(", "), // Join with commas
+            // design_specs: form.design_specs.join(", "), // Join with commas
             customer_name: form.customer_name,
             order_date: form.orderDate.toISOString(),
             start_date: form.startDate.toISOString(),
@@ -201,7 +201,7 @@ function OrderForm({ toast }) {
                     overallPieces: "",
                     types: [],
                     colors: [],
-                    design_specs: [],
+                    // design_specs: [],
                     customer_name: "",
                     specialNotes: "",
                     orderDate: new Date(),
@@ -235,7 +235,7 @@ function OrderForm({ toast }) {
     }
 
     return (
-        <div>
+        <div className="p-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h1 className="h3 fw-bold">Create Order</h1>
             </div>
@@ -306,7 +306,7 @@ function OrderForm({ toast }) {
                                     )}
                                 </Form.Group>
 
-                                <Form.Group className="mb-3">
+                                {/* <Form.Group className="mb-3">
                                     <Form.Label>Design Specifications * (Multi-select)</Form.Label>
                                     <CreatableSelect
                                         isMulti
@@ -327,7 +327,7 @@ function OrderForm({ toast }) {
                                             ))}
                                         </div>
                                     )}
-                                </Form.Group>
+                                </Form.Group> */}
 
                                 <Form.Group className="mb-3">
                                     <Form.Label>Customer Name * (Single select)</Form.Label>

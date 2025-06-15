@@ -5,6 +5,8 @@ import { Form, Button } from "react-bootstrap"
 
 // Mirror your backend enums
 const TASK_UNITS = [
+  "PROCUREMENT",
+  "COLLAR",
   "CUTTING",
   "PRINTING",
   "EMBROIDERY",
@@ -29,6 +31,7 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast }) {
   const [loading, setLoading] = useState(false)
   const [allTasks, setAllTasks] = useState([])
   const [dependencies, setDependencies] = useState([])
+  const [taskUnitName, setTaskUnitName] = useState("")
 
   useEffect(() => {
     // fetch existing tasks for dependencies
@@ -63,6 +66,7 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast }) {
       product,
       color,
       task_unit: taskUnit,
+      task_unit_name: taskUnitName,
       status,
       dependencies
     }
@@ -124,6 +128,16 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast }) {
             <option key={unit} value={unit}>{unit}</option>
           ))}
         </Form.Select>
+      </Form.Group>
+
+      <Form.Group className="mb-3">
+        <Form.Label>Task Unit Name</Form.Label>
+        <Form.Control
+          type="text"
+          value={taskUnitName}
+          onChange={e => setTaskUnitName(e.target.value)}
+          placeholder="e.g. A / B"
+        />
       </Form.Group>
 
       <Form.Group className="mb-3">

@@ -1,0 +1,12 @@
+[role=columnheader] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ddd !important;
+}
+
+[role=gridcell] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

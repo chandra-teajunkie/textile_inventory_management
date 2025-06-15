@@ -5,6 +5,8 @@ import { Form, Button } from "react-bootstrap"
 
 // Same enums as above
 const TASK_UNITS = [
+  "PROCUREMENT",
+  "COLLAR",
   "CUTTING",
   "PRINTING",
   "EMBROIDERY",
@@ -20,7 +22,7 @@ const STATUS_OPTIONS = [
   { value: "BLOCKED", label: "Blocked" }
 ]
 
-function EditTaskModal({ task, allTasks, onClose, onUpdate, toast }) {
+function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, fetchTasksForOrder, selectedOrder }) {
   const [taskName, setTaskName] = useState(task.name)
   const [product, setProduct] = useState(task.product || "")
   const [color, setColor] = useState(task.color || "")
@@ -28,6 +30,7 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast }) {
   const [status, setStatus] = useState(task.status)
   const [dependencies, setDependencies] = useState([])
   const [loading, setLoading] = useState(false)
+  const [taskUnitName, setTaskUnitName] = useState(task.task_unit_name || "")
 
   useEffect(() => {
     if (task.dependencies) {
@@ -56,6 +59,7 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast }) {
       product,
       color,
       task_unit: taskUnit,
+      task_unit_name: taskUnitName,
       status,
       dependencies
     }
@@ -70,8 +74,12 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast }) {
         }
       )
       if (!resp.ok) throw new Error(resp.statusText)
-      const updated = await resp.json()
-      onUpdate(updated)
+      // const updated = await resp.json()
+      await fetchOrders()
+      if(selectedOrder){
+        await fetchTasksForOrder(selectedOrder.order_id)
+      }
+      onUpdate()
       toast.current.show({ severity: "success", summary: "Success", detail: "Task updated" })
     } catch (err) {
       console.error(err)
@@ -119,6 +127,16 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast }) {
             <option key={unit} value={unit}>{unit}</option>
           ))}
         </Form.Select>
+      </Form.Group>
+
+      <Form.Group className="mb-3">
+        <Form.Label>Task Unit Name</Form.Label>
+        <Form.Control
+          type="text"
+          value={taskUnitName}
+          onChange={e => setTaskUnitName(e.target.value)}
+          placeholder="e.g. A / B"
+        />
       </Form.Group>
 
       <Form.Group className="mb-3">

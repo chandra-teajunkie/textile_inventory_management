@@ -43,7 +43,7 @@
   },
   "scripts": {
     "update": "npm i -f",
-    "start": "set PORT=3001 && react-scripts start",
+    "start": "set PORT=30000 && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

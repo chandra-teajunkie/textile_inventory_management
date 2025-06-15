@@ -21,35 +21,35 @@ function RecentOrders({ orders = [], toast }) {
     orders.length > 0
       ? orders
       : [
-          {
-            order_id: "ORD-1234",
-            customer_id: "CUST001",
-            order_date: "2023-04-23T00:00:00.000Z",
-            status: "Processing",
-            types: "Top",
-          },
-          {
-            order_id: "ORD-1233",
-            customer_id: "CUST002",
-            order_date: "2023-04-22T00:00:00.000Z",
-            status: "Shipped",
-            types: "Bottom",
-          },
-          {
-            order_id: "ORD-1232",
-            customer_id: "CUST003",
-            order_date: "2023-04-21T00:00:00.000Z",
-            status: "Delivered",
-            types: "Pant",
-          },
-        ]
+        {
+          order_id: "ORD-1234",
+          customer_id: "CUST001",
+          order_date: "2023-04-23T00:00:00.000Z",
+          status: "Processing",
+          types: "Top",
+        },
+        {
+          order_id: "ORD-1233",
+          customer_id: "CUST002",
+          order_date: "2023-04-22T00:00:00.000Z",
+          status: "Shipped",
+          types: "Bottom",
+        },
+        {
+          order_id: "ORD-1232",
+          customer_id: "CUST003",
+          order_date: "2023-04-21T00:00:00.000Z",
+          status: "Delivered",
+          types: "Pant",
+        },
+      ]
 
   return (
     <div className="table-responsive">
       <table className="table table-hover align-middle">
         <thead>
           <tr>
-            <th>Order ID</th>
+            {/* <th>Order ID</th> */}
             <th>Customer</th>
             <th>Type</th>
             <th>Date</th>
@@ -60,8 +60,8 @@ function RecentOrders({ orders = [], toast }) {
         <tbody>
           {displayOrders.slice(0, 5).map((order) => (
             <tr key={order.order_id}>
-              <td className="fw-medium">{order.order_id}</td>
-              <td>{order.customer_id}</td>
+              {/* <td className="fw-medium">{order.order_id}</td> */}
+              <td>{order?.customer_name?.toUpperCase()}</td>
               <td>{order.types}</td>
               <td>{new Date(order.order_date).toLocaleDateString()}</td>
               <td>
