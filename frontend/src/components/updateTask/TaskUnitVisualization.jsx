@@ -4,11 +4,17 @@ import { useState, useEffect } from "react"
 import { Card, Row, Col, Badge, ProgressBar } from "react-bootstrap"
 import { FaCut, FaPrint, FaEdit, FaBox, FaQuestion } from "react-icons/fa"
 import { GiSewingMachine } from 'react-icons/gi'; // Sewing machine icon
+import { GiHeavyCollar } from "react-icons/gi";
+import { TbHttpGet } from "react-icons/tb";
 
-const TASK_UNITS = ["CUTTING", "PRINTING", "EMBROIDERY", "STITCHING", "PACKAGING", "UNASSIGNED"]
+const TASK_UNITS = ["PROCUREMENT", "COLLAR", "CUTTING", "PRINTING", "EMBROIDERY", "STITCHING", "PACKAGING", "UNASSIGNED"]
 
 const getTaskUnitIcon = (unit) => {
   switch (unit) {
+    case "PROCUREMENT":
+      return <TbHttpGet />
+    case "COLLAR":
+      return <GiHeavyCollar />
     case "CUTTING":
       return <FaCut />
     case "PRINTING":
@@ -28,6 +34,10 @@ const getTaskUnitIcon = (unit) => {
 
 const getTaskUnitColor = (unit) => {
   switch (unit) {
+    case "PROCUREMENT":
+      return "primary"
+    case "COLLAR":
+      return "warning"
     case "CUTTING":
       return "danger"
     case "PRINTING":
@@ -98,7 +108,7 @@ export default function TaskUnitVisualization({ tasks = [] }) {
       {/* Overall Progress */}
       <Card className="mb-4 border-0 shadow-sm">
         <Card.Header className="bg-gradient-primary text-white">
-          <h5 className="mb-0">📊 Overall Task Progress</h5>
+          <h5 className="mb-0 text-dark">📊 Overall Task Progress</h5>
         </Card.Header>
         <Card.Body>
           <Row className="align-items-center">

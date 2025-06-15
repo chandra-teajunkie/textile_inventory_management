@@ -67,6 +67,7 @@ function OrderList({ toast, setActiveTab }) {
       toast.current.show({ severity: "error", summary: "Error", detail: "Could not delete order", life: 3000 })
     } finally {
       setDeletingId(null)
+      setTaskToDelete(null)
     }
   }
 

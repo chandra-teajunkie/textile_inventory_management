@@ -138,3 +138,17 @@ nav {
   background: linear-gradient(130deg, #96d0d79e, #b98fe579);
   background-color: rgba(156, 209, 223, 0.445);
 }
+
+.btn-group [type=button] {
+
+  display: flex;
+  align-items: center;
+  align-content: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+
+}
+
+.btn-group [type=button]>svg {
+  margin-right: 0.25em;
+}
