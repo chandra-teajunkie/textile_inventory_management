@@ -5,6 +5,7 @@ import { Form, Button, Tab, Tabs, Card, Alert } from "react-bootstrap"
 import CustomChartComponent from "./CustomChartComponent"
 import { FaCut, FaPrint, FaEdit, FaBox, FaQuestion } from "react-icons/fa"
 import { GiSewingMachine } from 'react-icons/gi'; // Sewing machine icon
+import Select from "react-select";
 
 const STATUS_OPTIONS = [
   { value: "NOT STARTED", label: "Not Started" },
@@ -136,11 +137,11 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
       const updated = await fetch(`${process.env.REACT_APP_TASK_DETAILS}${task.task_id}`).then((r) => r.json())
 
       onUpdate(updated)
-      toast.current.show({
-        severity: "success",
-        summary: "Success",
-        detail: "Task updated successfully",
-      })
+      // toast.current.show({
+      //   severity: "success",
+      //   summary: "Success",
+      //   detail: "Task updated successfully",
+      // })
     } catch (err) {
       console.error("Update error:", err)
       toast.current.show({ severity: "error", summary: "Update failed", detail: err.message })
@@ -169,100 +170,144 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
       <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
         <Tab eventKey="details" title="Task Details">
           <Form>
-            {/* Basic Info */}
-            <div className="row">
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Label className="fw-bold">Task Name</Form.Label>
-                  <Form.Control type="text" value={name} onChange={(e) => setName(e.target.value)} />
-                </Form.Group>
+            <div style={{ maxHeight: "auto", overflow: "auto" }}>
+              {/* Basic Info */}
+              <div className="row">
+                <div className="col-md-6">
+                  <Form.Group className="mb-3">
+                    <Form.Label className="fw-bold">Task Name</Form.Label>
+                    <Form.Control type="text" value={name} onChange={(e) => setName(e.target.value)} />
+                  </Form.Group>
+                </div>
+                <div className="col-md-6">
+                  <Form.Group className="mb-3">
+                    <Form.Label className="fw-bold">Status</Form.Label>
+                    <Form.Select value={status} onChange={(e) => setStatus(e.target.value)}>
+                      {STATUS_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </div>
               </div>
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Label className="fw-bold">Status</Form.Label>
-                  <Form.Select value={status} onChange={(e) => setStatus(e.target.value)}>
-                    {STATUS_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </div>
-            </div>
 
-            <div className="row">
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Label className="fw-bold">Task Unit</Form.Label>
-                  <Form.Select value={taskUnit} onChange={(e) => setTaskUnit(e.target.value)}>
-                    {TASK_UNITS.map((unit) => (
-                      <option key={unit.value} value={unit.value}>
-                        {unit.label}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
+              <div className="row">
+                <div className="col-md-6">
+                  <Form.Group className="mb-3">
+                    <Form.Label className="fw-bold">Task Unit</Form.Label>
+                    <Form.Select value={taskUnit} onChange={(e) => setTaskUnit(e.target.value)}>
+                      {TASK_UNITS.map((unit) => (
+                        <option key={unit.value} value={unit.value}>
+                          {unit.label}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </div>
+                <div className="col-md-6">
+                  <Form.Group className="mb-3">
+                    <Form.Label>Product</Form.Label>
+                    <Select
+                      isMulti
+                      value={(product || "").split(", ").filter(Boolean).map(p => ({ label: p, value: p }))}
+                      onChange={(selected) => setProduct(selected.map(o => o.value).join(", "))}
+                      options={(selectedOrder?.types?.split(",") || []).map(p => ({ label: p.trim(), value: p.trim() }))}
+                      placeholder="Select product(s)"
+                    />
+                  </Form.Group>
+                  {/* <Form.Group className="mb-3">
+                    <Form.Label className="fw-bold">Product</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={product}
+                      onChange={(e) => setProduct(e.target.value)}
+                      placeholder="e.g., Shirt, Pants, Dress"
+                    />
+                  </Form.Group> */}
+                </div>
               </div>
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Label className="fw-bold">Product</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={product}
-                    onChange={(e) => setProduct(e.target.value)}
-                    placeholder="e.g., Shirt, Pants, Dress"
-                  />
-                </Form.Group>
-              </div>
-            </div>
 
-            <div className="row">
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Label className="fw-bold">Color</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                    placeholder="e.g., Red, Blue, Green"
-                  />
-                </Form.Group>
+              <div className="row">
+                <div className="col-md-6">
+                  <Form.Group className="mb-3">
+                    <Form.Label>Color</Form.Label>
+                    <Select
+                      isMulti
+                      value={(color || "").split(", ").filter(Boolean).map(c => ({ label: c, value: c }))}
+                      onChange={(selected) => setColor(selected.map(o => o.value).join(", "))}
+                      options={(selectedOrder?.colors?.split(",") || []).map(c => ({ label: c.trim(), value: c.trim() }))}
+                      placeholder="Select color(s)"
+                    />
+                  </Form.Group>
+                  {/* <Form.Group className="mb-3">
+                    <Form.Label className="fw-bold">Color</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      placeholder="e.g., Red, Blue, Green"
+                    />
+                  </Form.Group> */}
+                </div>
+                <div className="col-md-6">
+                  <Form.Group className="mb-3">
+                    <Form.Label className="fw-bold">Task Unit Name</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={taskUnitName}
+                      onChange={(e) => setTaskUnitName(e.target.value)}
+                      placeholder="e.g., A, B, C"
+                    />
+                  </Form.Group>
+                </div>
               </div>
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Label className="fw-bold">Task Unit Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={taskUnitName}
-                    onChange={(e) => setTaskUnitName(e.target.value)}
-                    placeholder="e.g., A, B, C"
-                  />
-                </Form.Group>
-              </div>
-            </div>
 
-            {/* Dependencies */}
-            <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Dependencies</Form.Label>
-              <Form.Select multiple value={dependencies} onChange={handleDependencyChange} style={{ height: 120 }}>
+              {/* Dependencies */}
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-bold">Dependencies</Form.Label>
+                <Select
+                  isMulti
+                  value={dependencies.map(dep => {
+                    const task = available.find(t => t.task_id === dep)
+                    return task ? { value: task.task_id, label: task.name } : null
+                  }).filter(Boolean)}
+                  onChange={selectedOptions => setDependencies(selectedOptions.map(opt => opt.value))}
+                  options={available.map(t => ({ value: t.task_id, label: t.name }))}
+                  placeholder="Select Dependencie(s)"
+                  menuPlacement="top"
+                />
+                {/* <Form.Select multiple value={dependencies} onChange={handleDependencyChange} style={{ height: 120 }}>
                 {available.map((t) => (
                   <option key={t.task_id} value={t.task_id}>
                     {t.name}
                   </option>
                 ))}
               </Form.Select>
-              <Form.Text className="text-muted">Ctrl/Cmd+click to multi-select</Form.Text>
-            </Form.Group>
-
+              <Form.Text className="text-muted">Ctrl/Cmd+click to multi-select</Form.Text> */}
+              </Form.Group>
+            </div>
             {/* Actions */}
-            <div className="d-flex justify-content-end gap-2 mt-4">
-              <Button variant="secondary" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button variant="primary" onClick={handleSubmit} disabled={loading}>
-                {loading ? "Saving..." : "Update Task"}
-              </Button>
+            {/* <div className="d-flex justify-content-end gap-2 mt-4"> */}
+            <div className="d-flex"
+              style={{
+                // justifyContent: "space-between",
+                alignItems: "center",
+                bottom: "0",
+                position: "sticky",
+                background: "white",
+                // maxHeight: "20%"
+              }}
+            >
+              <div className="d-flex justify-content-end gap-2 mt-4">
+                <Button variant="primary" onClick={handleSubmit} disabled={loading}>
+                  {loading ? "Saving..." : "Update Task"}
+                </Button>
+                <Button variant="secondary" onClick={onClose}>
+                  Cancel
+                </Button>
+              </div>
             </div>
           </Form>
         </Tab>

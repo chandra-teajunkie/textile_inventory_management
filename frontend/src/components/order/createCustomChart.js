@@ -552,15 +552,32 @@ export default function EnhancedDataGrid({ onSubmit }) {
       alert("Please add columns first")
       return
     }
-    const newRow = columns.reduce(
-      (obj, col) => {
-        if (col.key !== "actions") {
-          obj[col.key] = col.dataType === "string" ? "" : null
-        }
-        return obj
-      },
-      { __index: rows.length },
-    )
+
+    const today = new Date().toISOString().split("T")[0] // YYYY-MM-DD format
+
+    const newRow = columns.reduce((row, col) => {
+      if (col.key === "actions") return row
+
+      switch (col.dataType) {
+        case "string":
+          row[col.key] = ""
+          break
+        case "number":
+          row[col.key] = 0
+          break
+        case "boolean":
+          row[col.key] = false
+          break
+        case "date":
+          row[col.key] = today
+          break
+        default:
+          row[col.key] = ""
+      }
+
+      return row
+    }, { __index: rows.length })
+
     setRows((prev) => [...prev, newRow])
   }, [columns, rows.length])
 
@@ -643,7 +660,7 @@ export default function EnhancedDataGrid({ onSubmit }) {
   }, [])
 
   return (
-    <div style={{ padding: "20px", maxWidth: "100%", overflowX: "auto" }}>
+    <div style={{ padding: "20px", maxWidth: "100%", overflow: "auto" }} className="orderChart">
       {/* Action Buttons */}
       <div className="d-flex gap-2 mb-3 flex-wrap">
         <div className="position-relative">
@@ -680,12 +697,13 @@ export default function EnhancedDataGrid({ onSubmit }) {
 
       {/* Data Grid */}
       {columns.length > 0 && (
-        <div className="border rounded overflow-hidden" style={{ backgroundColor: "#f8f9fa" }}>
+        <div className="border rounded" style={{ backgroundColor: "#f8f9fa" }}>
           <div
             ref={gridRef}
             style={{
-              height: "400px",
+              // height: "200px",
               width: "100%",
+              // overflow: "auto",
             }}
           >
             <DataGrid

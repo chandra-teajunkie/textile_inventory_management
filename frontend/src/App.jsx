@@ -11,6 +11,7 @@ import "primereact/resources/themes/lara-light-indigo/theme.css"
 import "primereact/resources/primereact.min.css"
 import TextileLogo from './img/tailor.png';
 import { GiSewingMachine } from "react-icons/gi";
+import sewingMachineGif from './img/leather.gif';
 
 // Lazy-loaded components
 const Dashboard = lazy(() => import("./components/Dashboard"))
@@ -35,8 +36,17 @@ function App() {
         <div className="d-flex align-items-center gap-2 fw-semibold">
           {/* <i className="bi bi-scissors text-primary fs-4"></i> */}
           {/* <img src={TextileLogo}></img> */}
-          <GiSewingMachine className="text-primary fs-4" style={{ height: "35px", width: "35px" }} />
-          <span className="text-primary fw-bold" style={{ fontSize: "1.5rem" }}>Manda Garments</span>
+          {/* <GiSewingMachine className="text-primary fs-4" style={{ height: "35px", width: "35px" }} /> */}
+          <img
+            src={sewingMachineGif}
+            alt="Sewing Machine"
+            style={{
+              height: "35px",
+              width: "35px",
+              objectFit: 'contain'
+            }}
+          />
+          <span className="text-primary fw-bold" style={{ fontSize: "1.5rem" }}>SIDHU Textiles</span>
         </div>
         <div className="position-relative ms-auto flex-grow-0 me-3">
           <i className="bi bi-search position-absolute" style={{ left: "10px", top: "10px", fontSize: "0.9rem" }}></i>

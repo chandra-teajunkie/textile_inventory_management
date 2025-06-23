@@ -360,16 +360,32 @@ function CustomChartComponent({ data, onSubmit, chartType = "chart", onResetToOr
       alert("Please add columns first")
       return
     }
-    const newRow = columns.reduce(
-      (obj, col) => {
-        if (col.key !== "actions") {
-          obj[col.key] = col.dataType === "string" ? "" : null
-        }
-        return obj
-      },
-      { __index: rows.length },
-    )
-    setRows([...rows, newRow])
+    const today = new Date().toISOString().split("T")[0] // YYYY-MM-DD format
+
+    const newRow = columns.reduce((row, col) => {
+      if (col.key === "actions") return row
+
+      switch (col.dataType) {
+        case "string":
+          row[col.key] = ""
+          break
+        case "number":
+          row[col.key] = 0
+          break
+        case "boolean":
+          row[col.key] = false
+          break
+        case "date":
+          row[col.key] = today
+          break
+        default:
+          row[col.key] = ""
+      }
+
+      return row
+    }, { __index: rows.length })
+
+    setRows((prev) => [...prev, newRow])
   }
 
   // Add new column
