@@ -13,35 +13,59 @@ const TASK_UNITS = [
   "EMBROIDERY",
   "STITCHING",
   "PACKAGING",
-  "UNASSIGNED"
+  "UNASSIGNED",
 ]
 
 const STATUS_OPTIONS = [
   { value: "NOT STARTED", label: "Not Started" },
   { value: "IN PROGRESS", label: "In Progress" },
   { value: "COMPLETED", label: "Completed" },
-  { value: "BLOCKED", label: "Blocked" }
+  { value: "BLOCKED", label: "Blocked" },
 ]
 
 function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast }) {
   const [taskName, setTaskName] = useState("")
-  const [product, setProduct] = useState("")
-  const [color, setColor] = useState("")
   const [taskUnit, setTaskUnit] = useState("UNASSIGNED")
   const [status, setStatus] = useState("NOT STARTED")
   const [loading, setLoading] = useState(false)
   const [allTasks, setAllTasks] = useState([])
   const [dependencies, setDependencies] = useState([])
   const [taskUnitName, setTaskUnitName] = useState("")
+  const [selectedCombinations, setSelectedCombinations] = useState([])
 
-  // Extract available products and colors from selectedOrder
-  const availableProducts = selectedOrder?.types
-    ? selectedOrder.types.split(',').map(item => item.trim()).filter(Boolean)
-    : [];
+  // Create product-color combinations
+  const createProductColorCombinations = () => {
+    const products = selectedOrder?.types
+      ? selectedOrder.types
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+      : []
 
-  const availableColors = selectedOrder?.colors
-    ? selectedOrder.colors.split(',').map(item => item.trim()).filter(Boolean)
-    : [];
+    const colors = selectedOrder?.colors
+      ? selectedOrder.colors
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+      : []
+
+    const combinations = []
+
+    products.forEach((product) => {
+      colors.forEach((color) => {
+        combinations.push({
+          value: `${product}-${color}`,
+          label: `${product} - ${color}`,
+          product,
+          color,
+        })
+      })
+    })
+
+    return combinations
+  }
+
+  const productColorOptions = createProductColorCombinations()
 
   useEffect(() => {
     // fetch existing tasks for dependencies
@@ -58,11 +82,16 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast }) {
     fetchTasks()
   }, [orderId, toast])
 
-  const handleDependencyChange = e => {
-    const opts = Array.from(e.target.options)
-      .filter(o => o.selected)
-      .map(o => o.value)
-    setDependencies(opts)
+  const handleSelectAll = () => {
+    setSelectedCombinations(productColorOptions)
+  }
+
+  const handleDeselectAll = () => {
+    setSelectedCombinations([])
+  }
+
+  const handleCombinationChange = (selectedOptions) => {
+    setSelectedCombinations(selectedOptions || [])
   }
 
   const handleSubmit = async () => {
@@ -70,105 +99,191 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast }) {
       toast.current.show({ severity: "warn", summary: "Warning", detail: "Task name is required" })
       return
     }
-    const payload = {
-      order_id: orderId,
-      name: taskName,
-      product,
-      color,
-      task_unit: taskUnit,
-      task_unit_name: taskUnitName,
-      status,
-      dependencies
-    }
-    setLoading(true)
-    try {
-      const resp = await fetch(process.env.REACT_APP_POST_ALL_TASKS, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+
+    if (selectedCombinations.length === 0) {
+      toast.current.show({
+        severity: "warn",
+        summary: "Warning",
+        detail: "Please select at least one product-color combination",
       })
-      if (!resp.ok) throw new Error(resp.statusText)
-      const result = await resp.json()
-      onTaskCreated(result)
-      toast.current.show({ severity: "success", summary: "Success", detail: "Task created" })
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const taskPromises = selectedCombinations.map(async (combination) => {
+        const payload = {
+          order_id: orderId,
+          name: `${taskName} - ${combination.label}`,
+          product: combination.product,
+          color: combination.color,
+          task_unit: taskUnit,
+          task_unit_name: taskUnitName,
+          status,
+          dependencies,
+        }
+
+        const resp = await fetch(process.env.REACT_APP_POST_ALL_TASKS, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+
+        if (!resp.ok) throw new Error(`Failed to create task for ${combination.label}`)
+        return await resp.json()
+      })
+
+      const results = await Promise.all(taskPromises)
+
+      // Call onTaskCreated for each result or pass all results
+      results.forEach((result) => onTaskCreated(result))
+
+      toast.current.show({
+        severity: "success",
+        summary: "Success",
+        detail: `${selectedCombinations.length} task(s) created successfully`,
+      })
+
+      // Reset form
+      setTaskName("")
+      setSelectedCombinations([])
+      setTaskUnitName("")
+      setDependencies([])
     } catch (err) {
       console.error(err)
-      toast.current.show({ severity: "error", summary: "Error", detail: "Failed to create task" })
+      toast.current.show({
+        severity: "error",
+        summary: "Error",
+        detail: "Failed to create one or more tasks",
+      })
     } finally {
       setLoading(false)
     }
+  }
+
+  // Custom components for react-select
+  const customComponents = {
+    Option: ({ children, ...props }) => (
+      <div
+        {...props.innerProps}
+        className={`px-3 py-2 cursor-pointer hover:bg-gray-100 ${props.isSelected ? "bg-blue-100" : ""}`}
+        style={{
+          padding: "8px 12px",
+          cursor: "pointer",
+          backgroundColor: props.isSelected ? "#e3f2fd" : props.isFocused ? "#f5f5f5" : "white",
+        }}
+      >
+        <input type="checkbox" checked={props.isSelected} onChange={() => { }} style={{ marginRight: "8px" }} />
+        {children}
+      </div>
+    ),
+    MultiValue: ({ children, ...props }) => (
+      <div
+        style={{
+          backgroundColor: "#e3f2fd",
+          color: "#1976d2",
+          padding: "4px 8px",
+          borderRadius: "4px",
+          fontSize: "14px",
+          marginRight: "4px",
+          marginBottom: "4px",
+          display: "inline-flex",
+          alignItems: "center",
+        }}
+      >
+        {children}
+        <button
+          onClick={props.removeProps.onClick}
+          style={{
+            marginLeft: "4px",
+            color: "#1976d2",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            fontSize: "16px",
+          }}
+        >
+          ×
+        </button>
+      </div>
+    ),
   }
 
   return (
     <Form
       style={{
         display: "grid",
-        // justifyContent: space-between;
         width: "-webkit-fill-available",
-        // overflow: "auto"
       }}
-
     >
       <div style={{ maxHeight: "auto", overflow: "auto" }}>
+        <Form.Group className="mb-3">
+          <Form.Label>Task Unit</Form.Label>
+          <Form.Select value={taskUnit} onChange={(e) => setTaskUnit(e.target.value)}>
+            {TASK_UNITS.map((unit) => (
+              <option key={unit} value={unit}>
+                {unit}
+              </option>
+            ))}
+          </Form.Select>
+        </Form.Group>
+
         <Form.Group className="mb-3">
           <Form.Label>Task Name</Form.Label>
           <Form.Control
             type="text"
             value={taskName}
-            onChange={e => setTaskName(e.target.value)}
-            placeholder="Enter task name"
+            onChange={(e) => setTaskName(e.target.value)}
+            placeholder="Enter task name (will be combined with product-color)"
           />
+          <Form.Text className="text-muted">
+            Each task will be named: "{taskName} - {"Product - Color"}"
+          </Form.Text>
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>Product</Form.Label>
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <Form.Label className="mb-0">Product-Color Combinations</Form.Label>
+            <div>
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={handleSelectAll}
+                className="me-2"
+                disabled={selectedCombinations.length === productColorOptions.length}
+              >
+                Select All
+              </Button>
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={handleDeselectAll}
+                disabled={selectedCombinations.length === 0}
+              >
+                Clear All
+              </Button>
+            </div>
+          </div>
+
           <Select
             isMulti
-            value={(product || "").split(", ").filter(Boolean).map(p => ({ label: p, value: p }))}
-            onChange={(selected) => setProduct(selected.map(o => o.value).join(", "))}
-            options={(selectedOrder?.types?.split(",") || []).map(p => ({ label: p.trim(), value: p.trim() }))}
-            placeholder="Select product(s)"
+            value={selectedCombinations}
+            onChange={handleCombinationChange}
+            options={productColorOptions}
+            placeholder="Select product-color combinations"
+            components={customComponents}
+            closeMenuOnSelect={false}
+            hideSelectedOptions={false}
+            controlShouldRenderValue={true}
+            menuPlacement="auto"
+            maxMenuHeight={200}
           />
-        </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Color</Form.Label>
-          <Select
-            isMulti
-            value={(color || "").split(", ").filter(Boolean).map(c => ({ label: c, value: c }))}
-            onChange={(selected) => setColor(selected.map(o => o.value).join(", "))}
-            options={(selectedOrder?.colors?.split(",") || []).map(c => ({ label: c.trim(), value: c.trim() }))}
-            placeholder="Select color(s)"
-          />
-        </Form.Group>
-
-        {/* <Form.Group className="mb-3">
-        <Form.Label>Product</Form.Label>
-        <Form.Control
-          type="text"
-          value={product}
-          onChange={e => setProduct(e.target.value)}
-          placeholder="e.g. Pant / Shirt / etc."
-        />
-      </Form.Group>
-
-      <Form.Group className="mb-3">
-        <Form.Label>Color</Form.Label>
-        <Form.Control
-          type="text"
-          value={color}
-          onChange={e => setColor(e.target.value)}
-          placeholder="e.g. Blue / Red"
-        />
-      </Form.Group> */}
-
-        <Form.Group className="mb-3">
-          <Form.Label>Task Unit</Form.Label>
-          <Form.Select value={taskUnit} onChange={e => setTaskUnit(e.target.value)}>
-            {TASK_UNITS.map(unit => (
-              <option key={unit} value={unit}>{unit}</option>
-            ))}
-          </Form.Select>
+          <Form.Text className="text-muted">
+            {selectedCombinations.length} combination(s) selected.
+            {selectedCombinations.length > 0 && ` This will create ${selectedCombinations.length} separate task(s).`}
+          </Form.Text>
         </Form.Group>
 
         <Form.Group className="mb-3">
@@ -176,16 +291,18 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast }) {
           <Form.Control
             type="text"
             value={taskUnitName}
-            onChange={e => setTaskUnitName(e.target.value)}
+            onChange={(e) => setTaskUnitName(e.target.value)}
             placeholder="e.g. A / B"
           />
         </Form.Group>
 
         <Form.Group className="mb-3">
           <Form.Label>Status</Form.Label>
-          <Form.Select value={status} onChange={e => setStatus(e.target.value)}>
-            {STATUS_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+          <Form.Select value={status} onChange={(e) => setStatus(e.target.value)}>
+            {STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
           </Form.Select>
         </Form.Group>
@@ -194,41 +311,61 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast }) {
           <Form.Label>Dependencies</Form.Label>
           <Select
             isMulti
-            value={dependencies.map(dep => {
-              const task = allTasks.find(t => t.task_id === dep)
-              return task ? { value: task.task_id, label: task.name } : null
-            }).filter(Boolean)}
-            onChange={selectedOptions => setDependencies(selectedOptions.map(opt => opt.value))}
-            options={allTasks.map(t => ({ value: t.task_id, label: t.name }))}
-            placeholder="Select Dependencie(s)"
+            value={dependencies
+              .map((dep) => {
+                const task = allTasks.find((t) => t.task_id === dep)
+                return task ? { value: task.task_id, label: task.name } : null
+              })
+              .filter(Boolean)}
+            onChange={(selectedOptions) => setDependencies(selectedOptions.map((opt) => opt.value))}
+            options={allTasks.map((t) => ({ value: t.task_id, label: t.name }))}
+            placeholder="Select Dependencies"
             menuPlacement="top"
           />
-          {/* <Form.Select multiple value={dependencies} onChange={handleDependencyChange} style={{ height: 120 }}>
-            {allTasks.map(t => (
-              <option key={t.task_id} value={t.task_id}>{t.name}</option>
-            ))}
-          </Form.Select>
-          <Form.Text className="text-muted">Ctrl/Cmd+Click to select multiple</Form.Text> */}
         </Form.Group>
+
+        {/* Preview section */}
+        {selectedCombinations.length > 0 && (
+          <Form.Group className="mb-3">
+            <Form.Label>Task Preview</Form.Label>
+            <div className="border rounded p-3 bg-light" style={{ maxHeight: "150px", overflowY: "auto" }}>
+              <small className="text-muted">The following tasks will be created:</small>
+              <ul className="mb-0 mt-2">
+                {selectedCombinations.map((combination, index) => (
+                  <li key={combination.value} className="small">
+                    {taskName ? `${taskName} - ${combination.label}` : combination.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Form.Group>
+        )}
       </div>
 
-      <div className="d-flex"
+      <div
+        className="d-flex"
         style={{
           justifyContent: "space-between",
           alignItems: "center",
           bottom: "0",
           position: "sticky",
           background: "white",
-          // maxHeight: "20%"
         }}
       >
         <div className="d-flex justify-content-end gap-2 mt-4">
-          <Button variant="primary" onClick={handleSubmit} disabled={loading}>
-            {loading
-              ? <> <span className="spinner-border spinner-border-sm me-2" /> Creating... </>
-              : "Create Task"}
+          <Button variant="primary" onClick={handleSubmit} disabled={loading || selectedCombinations.length === 0}>
+            {loading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" />
+                Creating {selectedCombinations.length} Task(s)...
+              </>
+            ) : (
+              `Create ${selectedCombinations.length} Task(s)`
+            )}
           </Button>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
         </div>
       </div>
     </Form>

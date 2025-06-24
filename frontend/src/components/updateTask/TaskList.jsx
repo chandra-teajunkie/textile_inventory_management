@@ -117,8 +117,18 @@ export default function TaskList({ toast }) {
   }
 
   const handleTaskUpdated = (updatedTask) => {
+    if (!selectedOrderId) return setTasks([])
+    setLoading(true)
+    fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${selectedOrderId}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then(setTasks)
+      .catch((err) => {
+        console.error(err)
+        toast.current.show({ severity: "error", summary: "Error", detail: "Could not load tasks" })
+      })
+      .finally(() => setLoading(false))
     // Replace in list
-    setTasks((ts) => ts.map((t) => (t.task_id === updatedTask.task_id ? updatedTask : t)))
+    // setTasks((ts) => ts.map((t) => (t.task_id === updatedTask.task_id ? updatedTask : t)))
     setShowEditModal(false)
     toast.current.show({ severity: "success", summary: "Success", detail: "Task updated" })
   }
