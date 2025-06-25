@@ -3,6 +3,7 @@
     "db_type" : "sqlite",
     "backend_port" : 3002,
     "backend_host" : "localhost",
-    "sql_lite_db_url": "sqlite:///./sqllite/textile_inventory.db"
+    "sql_lite_db_url": "sqlite:///./sqllite/textile_inventory.db",
+    "postgres_url": ""
 
 }

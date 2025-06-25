@@ -11,6 +11,12 @@ from app.routers.inventory import router as inventory_router
 from app.utils.logger_setup import logger
 from app.utils.process_app_config import process_app_config
 
+from dotenv import load_dotenv
+
+# Load variables from .env file
+load_dotenv()
+
+
 # Process Config at Startup
 app_config = process_app_config()
 
@@ -22,14 +28,15 @@ logger.info("Setting up database connection...")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if app_config["db_type"] == "sqlite":
-        logger.info("Using SQLite database.")
-        # Startup: Create database
-        logger.info("Creating database tables...")
-        SQLModel.metadata.create_all(engine)
-        yield
-        # Shutdown: Add cleanup logic here if needed (e.g., closing connections)
-        pass
+    logger.info(f"Using {app_config['db_type'].upper()} database.")
+    # Startup: Create tables for both sqlite and postgres
+    logger.info("Creating database tables...")
+    SQLModel.metadata.create_all(engine)
+
+    yield
+
+    # Shutdown logic (optional)
+    pass
 
 
 app = FastAPI(lifespan=lifespan)

@@ -9,6 +9,9 @@ COPY backend/pyproject.toml /workdir/pyproject.toml
 # Set working directory
 WORKDIR /workdir
 
+# Create sqlite folder before anything else
+RUN mkdir -p /workdir/sqllite
+
 RUN uv venv
 RUN uv sync
 

@@ -10,8 +10,22 @@ with open(DEFAULT_CONFIG_PATH, "r") as default_config_file:
     DEFAULT_CONFIG = json.load(default_config_file)
 
 
+def get_config_value(config_dict, key, default, cast_func=lambda x: x):
+    env_value = os.getenv(key.upper())
+    if env_value is not None:
+        logger.info(f"✔ Env override '{key}' set: {env_value}")
+        return cast_func(env_value)
+
+    if key in config_dict:
+        logger.info(f"✔ Config '{key}' set: {config_dict[key]}")
+        return cast_func(config_dict[key])
+
+    logger.warning(f"⚠ '{key}' missing! Defaulted to: {default}")
+    return cast_func(default)
+
+
 def process_app_config():
-    """Load and validate app_config.json, logging missing/defaulted values one by one."""
+    """Load and validate app_config.json with optional .env overrides."""
 
     if not os.path.exists(APP_CONFIG_PATH):
         logger.error(f"Config file missing: {APP_CONFIG_PATH}.")
@@ -22,50 +36,25 @@ def process_app_config():
 
     validated_config = {}
 
-    # Check each value individually
-    if "app_mode" in app_config:
-        validated_config["app_mode"] = app_config["app_mode"]
-        logger.info(f"✔ Config 'app_mode' set: {app_config['app_mode']}")
-    else:
-        validated_config["app_mode"] = DEFAULT_CONFIG["app_mode"]
-        logger.warning(
-            f"⚠ 'app_mode' missing! Defaulted to: {DEFAULT_CONFIG['app_mode']}"
-        )
+    validated_config["app_mode"] = get_config_value(
+        app_config, "app_mode", DEFAULT_CONFIG["app_mode"]
+    )
+    validated_config["db_type"] = get_config_value(
+        app_config, "db_type", DEFAULT_CONFIG["db_type"]
+    )
+    validated_config["backend_port"] = get_config_value(
+        app_config, "backend_port", DEFAULT_CONFIG["backend_port"], int
+    )
+    validated_config["backend_host"] = get_config_value(
+        app_config, "backend_host", DEFAULT_CONFIG["backend_host"]
+    )
+    validated_config["sql_lite_db_url"] = get_config_value(
+        app_config, "sql_lite_db_url", DEFAULT_CONFIG["sql_lite_db_url"]
+    )
 
-    if "db_type" in app_config:
-        validated_config["db_type"] = app_config["db_type"]
-        logger.info(f"✔ Config 'db_type' set: {app_config['db_type']}")
-    else:
-        validated_config["db_type"] = DEFAULT_CONFIG["db_type"]
-        logger.warning(
-            f"⚠ 'db_type' missing! Defaulted to: {DEFAULT_CONFIG['db_type']}"
-        )
-
-    if "backend_port" in app_config:
-        validated_config["backend_port"] = app_config["backend_port"]
-        logger.info(f"✔ Config 'backend_port' set: {app_config['backend_port']}")
-    else:
-        validated_config["backend_port"] = DEFAULT_CONFIG["backend_port"]
-        logger.warning(
-            f"⚠ 'backend_port' missing! Defaulted to: {DEFAULT_CONFIG['backend_port']}"
-        )
-
-    if "backend_host" in app_config:
-        validated_config["backend_host"] = app_config["backend_host"]
-        logger.info(f"✔ Config 'backend_host' set: {app_config['backend_host']}")
-    else:
-        validated_config["backend_host"] = DEFAULT_CONFIG["backend_host"]
-        logger.warning(
-            f"⚠ 'backend_host' missing! Defaulted to: {DEFAULT_CONFIG['backend_host']}"
-        )
-
-    if "sql_lite_db_url" in app_config:
-        validated_config["sql_lite_db_url"] = app_config["sql_lite_db_url"]
-        logger.info(f"✔ Config 'sql_lite_db_url' set: {app_config['sql_lite_db_url']}")
-    else:
-        validated_config["sql_lite_db_url"] = DEFAULT_CONFIG["sql_lite_db_url"]
-        logger.warning(
-            f"⚠ 'sql_lite_db_url' missing! Defaulted to: {DEFAULT_CONFIG['sql_lite_db_url']}"
-        )
+    # Optional: PostgreSQL config
+    validated_config["postgres_url"] = get_config_value(
+        app_config, "postgres_url", DEFAULT_CONFIG.get("postgres_url", "")
+    )
 
     return validated_config

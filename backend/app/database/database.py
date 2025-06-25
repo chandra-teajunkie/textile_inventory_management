@@ -5,7 +5,15 @@ from app.utils.process_app_config import process_app_config
 # Process Config at Startup
 app_config = process_app_config()
 
-DATABASE_URL = app_config["sql_lite_db_url"]
+# Determine DB engine
+if app_config["db_type"] == "sqlite":
+    DATABASE_URL = app_config["sql_lite_db_url"]
+    logger.info("🛠 Using SQLite database.")
+elif app_config["db_type"] == "postgres":
+    DATABASE_URL = app_config["postgres_url"]
+    logger.info("🛠 Using PostgreSQL database.")
+else:
+    raise ValueError(f"Unsupported db_type: {app_config['db_type']}")
 engine = create_engine(DATABASE_URL, echo=True)
 
 
