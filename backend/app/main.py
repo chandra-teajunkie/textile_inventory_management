@@ -44,7 +44,10 @@ app = FastAPI(lifespan=lifespan)
 # Allow requests from your frontend origin
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:30000"],  # Exact origin of your frontend
+    allow_origins=[
+        "https://sidhu-textiles.onrender.com",  # ✅ correct deployed frontend
+        "http://localhost:3000",  # ✅ optional for local testing
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
