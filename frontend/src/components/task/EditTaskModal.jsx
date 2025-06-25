@@ -103,6 +103,16 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
 
     >
       <div style={{ maxHeight: "auto", overflow: "auto" }}>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Task Unit</Form.Label>
+          <Form.Select value={taskUnit} onChange={e => setTaskUnit(e.target.value)}>
+            {TASK_UNITS.map(unit => (
+              <option key={unit} value={unit}>{unit}</option>
+            ))}
+          </Form.Select>
+        </Form.Group>
+
         <Form.Group className="mb-3">
           <Form.Label>Task Name</Form.Label>
           <Form.Control
@@ -115,22 +125,22 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
         <Form.Group className="mb-3">
           <Form.Label>Product</Form.Label>
           <Select
-            isMulti
-            value={(product || "").split(", ").filter(Boolean).map(p => ({ label: p, value: p }))}
-            onChange={(selected) => setProduct(selected.map(o => o.value).join(", "))}
+            value={product ? { label: product, value: product } : null}
+            onChange={(selected) => setProduct(selected ? selected.value : "")}
             options={(selectedOrder?.types?.split(",") || []).map(p => ({ label: p.trim(), value: p.trim() }))}
-            placeholder="Select product(s)"
+            placeholder="Select a product"
+            isClearable
           />
         </Form.Group>
 
         <Form.Group className="mb-3">
           <Form.Label>Color</Form.Label>
           <Select
-            isMulti
-            value={(color || "").split(", ").filter(Boolean).map(c => ({ label: c, value: c }))}
-            onChange={(selected) => setColor(selected.map(o => o.value).join(", "))}
+            value={color ? { label: color, value: color } : null}
+            onChange={(selected) => setColor(selected ? selected.value : "")}
             options={(selectedOrder?.colors?.split(",") || []).map(c => ({ label: c.trim(), value: c.trim() }))}
-            placeholder="Select color(s)"
+            placeholder="Select a color"
+            isClearable
           />
         </Form.Group>
 
@@ -152,14 +162,7 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
         />
       </Form.Group> */}
 
-        <Form.Group className="mb-3">
-          <Form.Label>Task Unit</Form.Label>
-          <Form.Select value={taskUnit} onChange={e => setTaskUnit(e.target.value)}>
-            {TASK_UNITS.map(unit => (
-              <option key={unit} value={unit}>{unit}</option>
-            ))}
-          </Form.Select>
-        </Form.Group>
+
 
         <Form.Group className="mb-3">
           <Form.Label>Task Unit Name</Form.Label>
@@ -189,8 +192,8 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
               return task ? { value: task.task_id, label: task.name } : null
             }).filter(Boolean)}
             onChange={selectedOptions => setDependencies(selectedOptions.map(opt => opt.value))}
-            options={allTasks.map(t => ({ value: t.task_id, label: t.name }))}
-            placeholder="Select Dependencie(s)"
+            options={availableDeps.map(t => ({ value: t.task_id, label: t.name }))}
+            placeholder="Select dependencies"
             menuPlacement="top"
           />
           {/* <Form.Select

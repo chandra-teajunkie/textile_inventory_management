@@ -12,7 +12,6 @@ function OrderForm({ toast }) {
         overallPieces: "",
         types: [], // Changed to array for multi-select
         colors: [], // Changed to array for multi-select
-        // design_specs: [], // Changed to array for multi-select
         customer_name: "", // Remains single select
         specialNotes: "",
         orderDate: new Date(),
@@ -25,7 +24,6 @@ function OrderForm({ toast }) {
     const [dropdownOptions, setDropdownOptions] = useState({
         types: [],
         colors: [],
-        // design_specs: [],
         customer_name: [],
     })
 
@@ -45,11 +43,10 @@ function OrderForm({ toast }) {
             if (response.ok) {
                 const data = await response.json()
 
-                // Expected format: { types: [], colors: [], design_specs: [], customer_name: [] }
+                // Expected format: { types: [], colors: [], customer_name: [] }
                 setDropdownOptions({
                     types: data.types || ["Top", "Bottom", "Pant"],
                     colors: data.colors || ["Red", "Blue", "Green"],
-                    // design_specs: data.design_specs || data.design_specs || ["Floral", "Plain", "Striped"],
                     customer_name: data.customer_name || ["CUST001", "CUST002", "CUST003"],
                 })
             } else {
@@ -61,7 +58,6 @@ function OrderForm({ toast }) {
             setDropdownOptions({
                 types: ["Top", "Bottom", "Pant"],
                 colors: ["Red", "Blue", "Green"],
-                // design_specs: ["Floral", "Plain", "Striped"],
                 customer_name: ["CUST001", "CUST002", "CUST003"],
             })
         }
@@ -146,7 +142,6 @@ function OrderForm({ toast }) {
         if (!form.overallPieces || form.overallPieces.trim() === "") emptyFields.push("overallPieces")
         if (!form.types || form.types.length === 0) emptyFields.push("types")
         if (!form.colors || form.colors.length === 0) emptyFields.push("colors")
-        // if (!form.design_specs || form.design_specs.length === 0) emptyFields.push("design_specs")
         if (!form.customer_name || form.customer_name.trim() === "") emptyFields.push("customer_name")
         if (!form.specialNotes || form.specialNotes.trim() === "") emptyFields.push("specialNotes")
 
@@ -174,7 +169,6 @@ function OrderForm({ toast }) {
             number_of_overall_pieces: Number.parseInt(form.overallPieces),
             types: form.types.join(", "), // Join with commas
             colors: form.colors.join(", "), // Join with commas
-            // design_specs: form.design_specs.join(", "), // Join with commas
             customer_name: form.customer_name,
             order_date: form.orderDate.toISOString(),
             start_date: form.startDate.toISOString(),
@@ -186,6 +180,10 @@ function OrderForm({ toast }) {
             const formData = new FormData()
             formData.append("order", JSON.stringify(orderPayload))
             formData.append("size_chart_json", JSON.stringify(sizeChartData))
+
+            console.log("Order payload:", orderPayload)
+            console.log("Size chart data being sent:", sizeChartData)
+            console.log("Size chart JSON string:", JSON.stringify(sizeChartData))
 
             const response = await fetch(process.env.REACT_APP_POST_ALL_ORDERS, {
                 method: "POST",
@@ -201,7 +199,6 @@ function OrderForm({ toast }) {
                     overallPieces: "",
                     types: [],
                     colors: [],
-                    // design_specs: [],
                     customer_name: "",
                     specialNotes: "",
                     orderDate: new Date(),
@@ -222,7 +219,52 @@ function OrderForm({ toast }) {
     }
 
     const handleTableSubmit = (json) => {
-        setSizeChartData(json)
+        // Ensure the data maintains the same order as displayed in UI
+        console.log("Received chart data from UI:", json)
+
+        // Create ordered data structure that matches UI column order
+        const orderedData = {}
+
+        // Define the expected column order (Item and Color first, then size columns)
+        const expectedColumnOrder = ["Item", "Color", "24", "26", "28", "30", "32", "34", "36", "38", "40", "42", "44"]
+
+        // Process columns in the expected order
+        expectedColumnOrder.forEach((columnKey) => {
+            if (json[columnKey]) {
+                orderedData[columnKey] = {}
+
+                // Get all row indices and sort them numerically
+                const rowIndices = Object.keys(json[columnKey])
+                    .map((index) => Number.parseInt(index))
+                    .filter((index) => !isNaN(index))
+                    .sort((a, b) => a - b)
+
+                // Rebuild the column data with sorted indices
+                rowIndices.forEach((originalIndex, newIndex) => {
+                    orderedData[columnKey][newIndex] = json[columnKey][originalIndex]
+                })
+            }
+        })
+
+        // Add any additional columns that weren't in the expected order
+        Object.keys(json).forEach((columnKey) => {
+            if (!expectedColumnOrder.includes(columnKey) && columnKey !== "actions") {
+                orderedData[columnKey] = {}
+
+                const rowIndices = Object.keys(json[columnKey])
+                    .map((index) => Number.parseInt(index))
+                    .filter((index) => !isNaN(index))
+                    .sort((a, b) => a - b)
+
+                rowIndices.forEach((originalIndex, newIndex) => {
+                    orderedData[columnKey][newIndex] = json[columnKey][originalIndex]
+                })
+            }
+        })
+
+        console.log("Processed chart data for backend (ordered):", orderedData)
+        console.log("Column order:", Object.keys(orderedData))
+        setSizeChartData(orderedData)
     }
 
     // Convert arrays to react-select format
@@ -306,29 +348,6 @@ function OrderForm({ toast }) {
                                     )}
                                 </Form.Group>
 
-                                {/* <Form.Group className="mb-3">
-                                    <Form.Label>Design Specifications * (Multi-select)</Form.Label>
-                                    <CreatableSelect
-                                        isMulti
-                                        isClearable
-                                        placeholder="Select or enter design specs"
-                                        value={formatValuesForSelect(form.design_specs)}
-                                        onChange={(selectedOptions) => handleMultiSelectChange("design_specs", selectedOptions)}
-                                        onCreateOption={(inputValue) => handleCreateOption(inputValue, "design_specs")}
-                                        options={formatOptionsForSelect(dropdownOptions.design_specs)}
-                                    />
-                                    {form.design_specs.length > 0 && (
-                                        <div className="mt-2">
-                                            <small className="text-muted">Selected: </small>
-                                            {form.design_specs.map((spec, index) => (
-                                                <Badge key={index} bg="warning" className="me-1">
-                                                    {spec}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    )}
-                                </Form.Group> */}
-
                                 <Form.Group className="mb-3">
                                     <Form.Label>Customer Name * (Single select)</Form.Label>
                                     <CreatableSelect
@@ -393,10 +412,18 @@ function OrderForm({ toast }) {
                         <hr />
 
                         <h5 className="mb-3">Size Chart *</h5>
-                        <p className="text-muted mb-4">Create a size chart or upload a file to generate one</p>
+                        <p className="text-muted mb-4">
+                            Create a size chart or upload a file to generate one.
+                            {form.types.length > 0 && form.colors.length > 0 && (
+                                <span className="fw-bold text-primary">
+                                    {" "}
+                                    Auto-generating {form.types.length * form.colors.length} rows based on your type-color combinations.
+                                </span>
+                            )}
+                        </p>
 
-                        <div className="size-chart-container">
-                            <EnhancedDataGrid onSubmit={handleTableSubmit} />
+                        <div style={{ marginBottom: "20px", overflow: "hidden" }}>
+                            <EnhancedDataGrid onSubmit={handleTableSubmit} orderTypes={form.types} orderColors={form.colors} />
                         </div>
 
                         <div className="d-flex justify-content-end mt-4">
@@ -414,13 +441,6 @@ function OrderForm({ toast }) {
                     </Form>
                 </Card.Body>
             </Card>
-
-            <style jsx>{`
-        .size-chart-container {
-          margin-bottom: 20px;
-          overflow: hidden;
-        }
-      `}</style>
         </div>
     )
 }

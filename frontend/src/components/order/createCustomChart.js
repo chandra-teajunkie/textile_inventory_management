@@ -6,7 +6,7 @@ import { Button, Form, Modal, Badge } from "react-bootstrap"
 import { FaTrash, FaPlus, FaUpload, FaTimes } from "react-icons/fa"
 import "react-data-grid/lib/styles.css"
 import * as XLSX from "xlsx"
-import './order.css';
+import "./order.css"
 
 // Suppress ResizeObserver errors
 const suppressResizeObserverError = () => {
@@ -53,13 +53,15 @@ const getColumnWidth = (dataType, columnName) => {
   }
 }
 
-export default function EnhancedDataGrid({ onSubmit }) {
+export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColors = [] }) {
   const [columns, setColumns] = useState([])
   const [rows, setRows] = useState([])
   const [fileName, setFileName] = useState("")
   const [isAddColumnOpen, setIsAddColumnOpen] = useState(false)
   const [newColumnName, setNewColumnName] = useState("")
   const [newColumnType, setNewColumnType] = useState("string")
+  const [hasCustomChart, setHasCustomChart] = useState(false)
+  const [originalColumnOrder, setOriginalColumnOrder] = useState([]) // Track original column order
   const gridRef = useRef(null)
   const submitTimeoutRef = useRef(null)
   const lastSubmittedDataRef = useRef(null)
@@ -182,6 +184,21 @@ export default function EnhancedDataGrid({ onSubmit }) {
     { value: "date", label: "Date", icon: "📅" },
   ]
 
+  // Generate type-color combinations
+  const generateTypesColorCombinations = useCallback(() => {
+    const combinations = []
+    const types = orderTypes.length > 0 ? orderTypes : ["Pant", "Shirt"]
+    const colors = orderColors.length > 0 ? orderColors : ["Blue", "White"]
+
+    types.forEach((type) => {
+      colors.forEach((color) => {
+        combinations.push({ type, color })
+      })
+    })
+
+    return combinations
+  }, [orderTypes, orderColors])
+
   // Memoized delete row function
   const deleteRow = useCallback((rowIdx) => {
     setRows((prevRows) => {
@@ -206,6 +223,9 @@ export default function EnhancedDataGrid({ onSubmit }) {
         return newRow
       }),
     )
+
+    // Update original column order when deleting columns
+    setOriginalColumnOrder((prevOrder) => prevOrder.filter((colKey) => colKey !== key))
   }, [])
 
   // Memoized action cell renderer
@@ -270,30 +290,28 @@ export default function EnhancedDataGrid({ onSubmit }) {
             </Badge>
           )}
         </div>
-        {
-          column.key !== "actions" && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                deleteColumn(column.key)
-              }}
-              style={{
-                border: "none",
-                background: "none",
-                color: "#dc3545",
-                cursor: "pointer",
-                padding: "2px 4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              title="Delete column"
-            >
-              <FaTimes size={10} />
-            </button>
-          )
-        }
-      </div >
+        {column.key !== "actions" && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              deleteColumn(column.key)
+            }}
+            style={{
+              border: "none",
+              background: "none",
+              color: "#dc3545",
+              cursor: "pointer",
+              padding: "2px 4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            title="Delete column"
+          >
+            <FaTimes size={10} />
+          </button>
+        )}
+      </div>
     ),
     [deleteColumn],
   )
@@ -306,10 +324,9 @@ export default function EnhancedDataGrid({ onSubmit }) {
         name: "Item",
         dataType: "string",
         editable: true,
-        headerAlign: 'center',
+        headerAlign: "center",
         resizable: true,
         sortable: true,
-        // width: getColumnWidth("string", "Item"),
         renderEditCell: dataTypeEditors.string,
         renderCell: dataTypeFormatters.string,
       },
@@ -318,10 +335,9 @@ export default function EnhancedDataGrid({ onSubmit }) {
         name: "Color",
         dataType: "string",
         editable: true,
-        headerAlign: 'center',
+        headerAlign: "center",
         resizable: true,
         sortable: true,
-        // width: getColumnWidth("string", "Color"),
         renderEditCell: dataTypeEditors.string,
         renderCell: dataTypeFormatters.string,
       },
@@ -330,18 +346,16 @@ export default function EnhancedDataGrid({ onSubmit }) {
         name: size,
         dataType: "number",
         editable: true,
-        headerAlign: 'center',
+        headerAlign: "center",
         resizable: true,
         sortable: true,
-        // width: getColumnWidth("number", size),
         renderEditCell: dataTypeEditors.number,
         renderCell: dataTypeFormatters.number,
       })),
       {
         key: "actions",
         name: "Actions",
-        headerAlign: 'center',
-        // width: 80,
+        headerAlign: "center",
         resizable: true,
         sortable: false,
         renderCell: ActionCellRenderer,
@@ -350,52 +364,110 @@ export default function EnhancedDataGrid({ onSubmit }) {
     [dataTypeEditors, dataTypeFormatters, ActionCellRenderer],
   )
 
-  // Memoized initial rows
-  const initialRows = useMemo(
-    () => [
-      {
-        Item: "Pant",
-        Color: "Blue",
-        24: 0,
-        26: 0,
-        28: 0,
-        30: 0,
-        32: 0,
-        34: 0,
-        36: 0,
-        38: 0,
-        40: 0,
-        42: 0,
-        44: 0,
-        __index: 0,
-      },
-      {
-        Item: "Shirt",
-        Color: "White",
-        24: 0,
-        26: 0,
-        28: 0,
-        30: 0,
-        32: 0,
-        34: 0,
-        36: 0,
-        38: 0,
-        40: 0,
-        42: 0,
-        44: 0,
-        __index: 1,
-      },
-    ],
-    [],
-  )
+  // Generate initial rows based on type-color combinations
+  const generateInitialRows = useCallback(() => {
+    const combinations = generateTypesColorCombinations()
 
-  // Initialize with sample data
+    return combinations.map((combination, index) => ({
+      Item: combination.type,
+      Color: combination.color,
+      24: 0,
+      26: 0,
+      28: 0,
+      30: 0,
+      32: 0,
+      34: 0,
+      36: 0,
+      38: 0,
+      40: 0,
+      42: 0,
+      44: 0,
+      __index: index, // Ensure sequential indexing
+    }))
+  }, [generateTypesColorCombinations])
+
+  // Initialize with sample data or type-color combinations
   useEffect(() => {
     if (columns.length === 0 && rows.length === 0) {
       setColumns(initialColumns)
-      setRows(initialRows)
+      setRows(generateInitialRows())
+      // Set default column order for initial setup
+      setOriginalColumnOrder(["Item", "Color", "24", "26", "28", "30", "32", "34", "36", "38", "40", "42", "44"])
+      setHasCustomChart(false) // Explicitly set as not custom chart
+      console.log("Initialized with default chart, setting originalColumnOrder to default")
     }
-  }, [columns.length, rows.length, initialColumns, initialRows])
+  }, [columns.length, rows.length, initialColumns, generateInitialRows])
+
+  // Update rows when orderTypes or orderColors change (only if no custom chart)
+  useEffect(() => {
+    if (!hasCustomChart && (orderTypes.length > 0 || orderColors.length > 0)) {
+      const newRows = generateInitialRows()
+      setRows(newRows)
+    }
+  }, [orderTypes, orderColors, hasCustomChart, generateInitialRows])
+
+  // Add type-color combination rows to existing chart
+  const addTypesColorRows = useCallback(() => {
+    if (!hasCustomChart) return
+
+    const combinations = generateTypesColorCombinations()
+    const existingCombinations = new Set(rows.map((row) => `${row.Item}-${row.Color}`))
+
+    const newRows = combinations
+      .filter((combination) => !existingCombinations.has(`${combination.type}-${combination.color}`))
+      .map((combination, index) => {
+        const newRow = {
+          __index: rows.length + index, // Sequential indexing from existing rows
+        }
+
+        // Set Item and Color if they exist in the current columns
+        if (columns.some((col) => col.key === "Item")) {
+          newRow.Item = combination.type
+        }
+        if (columns.some((col) => col.key === "Color")) {
+          newRow.Color = combination.color
+        }
+
+        // Set default values for all other columns
+        columns.forEach((col) => {
+          if (col.key !== "Item" && col.key !== "Color" && col.key !== "actions" && !newRow.hasOwnProperty(col.key)) {
+            switch (col.dataType) {
+              case "number":
+                newRow[col.key] = 0
+                break
+              case "boolean":
+                newRow[col.key] = false
+                break
+              case "date":
+                newRow[col.key] = new Date().toISOString().split("T")[0]
+                break
+              default:
+                newRow[col.key] = ""
+            }
+          }
+        })
+
+        return newRow
+      })
+
+    if (newRows.length > 0) {
+      setRows((prevRows) => {
+        const combinedRows = [...prevRows, ...newRows]
+        // Re-index all rows to ensure sequential order
+        return combinedRows.map((row, index) => ({
+          ...row,
+          __index: index,
+        }))
+      })
+    }
+  }, [hasCustomChart, generateTypesColorCombinations, rows, columns])
+
+  // Add type-color rows when types/colors change and there's a custom chart
+  useEffect(() => {
+    if (hasCustomChart && (orderTypes.length > 0 || orderColors.length > 0)) {
+      addTypesColorRows()
+    }
+  }, [orderTypes, orderColors, hasCustomChart, addTypesColorRows])
 
   // Debounced submit function to prevent duplicate submissions
   const debouncedSubmit = useCallback(
@@ -416,21 +488,73 @@ export default function EnhancedDataGrid({ onSubmit }) {
     [onSubmit],
   )
 
-  // Memoized result calculation
+  // Memoized result calculation - Preserves original column order for custom charts
   const calculatedResult = useMemo(() => {
     if (columns.length === 0 || rows.length === 0) return null
 
-    const result = {}
-    columns.forEach((col) => {
-      if (col.key !== "actions") {
-        result[col.key] = {}
-        rows.forEach((row, index) => {
-          result[col.key][index] = row[col.key]
-        })
-      }
+    // Sort rows by their __index to maintain display order
+    const sortedRows = [...rows].sort((a, b) => a.__index - b.__index)
+
+    // Determine which column order to use
+    let columnOrder
+    if (hasCustomChart && originalColumnOrder.length > 0) {
+      // For custom charts, use the original column order from upload
+      columnOrder = originalColumnOrder.filter((colKey) =>
+        columns.some((col) => col.key === colKey && col.key !== "actions"),
+      )
+
+      // Add any new columns that weren't in the original order
+      const newColumns = columns
+        .filter((col) => col.key !== "actions" && !originalColumnOrder.includes(col.key))
+        .map((col) => col.key)
+
+      columnOrder = [...columnOrder, ...newColumns]
+      console.log("Using custom chart column order:", columnOrder)
+    } else {
+      // For default charts, use the predefined UI order
+      const defaultOrder = ["Item", "Color", "24", "26", "28", "30", "32", "34", "36", "38", "40", "42", "44"]
+      columnOrder = defaultOrder.filter((colKey) => columns.some((col) => col.key === colKey && col.key !== "actions"))
+
+      // Add any additional columns that weren't in the default order
+      const additionalColumns = columns
+        .filter((col) => col.key !== "actions" && !defaultOrder.includes(col.key))
+        .map((col) => col.key)
+
+      columnOrder = [...columnOrder, ...additionalColumns]
+      console.log("Using default chart column order:", columnOrder)
+      console.log("hasCustomChart:", hasCustomChart)
+      console.log("originalColumnOrder:", originalColumnOrder)
+      console.log(
+        "columns keys:",
+        columns.map((c) => c.key),
+      )
+    }
+
+    // Create result object by explicitly setting properties in order
+    const finalResult = {}
+
+    // Process each column in the exact order specified
+    columnOrder.forEach((columnKey) => {
+      const columnData = {}
+      sortedRows.forEach((row, displayIndex) => {
+        columnData[displayIndex] = row[columnKey] ?? null
+      })
+
+      // Use Object.defineProperty to ensure the property is added in order
+      Object.defineProperty(finalResult, columnKey, {
+        value: columnData,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      })
     })
-    return result
-  }, [columns, rows])
+
+    console.log("Final result column order:", Object.keys(finalResult))
+    console.log("Expected column order:", columnOrder)
+    console.log("Orders match:", JSON.stringify(Object.keys(finalResult)) === JSON.stringify(columnOrder))
+
+    return finalResult
+  }, [columns, rows, hasCustomChart, originalColumnOrder])
 
   // Submit data when it changes
   useEffect(() => {
@@ -452,6 +576,7 @@ export default function EnhancedDataGrid({ onSubmit }) {
       if (!file) return
 
       setFileName(file.name)
+      setHasCustomChart(true) // Mark as having custom chart
 
       const reader = new FileReader()
       reader.onload = (evt) => {
@@ -467,6 +592,9 @@ export default function EnhancedDataGrid({ onSubmit }) {
 
           const headers = jsonData[0].map((h, i) => h || `Column_${i + 1}`)
           const dataRows = jsonData.slice(1)
+
+          // Store the original column order from the uploaded file
+          setOriginalColumnOrder(headers)
 
           // Detect data types for each column
           const columnTypes = {}
@@ -489,7 +617,7 @@ export default function EnhancedDataGrid({ onSubmit }) {
             }
           })
 
-          // Create columns with data types and proper widths
+          // Create columns with data types and proper widths - preserve original order
           const newColumns = headers.map((header) => ({
             key: header,
             name: header,
@@ -536,6 +664,11 @@ export default function EnhancedDataGrid({ onSubmit }) {
 
           setColumns(newColumns)
           setRows(newRows)
+
+          // After setting custom chart, add type-color combinations
+          setTimeout(() => {
+            addTypesColorRows()
+          }, 100)
         } catch (error) {
           console.error("Error parsing file:", error)
           alert("Error parsing file. Please check the file format.")
@@ -543,7 +676,7 @@ export default function EnhancedDataGrid({ onSubmit }) {
       }
       reader.readAsArrayBuffer(file)
     },
-    [dataTypeEditors, dataTypeFormatters, ActionCellRenderer],
+    [dataTypeEditors, dataTypeFormatters, ActionCellRenderer, addTypesColorRows],
   )
 
   // Add new row
@@ -555,28 +688,31 @@ export default function EnhancedDataGrid({ onSubmit }) {
 
     const today = new Date().toISOString().split("T")[0] // YYYY-MM-DD format
 
-    const newRow = columns.reduce((row, col) => {
-      if (col.key === "actions") return row
+    const newRow = columns.reduce(
+      (row, col) => {
+        if (col.key === "actions") return row
 
-      switch (col.dataType) {
-        case "string":
-          row[col.key] = ""
-          break
-        case "number":
-          row[col.key] = 0
-          break
-        case "boolean":
-          row[col.key] = false
-          break
-        case "date":
-          row[col.key] = today
-          break
-        default:
-          row[col.key] = ""
-      }
+        switch (col.dataType) {
+          case "string":
+            row[col.key] = ""
+            break
+          case "number":
+            row[col.key] = 0
+            break
+          case "boolean":
+            row[col.key] = false
+            break
+          case "date":
+            row[col.key] = today
+            break
+          default:
+            row[col.key] = ""
+        }
 
-      return row
-    }, { __index: rows.length })
+        return row
+      },
+      { __index: rows.length },
+    )
 
     setRows((prev) => [...prev, newRow])
   }, [columns, rows.length])
@@ -606,6 +742,15 @@ export default function EnhancedDataGrid({ onSubmit }) {
     }
 
     setColumns(newColumns)
+
+    // Update original column order to include the new column
+    setOriginalColumnOrder((prevOrder) => {
+      const newOrder = [...prevOrder]
+      // Insert the new column before the last position (to maintain order)
+      newOrder.splice(newOrder.length, 0, key)
+      return newOrder
+    })
+
     setRows((prev) =>
       prev.map((row) => ({
         ...row,
@@ -693,6 +838,12 @@ export default function EnhancedDataGrid({ onSubmit }) {
             📁 {fileName}
           </Badge>
         )}
+
+        {hasCustomChart && (
+          <Badge bg="info" text="white" className="align-self-center">
+            Custom Chart
+          </Badge>
+        )}
       </div>
 
       {/* Data Grid */}
@@ -701,9 +852,7 @@ export default function EnhancedDataGrid({ onSubmit }) {
           <div
             ref={gridRef}
             style={{
-              // height: "200px",
               width: "100%",
-              // overflow: "auto",
             }}
           >
             <DataGrid
@@ -776,7 +925,8 @@ export default function EnhancedDataGrid({ onSubmit }) {
       <div className="mt-3 text-muted">
         <small>
           <strong>Tips:</strong> Click cells to edit • Use column delete (×) buttons to remove columns • Upload
-          CSV/Excel files to import data
+          CSV/Excel files to import data • Rows auto-generate based on selected types and colors
+          {hasCustomChart && " • Custom chart column order is preserved"}
         </small>
       </div>
     </div>
