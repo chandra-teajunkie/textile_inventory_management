@@ -11,10 +11,10 @@ from app.routers.inventory import router as inventory_router
 from app.utils.logger_setup import logger
 from app.utils.process_app_config import process_app_config
 
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-# Load variables from .env file
-load_dotenv()
+# # Load variables from .env file
+# load_dotenv()
 
 
 # Process Config at Startup
