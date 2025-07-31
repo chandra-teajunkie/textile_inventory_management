@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form
 from sqlmodel import Session, select
 from typing import Optional, List
 from app.models.orders_models import Order, OrderCreate, OrderUpdate, OrderMetadata
-from app.models.tasks_models import Task
+from app.models.purchase_orders_models import PurchaseOrder
 from app.database.database import get_session
 from app.utils.utils import (
     generate_unique_id,
@@ -122,12 +122,14 @@ def delete_order(order_id: str, session: Session = Depends(get_session)):
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    # Find all tasks associated with the order
-    tasks = session.exec(select(Task).where(Task.order_id == order_id)).all()
+    # Find all purchase_orders associated with the order
+    purchase_orders = session.exec(
+        select(PurchaseOrder).where(PurchaseOrder.order_id == order_id)
+    ).all()
 
-    # Delete all tasks associated with this order
-    for task in tasks:
-        session.delete(task)
+    # Delete all purchase_orders associated with this order
+    for purchase_order in purchase_orders:
+        session.delete(purchase_order)
 
     # Delete the order
     session.delete(order)

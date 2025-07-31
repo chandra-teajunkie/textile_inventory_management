@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING
 import uuid
 
 if TYPE_CHECKING:
-    from app.models.tasks_models import Task  # Import Task model
+    from app.models.purchase_orders_models import (
+        PurchaseOrder,
+    )  # Import PurchaseOrder model
 
 
 class Order(SQLModel, table=True):
@@ -19,7 +21,9 @@ class Order(SQLModel, table=True):
     start_date: datetime
     due_date: datetime
     special_notes: Optional[str] = None
-    tasks: List["Task"] = Relationship(back_populates="order")  # Relationship to Task
+    purchase_orders: List["PurchaseOrder"] = Relationship(
+        back_populates="order"
+    )  # Relationship to PurchaseOrder
     size_chart: Optional[str] = Field(default=None)  # JSON string for size chart
 
 

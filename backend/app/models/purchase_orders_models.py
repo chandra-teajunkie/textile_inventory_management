@@ -1,4 +1,4 @@
-# tasks_models.py
+# purchase_orders_models.py
 from typing import Optional, List
 from sqlmodel import Field, SQLModel, Relationship
 from enum import Enum
@@ -9,14 +9,14 @@ if TYPE_CHECKING:
     from app.models.orders_models import Order
 
 
-class TaskStatus(str, Enum):
+class PurchaseOrderStatus(str, Enum):
     NOT_STARTED = "NOT STARTED"
     IN_PROGRESS = "IN PROGRESS"
     COMPLETED = "COMPLETED"
     BLOCKED = "BLOCKED"
 
 
-class TaskUnit(str, Enum):
+class PurchaseOrderUnit(str, Enum):
     PROCUREMENT = "PROCUREMENT"
     CUTTING = "CUTTING"
     COLLAR = "COLLAR"
@@ -27,20 +27,20 @@ class TaskUnit(str, Enum):
     UNASSIGNED = "UNASSIGNED"
 
 
-class Task(SQLModel, table=True):
+class PurchaseOrder(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    task_id: str = Field(
+    purchase_order_id: str = Field(
         index=True, unique=True, default_factory=lambda: str(uuid.uuid4())
     )
     order_id: str = Field(foreign_key="order.order_id")
-    order: "Order" = Relationship(back_populates="tasks")
+    order: "Order" = Relationship(back_populates="purchase_orders")
     name: str
     product: str
     color: str
-    status: TaskStatus = Field(default=TaskStatus.NOT_STARTED)
-    task_unit: TaskUnit = Field(default=TaskUnit.UNASSIGNED)
-    task_unit_name: Optional[str] = None
-    dependencies: Optional[str] = Field(default="[]")  # JSON list of task_ids
+    status: PurchaseOrderStatus = Field(default=PurchaseOrderStatus.NOT_STARTED)
+    purchase_order_unit: PurchaseOrderUnit = Field(default=PurchaseOrderUnit.UNASSIGNED)
+    purchase_order_unit_name: Optional[str] = None
+    dependencies: Optional[str] = Field(default="[]")  # JSON list of purchase_order_ids
     incoming_chart: Optional[str] = Field(
         default=None
     )  # JSON string of size chart data
@@ -49,22 +49,22 @@ class Task(SQLModel, table=True):
     )  # JSON string of updated size chart data
 
 
-class TaskCreate(SQLModel):
+class PurchaseOrderCreate(SQLModel):
     order_id: str
     name: str
     product: str
     color: str
-    task_unit: TaskUnit = Field(default=TaskUnit.UNASSIGNED)
-    task_unit_name: Optional[str] = None
-    status: TaskStatus = Field(default=TaskStatus.NOT_STARTED)
-    dependencies: List[str] = []  # List of task_ids
+    purchase_order_unit: PurchaseOrderUnit = Field(default=PurchaseOrderUnit.UNASSIGNED)
+    purchase_order_unit_name: Optional[str] = None
+    status: PurchaseOrderStatus = Field(default=PurchaseOrderStatus.NOT_STARTED)
+    dependencies: List[str] = []  # List of purchase_order_ids
 
 
-class TaskUpdate(SQLModel):
+class PurchaseOrderUpdate(SQLModel):
     name: Optional[str] = None
     product: Optional[str] = None
     color: Optional[str] = None
-    task_unit: Optional[TaskUnit] = None
-    task_unit_name: Optional[str] = None
-    status: Optional[TaskStatus] = None
-    dependencies: Optional[List[str]] = []  # List of task_ids
+    purchase_order_unit: Optional[PurchaseOrderUnit] = None
+    purchase_order_unit_name: Optional[str] = None
+    status: Optional[PurchaseOrderStatus] = None
+    dependencies: Optional[List[str]] = []  # List of purchase_order_ids
