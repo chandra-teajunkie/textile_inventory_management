@@ -23,7 +23,7 @@ const STATUS_OPTIONS = [
   { value: "BLOCKED", label: "Blocked" },
 ]
 
-function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast }) {
+function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUpdate, fetchOrders, fetchTasksForOrder }) {
   const [taskName, setTaskName] = useState("")
   const [taskUnit, setTaskUnit] = useState("UNASSIGNED")
   const [status, setStatus] = useState("NOT STARTED")
@@ -118,8 +118,8 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast }) {
           name: `${taskName} - ${combination.label}`,
           product: combination.product,
           color: combination.color,
-          task_unit: taskUnit,
-          task_unit_name: taskUnitName,
+          purchase_order_unit: taskUnit,
+          purchase_order_unit_name: taskUnitName,
           status,
           dependencies,
         }
@@ -150,6 +150,14 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast }) {
       setSelectedCombinations([])
       setTaskUnitName("")
       setDependencies([])
+
+      // const updated = await resp.json()
+      await fetchOrders()
+      if (selectedOrder) {
+        await fetchTasksForOrder(selectedOrder.order_id)
+      }
+      onUpdate()
+
     } catch (err) {
       console.error(err)
       toast.current.show({
@@ -313,12 +321,12 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast }) {
             isMulti
             value={dependencies
               .map((dep) => {
-                const task = allTasks.find((t) => t.task_id === dep)
-                return task ? { value: task.task_id, label: task.name } : null
+                const task = allTasks.find((t) => t.purchase_order_id === dep)
+                return task ? { value: task.purchase_order_id, label: task.name } : null
               })
               .filter(Boolean)}
             onChange={(selectedOptions) => setDependencies(selectedOptions.map((opt) => opt.value))}
-            options={allTasks.map((t) => ({ value: t.task_id, label: t.name }))}
+            options={allTasks.map((t) => ({ value: t.purchase_order_id, label: t.name }))}
             placeholder="Select Dependencies"
             menuPlacement="top"
           />

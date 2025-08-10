@@ -2,113 +2,18 @@
 
 import { useState, useCallback, useEffect, useRef } from "react"
 import { DataGrid } from "react-data-grid"
-import { Button, Form, Modal, Badge, Card } from "react-bootstrap"
-import { FaTrash, FaPlus, FaUpload, FaEdit, FaTimes } from "react-icons/fa"
+import { Button, Form, Modal, Badge, Card, Dropdown, ButtonGroup } from "react-bootstrap"
+import { FaTrash, FaPlus, FaUpload, FaEdit, FaTimes, FaFileExport, FaPrint } from "react-icons/fa"
 import "react-data-grid/lib/styles.css"
 import * as XLSX from "xlsx"
-
-// Helper function to detect data type
-const detectDataType = (value) => {
-  if (value === null || value === undefined || value === "") return "string"
-  if (!isNaN(value) && value.toString().trim() !== "") return "number"
-  if (typeof value === "boolean") return "boolean"
-  if (Date.parse(value)) return "date"
-  return "string"
-}
-
-// Data type editors
-const dataTypeEditors = {
-  number: (props) => (
-    <input
-      type="number"
-      value={props.row[props.column.key] ?? ""}
-      onChange={(e) =>
-        props.onRowChange({
-          ...props.row,
-          [props.column.key]: e.target.value === "" ? null : Number(e.target.value),
-        })
-      }
-      className="rdg-text-editor"
-      style={{ width: "100%", height: "100%", border: "none", padding: "8px", outline: "none" }}
-      autoFocus
-    />
-  ),
-  string: (props) => (
-    <input
-      type="text"
-      value={props.row[props.column.key] ?? ""}
-      onChange={(e) =>
-        props.onRowChange({
-          ...props.row,
-          [props.column.key]: e.target.value === "" ? null : e.target.value,
-        })
-      }
-      className="rdg-text-editor"
-      style={{ width: "100%", height: "100%", border: "none", padding: "8px", outline: "none" }}
-      autoFocus
-    />
-  ),
-  boolean: (props) => (
-    <input
-      type="checkbox"
-      checked={!!props.row[props.column.key]}
-      onChange={(e) =>
-        props.onRowChange({
-          ...props.row,
-          [props.column.key]: e.target.checked,
-        })
-      }
-      style={{ margin: "auto", display: "block" }}
-      autoFocus
-    />
-  ),
-  date: (props) => (
-    <input
-      type="date"
-      value={props.row[props.column.key] ? new Date(props.row[props.column.key]).toISOString().split("T")[0] : ""}
-      onChange={(e) =>
-        props.onRowChange({
-          ...props.row,
-          [props.column.key]: e.target.value ? new Date(e.target.value) : null,
-        })
-      }
-      className="rdg-text-editor"
-      style={{ width: "100%", height: "100%", border: "none", padding: "8px", outline: "none" }}
-      autoFocus
-    />
-  ),
-}
-
-// Data type formatters
-const dataTypeFormatters = {
-  number: (value) => value,
-  string: (value) => value,
-  boolean: (value) => (value ? "✓" : "✗"),
-  date: (value) => (value ? new Date(value).toLocaleDateString() : ""),
-}
-
-const COLUMN_SUGGESTIONS = [
-  "Size",
-  "Quantity",
-  "Price",
-  "Name",
-  "Description",
-  "Category",
-  "Status",
-  "Date",
-  "Email",
-  "Phone",
-  "Weight",
-  "Color",
-  "Material",
-]
-
-const DATA_TYPES = [
-  { value: "string", label: "Text", icon: "📝" },
-  { value: "number", label: "Number", icon: "🔢" },
-  { value: "boolean", label: "Boolean", icon: "☑️" },
-  { value: "date", label: "Date", icon: "📅" },
-]
+import { jsPDF } from "jspdf"
+import autoTable from 'jspdf-autotable'
+import {
+  detectDataType,
+  normalizeCellForType,
+  generateInitialColumns,
+  generateInitialRows
+} from '../lib/chartUtils'
 
 function CustomChartComponent({ data, onSubmit, chartType = "chart", onResetToOrderChart }) {
   const [columns, setColumns] = useState([])
@@ -120,13 +25,132 @@ function CustomChartComponent({ data, onSubmit, chartType = "chart", onResetToOr
   const [newColumnType, setNewColumnType] = useState("string")
   const [editColumnName, setEditColumnName] = useState("")
   const [isInitialized, setIsInitialized] = useState(false)
+  const [originalColumnOrder, setOriginalColumnOrder] = useState([])
   const gridRef = useRef(null)
   const submitTimeoutRef = useRef(null)
+
+  // Data type editors
+  const dataTypeEditors = {
+    number: (props) => (
+      <input
+        type="number"
+        value={props.row[props.column.key] ?? ""}
+        onChange={(e) =>
+          props.onRowChange({
+            ...props.row,
+            [props.column.key]: e.target.value === "" ? null : Number(e.target.value),
+          })
+        }
+        className="rdg-text-editor"
+        style={{ width: "100%", height: "100%", border: "none", padding: "8px", outline: "none" }}
+        autoFocus
+      />
+    ),
+    string: (props) => (
+      <input
+        type="text"
+        value={props.row[props.column.key] ?? ""}
+        onChange={(e) =>
+          props.onRowChange({
+            ...props.row,
+            [props.column.key]: e.target.value === "" ? null : e.target.value,
+          })
+        }
+        className="rdg-text-editor"
+        style={{ width: "100%", height: "100%", border: "none", padding: "8px", outline: "none" }}
+        autoFocus
+      />
+    ),
+    boolean: (props) => (
+      <input
+        type="checkbox"
+        checked={!!props.row[props.column.key]}
+        onChange={(e) =>
+          props.onRowChange({
+            ...props.row,
+            [props.column.key]: e.target.checked,
+          })
+        }
+        style={{ margin: "auto", display: "block" }}
+        autoFocus
+      />
+    ),
+    date: (props) => (
+      <input
+        type="date"
+        value={props.row[props.column.key] ? new Date(props.row[props.column.key]).toISOString().split("T")[0] : ""}
+        onChange={(e) =>
+          props.onRowChange({
+            ...props.row,
+            [props.column.key]: e.target.value ? new Date(e.target.value) : null,
+          })
+        }
+        className="rdg-text-editor"
+        style={{ width: "100%", height: "100%", border: "none", padding: "8px", outline: "none" }}
+        autoFocus
+      />
+    ),
+  }
+
+  // Data type formatters
+  const dataTypeFormatters = {
+    number: (props) => <div style={{ textAlign: "center" }}>{props.row[props.column.key] ?? ""}</div>,
+    string: (props) => <div style={{ padding: "8px" }}>{props.row[props.column.key] ?? ""}</div>,
+    boolean: (props) => <div style={{ textAlign: "center" }}>{props.row[props.column.key] ? "✓" : "✗"}</div>,
+    date: (props) => (
+      <div style={{ textAlign: "center" }}>
+        {props.row[props.column.key] ? new Date(props.row[props.column.key]).toLocaleDateString() : ""}
+      </div>
+    ),
+  }
+
+  const COLUMN_SUGGESTIONS = [
+    "Size",
+    "Quantity",
+    "Price",
+    "Name",
+    "Description",
+    "Category",
+    "Status",
+    "Date",
+    "Email",
+    "Phone",
+    "Weight",
+    "Color",
+    "Material",
+  ]
+
+  const DATA_TYPES = [
+    { value: "string", label: "Text", icon: "📝" },
+    { value: "number", label: "Number", icon: "🔢" },
+    { value: "boolean", label: "Boolean", icon: "☑️" },
+    { value: "date", label: "Date", icon: "📅" },
+  ]
+
+  const ActionCellRenderer = useCallback(
+    ({ row }) => (
+      <div className="d-flex justify-content-center align-items-center h-100">
+        <Button
+          variant="link"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation()
+            deleteRow(row.__index)
+          }}
+          className="p-1 text-danger"
+          style={{ border: "none", background: "none" }}
+          title="Delete row"
+        >
+          <FaTrash />
+        </Button>
+      </div>
+    ),
+    []
+  )
 
   // Convert Python backend JSON format to grid format
   const loadDataFromBackend = useCallback((backendData) => {
     if (!backendData || typeof backendData !== "object") {
-      // Initialize with default data if no data provided
       initializeDefaultData()
       return
     }
@@ -176,23 +200,7 @@ function CustomChartComponent({ data, onSubmit, chartType = "chart", onResetToOr
       width: 100,
       resizable: false,
       sortable: false,
-      renderCell: (props) => (
-        <div className="d-flex justify-content-center align-items-center h-100">
-          <Button
-            variant="link"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation()
-              deleteRow(props.row.__index)
-            }}
-            className="p-1 text-danger"
-            style={{ border: "none", background: "none" }}
-            title="Delete row"
-          >
-            <FaTrash />
-          </Button>
-        </div>
-      ),
+      renderCell: ActionCellRenderer,
     })
 
     // Create rows
@@ -206,60 +214,16 @@ function CustomChartComponent({ data, onSubmit, chartType = "chart", onResetToOr
 
     setColumns(newColumns)
     setRows(newRows)
+    setOriginalColumnOrder(keys)
   }, [])
 
   const initializeDefaultData = () => {
-    const defaultColumns = [
-      {
-        key: "Size",
-        name: "Size",
-        dataType: "string",
-        editable: true,
-        renderEditCell: dataTypeEditors.string,
-        formatter: (props) => dataTypeFormatters.string(props.row[props.column.key]),
-      },
-      {
-        key: "Quantity",
-        name: "Quantity",
-        dataType: "number",
-        editable: true,
-        renderEditCell: dataTypeEditors.number,
-        formatter: (props) => dataTypeFormatters.number(props.row[props.column.key]),
-      },
-      {
-        key: "actions",
-        name: "Actions",
-        width: 100,
-        resizable: false,
-        sortable: false,
-        renderCell: (props) => (
-          <div className="d-flex justify-content-center align-items-center h-100">
-            <Button
-              variant="link"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation()
-                deleteRow(props.row.__index)
-              }}
-              className="p-1 text-danger"
-              style={{ border: "none", background: "none" }}
-              title="Delete row"
-            >
-              <FaTrash />
-            </Button>
-          </div>
-        ),
-      },
-    ]
-
-    const defaultRows = [
-      { Size: "S", Quantity: 10, __index: 0 },
-      { Size: "M", Quantity: 20, __index: 1 },
-      { Size: "L", Quantity: 15, __index: 2 },
-    ]
+    const defaultColumns = generateInitialColumns(dataTypeEditors, dataTypeFormatters, ActionCellRenderer)
+    const defaultRows = generateInitialRows([], [])
 
     setColumns(defaultColumns)
     setRows(defaultRows)
+    setOriginalColumnOrder(["Item", "Color", "24", "26", "28", "30", "32", "34", "36", "38", "40", "42", "44"])
   }
 
   // Initialize with provided data or default - only run once
@@ -353,6 +317,169 @@ function CustomChartComponent({ data, onSubmit, chartType = "chart", onResetToOr
     },
     [loadDataFromBackend],
   )
+
+  // Export to CSV
+  const exportToCSV = () => {
+    if (rows.length === 0 || columns.length === 0) return
+
+    const headers = columns
+      .filter((col) => col.key !== "actions")
+      .map((col) => col.name)
+
+    const dataRows = rows.map((row) => {
+      return columns
+        .filter((col) => col.key !== "actions")
+        .map((col) => {
+          const value = row[col.key]
+          if (col.dataType === "date" && value) {
+            return new Date(value).toLocaleDateString()
+          }
+          return value !== null && value !== undefined ? value : ""
+        })
+    })
+
+    const csvContent = [
+      headers.join(","),
+      ...dataRows.map((row) => row.join(",")),
+    ].join("\n")
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.setAttribute("href", url)
+    link.setAttribute("download", `${chartType}_data_${new Date().toISOString().slice(0, 10)}.csv`)
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  // Export to Excel
+  const exportToExcel = () => {
+    if (rows.length === 0 || columns.length === 0) return
+
+    const headers = columns
+      .filter((col) => col.key !== "actions")
+      .map((col) => col.name)
+
+    const dataRows = rows.map((row) => {
+      return columns
+        .filter((col) => col.key !== "actions")
+        .map((col) => {
+          const value = row[col.key]
+          if (col.dataType === "date" && value) {
+            return new Date(value)
+          }
+          return value !== null && value !== undefined ? value : ""
+        })
+    })
+
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows])
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1")
+    XLSX.writeFile(wb, `${chartType}_data_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+
+  // Export to PDF
+  const exportToPDF = () => {
+    if (rows.length === 0 || columns.length === 0) return
+
+    const doc = new jsPDF()
+    const title = `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart Data`
+    const headers = columns
+      .filter((col) => col.key !== "actions")
+      .map((col) => col.name)
+
+    const dataRows = rows.map((row) => {
+      return columns
+        .filter((col) => col.key !== "actions")
+        .map((col) => {
+          const value = row[col.key]
+          if (col.dataType === "date" && value) {
+            return new Date(value).toLocaleDateString()
+          } else if (col.dataType === "boolean") {
+            return value ? "Yes" : "No"
+          }
+          return value !== null && value !== undefined ? value.toString() : ""
+        })
+    })
+
+    doc.text(title, 14, 10)
+    autoTable(doc, { // Use the imported autoTable function
+      head: [headers],
+      body: dataRows,
+      startY: 20,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+    })
+
+    doc.save(`${chartType}_data_${new Date().toISOString().slice(0, 10)}.pdf`)
+  }
+
+  // Add the print function
+  const handlePrint = () => {
+    if (rows.length === 0 || columns.length === 0) {
+      alert("No data to print")
+      return
+    }
+
+    const printWindow = window.open('', '', 'width=800,height=600')
+    printWindow.document.write(`
+    <html>
+      <head>
+        <title>${chartType} Chart Print</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { color: #333; }
+          table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+        </style>
+      </head>
+      <body>
+        <h1>${chartType} Chart</h1>
+        <table>
+          <thead>
+            <tr>
+              ${columns
+        .filter(col => col.key !== 'actions')
+        .map(col => `<th>${col.name}</th>`)
+        .join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(row => `
+              <tr>
+                ${columns
+            .filter(col => col.key !== 'actions')
+            .map(col => {
+              const value = row[col.key]
+              let displayValue = value
+              if (col.dataType === 'date' && value) {
+                displayValue = new Date(value).toLocaleDateString()
+              } else if (col.dataType === 'boolean') {
+                displayValue = value ? '✓' : '✗'
+              }
+              return `<td>${displayValue ?? ''}</td>`
+            })
+            .join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+              window.close();
+            }, 200);
+          }
+        </script>
+      </body>
+    </html>
+  `)
+    printWindow.document.close()
+  }
 
   // Add new row
   const addRow = () => {
@@ -520,54 +647,65 @@ function CustomChartComponent({ data, onSubmit, chartType = "chart", onResetToOr
     }
   }
 
-
   return (
     <Card className="border-0 shadow-sm">
-      {/* <Card.Header className={`bg-${getChartTypeColor()} text-white`}>
-        <div className="d-flex justify-content-between align-items-center">
-          <h6 className="mb-0">
-            {getChartTypeIcon()} {chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart
-          </h6>
-          {fileName && (
-            <Badge bg="light" text="dark">
-              📁 {fileName}
-            </Badge>
-          )}
-        </div>
-      </Card.Header> */}
       <Card.Body className="p-3">
         {/* Action Buttons */}
-        <div className="d-flex gap-2 mb-3 flex-wrap">
-          <div className="position-relative">
-            <input
-              type="file"
-              accept=".csv,.xls,.xlsx"
-              onChange={handleFileUpload}
-              className="position-absolute w-100 h-100 opacity-0"
-              style={{ cursor: "pointer", zIndex: 2 }}
-              id={`file-upload-${chartType}`}
-            />
-            <Button variant="outline-primary" size="sm" className="position-relative">
-              <FaUpload className="me-1" />
-              Upload
+        <div className="d-flex justify-content-between mb-3 flex-wrap">
+          {/* Left-aligned buttons */}
+          <div className="d-flex gap-2 flex-wrap">
+            <div className="position-relative">
+              <input
+                type="file"
+                accept=".csv,.xls,.xlsx"
+                onChange={handleFileUpload}
+                className="position-absolute w-100 h-100 opacity-0"
+                style={{ cursor: "pointer", zIndex: 2 }}
+                id={`file-upload-${chartType}`}
+              />
+              <Button variant="outline-primary" size="sm" className="position-relative">
+                <FaUpload className="me-1" />
+                Upload
+              </Button>
+            </div>
+
+            <Button onClick={addRow} variant="outline-success" size="sm">
+              <FaPlus className="me-1" />
+              Add Row
             </Button>
+
+            <Button onClick={() => setIsAddColumnOpen(true)} variant="outline-info" size="sm">
+              <FaPlus className="me-1" />
+              Add Column
+            </Button>
+
+            {onResetToOrderChart && (
+              <Button onClick={handleResetToOrderChart} variant="outline-warning" size="sm">
+                🔄 Reset to Order Chart
+              </Button>
+            )}
           </div>
 
-          <Button onClick={addRow} variant="outline-success" size="sm">
-            <FaPlus className="me-1" />
-            Add Row
-          </Button>
-
-          <Button onClick={() => setIsAddColumnOpen(true)} variant="outline-info" size="sm">
-            <FaPlus className="me-1" />
-            Add Column
-          </Button>
-
-          {onResetToOrderChart && (
-            <Button onClick={handleResetToOrderChart} variant="outline-warning" size="sm">
-              🔄 Reset to Order Chart
+          {/* Right-aligned export buttons */}
+          <div className="d-flex gap-2 flex-wrap">
+            <Button onClick={handlePrint} variant="outline-secondary" size="sm">
+              <FaPrint className="me-1" />
+              Print
             </Button>
-          )}
+
+            <Dropdown as={ButtonGroup}>
+              <Button variant="outline-secondary" size="sm">
+                <FaFileExport className="me-1" />
+                Export
+              </Button>
+              <Dropdown.Toggle split variant="outline-secondary" size="sm" />
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={exportToCSV}>CSV</Dropdown.Item>
+                <Dropdown.Item onClick={exportToExcel}>Excel</Dropdown.Item>
+                <Dropdown.Item onClick={exportToPDF}>PDF</Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          </div>
         </div>
 
         {/* Data Grid */}
@@ -715,5 +853,4 @@ function CustomChartComponent({ data, onSubmit, chartType = "chart", onResetToOr
   )
 }
 
-// Make sure this is at the very end of the CustomChartComponent.js file
 export default CustomChartComponent

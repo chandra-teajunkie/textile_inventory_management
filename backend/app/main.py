@@ -47,6 +47,7 @@ app.add_middleware(
     allow_origins=[
         "https://sidhu-textiles.onrender.com",  # ✅ correct deployed frontend
         "http://localhost:3000",  # ✅ optional for local testing
+        "http://localhost:30000",
     ],
     allow_credentials=True,
     allow_methods=["*"],

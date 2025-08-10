@@ -36,6 +36,20 @@ function OrderList({ toast, setActiveTab }) {
 
       const data = await response.json()
       setOrders(data)
+
+      // NEW FEATURE: Automatically fetch tasks for all loaded orders
+      if (data.length > 0) {
+        const taskPromises = data.map(order =>
+          fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id}`)
+            .then(res => res.ok ? res.json() : []) // Gracefully handle if a task fetch fails
+            .then(tasks => ({ [order.order_id]: tasks }))
+        );
+
+        const taskResults = await Promise.all(taskPromises);
+        const newTaskMap = Object.assign({}, ...taskResults); // Combine results into a single map
+        setTaskMap(newTaskMap);
+      }
+
     } catch (err) {
       console.error("Failed to fetch orders:", err)
       toast.current.show({
@@ -289,6 +303,8 @@ function OrderList({ toast, setActiveTab }) {
                                 onClick={() => toggleTaskList(order.order_id)}
                               >
                                 {expandedOrderId === order.order_id ? "Hide Tasks" : "Show Tasks"}
+                                {/* FEATURE: Display task count */}
+                                {taskMap[order.order_id] && ` (${taskMap[order.order_id].length})`}
                               </Button>
                               <Button
                                 variant="danger"
@@ -325,7 +341,7 @@ function OrderList({ toast, setActiveTab }) {
                                   <ul className="list-group">
                                     {taskMap[order.order_id].map((task) => (
                                       <li
-                                        key={task.task_id}
+                                        key={task.purchase_order_id}
                                         className="list-group-item d-flex justify-content-between align-items-center"
                                       >
                                         <div>
@@ -391,6 +407,16 @@ function OrderList({ toast, setActiveTab }) {
                   onClose={() => setShowTaskModal(false)}
                   onTaskCreated={handleTaskCreated}
                   toast={toast}
+                  fetchOrders={fetchOrders}
+                  fetchTasksForOrder={fetchTasksForOrder}
+                  onUpdate={() => {
+                    // const updatedTasks = taskMap[expandedOrderId].map(t =>
+                    //   t.purchase_order_id === updatedTask.purchase_order_id ? updatedTask : t
+                    // );
+                    // setTaskMap(prev => ({ ...prev, [expandedOrderId]: updatedTasks }));
+                    setShowEditModal(false);
+                    setEditTask(null);
+                  }}
                 />
               )}
             </Modal.Body>
@@ -419,7 +445,7 @@ function OrderList({ toast, setActiveTab }) {
                   fetchTasksForOrder={fetchTasksForOrder}
                   onUpdate={() => {
                     // const updatedTasks = taskMap[expandedOrderId].map(t =>
-                    //   t.task_id === updatedTask.task_id ? updatedTask : t
+                    //   t.purchase_order_id === updatedTask.purchase_order_id ? updatedTask : t
                     // );
                     // setTaskMap(prev => ({ ...prev, [expandedOrderId]: updatedTasks }));
                     setShowEditModal(false);

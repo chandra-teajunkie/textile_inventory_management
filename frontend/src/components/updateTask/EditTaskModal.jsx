@@ -26,7 +26,7 @@ const TASK_UNITS = [
 export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate, toast }) {
   const [name, setName] = useState(task.name)
   const [status, setStatus] = useState(task.status)
-  const [taskUnit, setTaskUnit] = useState(task.task_unit || "UNASSIGNED")
+  const [taskUnit, setTaskUnit] = useState(task.purchase_order_unit || "UNASSIGNED")
   const [product, setProduct] = useState(task.product || "")
   const [color, setColor] = useState(task.color || "")
   const [dependencies, setDependencies] = useState([])
@@ -34,7 +34,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
   const [outgoingData, setOutgoingData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("details")
-  const [taskUnitName, setTaskUnitName] = useState(task.task_unit_name || "")
+  const [taskUnitName, setTaskUnitName] = useState(task.purchase_order_unit_name || "")
 
   // Use refs to store the latest chart data
   const incomingDataRef = useRef(null)
@@ -95,13 +95,13 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
         name: name,
         product,
         color,
-        task_unit: taskUnit,
-        task_unit_name: taskUnitName,
+        purchase_order_unit: taskUnit,
+        purchase_order_unit_name: taskUnitName,
         status,
         dependencies: dependencies, // Send as array directly
       }
 
-      const basic = await fetch(`${process.env.REACT_APP_PATCH_ALL_TASKS}${task.task_id}`, {
+      const basic = await fetch(`${process.env.REACT_APP_PATCH_ALL_TASKS}${task.purchase_order_id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -124,7 +124,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
         const incomingFormData = new FormData()
         incomingFormData.append("incoming_chart_json", JSON.stringify(currentIncomingData))
 
-        const incomingResponse = await fetch(`${process.env.REACT_APP_INCOMING_CHART_UPLOAD}${task.task_id}`, {
+        const incomingResponse = await fetch(`${process.env.REACT_APP_INCOMING_CHART_UPLOAD}${task.purchase_order_id}`, {
           method: "PATCH",
           body: incomingFormData,
         })
@@ -143,7 +143,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
         const outgoingFormData = new FormData()
         outgoingFormData.append("outgoing_chart_json", JSON.stringify(currentOutgoingData))
 
-        const outgoingResponse = await fetch(`${process.env.REACT_APP_OUTGOING_CHART_UPLOAD}${task.task_id}`, {
+        const outgoingResponse = await fetch(`${process.env.REACT_APP_OUTGOING_CHART_UPLOAD}${task.purchase_order_id}`, {
           method: "PATCH",
           body: outgoingFormData,
         })
@@ -158,7 +158,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
       }
 
       // 4) Re-fetch task to get updated charts
-      // const updated = await fetch(`${process.env.REACT_APP_TASK_DETAILS}${task.task_id}`).then((r) => r.json())
+      // const updated = await fetch(`${process.env.REACT_APP_TASK_DETAILS}${task.purchase_order_id}`).then((r) => r.json())
 
       onUpdate()
       
@@ -185,7 +185,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
   }
 
   // List of other tasks for dependency pick
-  const available = allTasks.filter((t) => t.task_id !== task.task_id)
+  const available = allTasks.filter((t) => t.purchase_order_id !== task.purchase_order_id)
 
   return (
     <Fragment>
@@ -281,12 +281,12 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
                   isMulti
                   value={dependencies
                     .map((dep) => {
-                      const task = available.find((t) => t.task_id === dep)
-                      return task ? { value: task.task_id, label: task.name } : null
+                      const task = available.find((t) => t.purchase_order_id === dep)
+                      return task ? { value: task.purchase_order_id, label: task.name } : null
                     })
                     .filter(Boolean)}
                   onChange={(selectedOptions) => setDependencies(selectedOptions.map((opt) => opt.value))}
-                  options={available.map((t) => ({ value: t.task_id, label: t.name }))}
+                  options={available.map((t) => ({ value: t.purchase_order_id, label: t.name }))}
                   placeholder="Select dependencies"
                   menuPlacement="top"
                 />

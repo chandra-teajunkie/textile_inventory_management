@@ -128,7 +128,7 @@ export default function TaskList({ toast }) {
       })
       .finally(() => setLoading(false))
     // Replace in list
-    // setTasks((ts) => ts.map((t) => (t.task_id === updatedTask.task_id ? updatedTask : t)))
+    // setTasks((ts) => ts.map((t) => (t.purchase_order_id === updatedTask.purchase_order_id ? updatedTask : t)))
     setShowEditModal(false)
     toast.current.show({ severity: "success", summary: "Success", detail: "Task updated" })
   }
@@ -136,9 +136,9 @@ export default function TaskList({ toast }) {
   const deleteTask = async () => {
     if (!taskToDelete) return
     try {
-      const res = await fetch(`${process.env.REACT_APP_DELETE_TASK}${taskToDelete.task_id}`, { method: "DELETE" })
+      const res = await fetch(`${process.env.REACT_APP_DELETE_TASK}${taskToDelete.purchase_order_id}`, { method: "DELETE" })
       if (!res.ok) throw new Error()
-      setTasks((ts) => ts.filter((t) => t.task_id !== taskToDelete.task_id))
+      setTasks((ts) => ts.filter((t) => t.purchase_order_id !== taskToDelete.purchase_order_id))
       toast.current.show({ severity: "success", summary: "Deleted", detail: "Task deleted" })
     } catch {
       toast.current.show({ severity: "error", summary: "Error", detail: "Could not delete task" })
@@ -154,7 +154,7 @@ export default function TaskList({ toast }) {
   // Apply filters
   const filteredTasks = tasks.filter((task) => {
     const statusMatch = filterStatus === "all" || task.status === filterStatus
-    const unitMatch = filterUnit === "all" || task.task_unit === filterUnit
+    const unitMatch = filterUnit === "all" || task.purchase_order_unit === filterUnit
     return statusMatch && unitMatch
   })
 
@@ -247,14 +247,14 @@ export default function TaskList({ toast }) {
                         </thead>
                         <tbody>
                           {filteredTasks.map((t) => (
-                            <tr key={t.task_id}>
+                            <tr key={t.purchase_order_id}>
                               <td className="fw-medium">{t.name}</td>
                               <td>
                                 <Badge bg={getStatusColor(t.status)}>{t.status}</Badge>
                               </td>
                               <td>
-                                <Badge bg={getTaskUnitColor(t.task_unit)}>
-                                  {getTaskUnitIcon(t.task_unit)} {t.task_unit}
+                                <Badge bg={getTaskUnitColor(t.purchase_order_unit)}>
+                                  {getTaskUnitIcon(t.purchase_order_unit)} {t.purchase_order_unit}
                                 </Badge>
                               </td>
                               <td>
@@ -288,7 +288,7 @@ export default function TaskList({ toast }) {
                                 {t.dependencies && JSON.parse(t.dependencies).length > 0
                                   ? JSON.parse(t.dependencies)
                                     .map((id) => {
-                                      const dep = tasks.find((x) => x.task_id === id)
+                                      const dep = tasks.find((x) => x.purchase_order_id === id)
                                       return dep ? dep.name : id
                                     })
                                     .join(", ")

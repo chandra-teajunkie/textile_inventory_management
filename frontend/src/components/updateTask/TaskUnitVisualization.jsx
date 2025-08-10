@@ -78,7 +78,7 @@ export default function TaskUnitVisualization({ tasks = [] }) {
     const stats = {}
 
     TASK_UNITS.forEach((unit) => {
-      const unitTasks = tasks.filter((task) => task.task_unit === unit)
+      const unitTasks = tasks.filter((task) => task.purchase_order_unit === unit)
       const total = unitTasks.length
       const notStarted = unitTasks.filter((task) => task.status === "NOT STARTED").length
       const inProgress = unitTasks.filter((task) => task.status === "IN PROGRESS").length
@@ -206,7 +206,7 @@ export default function TaskUnitVisualization({ tasks = [] }) {
                       <div className="mt-1" style={{ maxHeight: "100px", overflowY: "auto" }}>
                         {stats.tasks.map((task) => (
                           <div
-                            key={task.task_id}
+                            key={task.purchase_order_id}
                             className="d-flex justify-content-between align-items-center py-1 border-bottom"
                           >
                             <small className="text-truncate me-2">{task.name}</small>

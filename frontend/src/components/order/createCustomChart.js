@@ -1,73 +1,33 @@
-"use client"
+"use client";
 
-import { useState, useCallback, useEffect, useRef, useMemo } from "react"
-import { DataGrid } from "react-data-grid"
-import { Button, Form, Modal, Badge } from "react-bootstrap"
-import { FaTrash, FaPlus, FaUpload, FaTimes } from "react-icons/fa"
-import "react-data-grid/lib/styles.css"
-import * as XLSX from "xlsx"
-import "./order.css"
-
-// Suppress ResizeObserver errors
-const suppressResizeObserverError = () => {
-  const resizeObserverErr = window.console.error
-  window.console.error = (...args) => {
-    if (
-      args[0]?.includes?.("ResizeObserver loop completed with undelivered notifications") ||
-      args[0]?.includes?.("ResizeObserver loop limit exceeded")
-    ) {
-      return
-    }
-    resizeObserverErr(...args)
-  }
-}
-
-// Initialize error suppression
-if (typeof window !== "undefined") {
-  suppressResizeObserverError()
-}
-
-// Helper function to detect data type
-const detectDataType = (value) => {
-  if (value === null || value === undefined || value === "") return "string"
-  if (!isNaN(value) && value.toString().trim() !== "") return "number"
-  if (typeof value === "boolean") return "boolean"
-  if (Date.parse(value)) return "date"
-  return "string"
-}
-
-// Column width calculator based on data type
-const getColumnWidth = (dataType, columnName) => {
-  switch (dataType) {
-    case "number":
-      return 80 // Compact width for numbers
-    case "boolean":
-      return 70 // Small width for checkboxes
-    case "date":
-      return 120 // Medium width for dates
-    case "string":
-    default:
-      // Give text columns more space, with minimum and maximum limits
-      const baseWidth = Math.max(columnName.length * 12, 150)
-      return Math.min(baseWidth, 300)
-  }
-}
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { DataGrid } from "react-data-grid";
+import { Button, Form, Modal, Badge } from "react-bootstrap";
+import { FaTrash, FaPlus, FaUpload, FaTimes, FaFileCsv, FaFileExcel, FaPrint, FaUndo } from "react-icons/fa";
+import "react-data-grid/lib/styles.css";
+import * as XLSX from "xlsx";
+import "./order.css";
+import {
+  detectDataType,
+  normalizeCellForType,
+  generateInitialColumns,
+  generateInitialRows
+} from '../lib/chartUtils';
 
 export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColors = [] }) {
-  const [columns, setColumns] = useState([])
-  const [rows, setRows] = useState([])
-  const [fileName, setFileName] = useState("")
-  const [isAddColumnOpen, setIsAddColumnOpen] = useState(false)
-  const [newColumnName, setNewColumnName] = useState("")
-  const [newColumnType, setNewColumnType] = useState("string")
-  const [hasCustomChart, setHasCustomChart] = useState(false)
-  const [originalColumnOrder, setOriginalColumnOrder] = useState([]) // Track original column order
-  const gridRef = useRef(null)
-  const submitTimeoutRef = useRef(null)
-  const lastSubmittedDataRef = useRef(null)
-  const resizeTimeoutRef = useRef(null)
+  const [columns, setColumns] = useState([]);
+  const [rows, setRows] = useState([]);
+  const [fileName, setFileName] = useState("");
+  const [isAddColumnOpen, setIsAddColumnOpen] = useState(false);
+  const [newColumnName, setNewColumnName] = useState("");
+  const [newColumnType, setNewColumnType] = useState("string");
+  const [hasCustomChart, setHasCustomChart] = useState(false);
+  const [originalColumnOrder, setOriginalColumnOrder] = useState([]);
+  const gridRef = useRef(null);
+  const submitTimeoutRef = useRef(null);
+  const lastSubmittedDataRef = useRef(null); // Added this line
+  const resizeTimeoutRef = useRef(null);
 
-  // Memoized data type editors
   const dataTypeEditors = useMemo(
     () => ({
       number: (props) => (
@@ -81,14 +41,7 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
             })
           }
           className="rdg-text-editor"
-          style={{
-            width: "100%",
-            height: "100%",
-            border: "none",
-            padding: "4px",
-            outline: "none",
-            textAlign: "center",
-          }}
+          style={{ width: "100%", height: "100%", border: "none", padding: "4px", outline: "none", textAlign: "center" }}
           autoFocus
         />
       ),
@@ -137,98 +90,65 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
         />
       ),
     }),
-    [],
-  )
+    []
+  );
 
-  // Memoized data type formatters
   const dataTypeFormatters = useMemo(
     () => ({
       number: (props) => <div style={{ textAlign: "center", padding: "4px" }}>{props.row[props.column.key] ?? ""}</div>,
       string: (props) => (
-        <div style={{ padding: "4px 8px", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {props.row[props.column.key] ?? ""}
-        </div>
+        <div style={{ padding: "4px 8px", overflow: "hidden", textOverflow: "ellipsis" }}>{props.row[props.column.key] ?? ""}</div>
       ),
-      boolean: (props) => (
-        <div style={{ textAlign: "center", padding: "4px" }}>{props.row[props.column.key] ? "✓" : "✗"}</div>
-      ),
+      boolean: (props) => <div style={{ textAlign: "center", padding: "4px" }}>{props.row[props.column.key] ? "✓" : "✗"}</div>,
       date: (props) => (
         <div style={{ padding: "4px", textAlign: "center" }}>
           {props.row[props.column.key] ? new Date(props.row[props.column.key]).toLocaleDateString() : ""}
         </div>
       ),
     }),
-    [],
-  )
+    []
+  );
 
-  const COLUMN_SUGGESTIONS = [
-    "Size",
-    "Quantity",
-    "Price",
-    "Name",
-    "Description",
-    "Category",
-    "Status",
-    "Date",
-    "Email",
-    "Phone",
-    "Weight",
-    "Color",
-    "Material",
-  ]
-
+  const COLUMN_SUGGESTIONS = ["Size", "Quantity", "Price", "Name", "Description", "Category", "Status", "Date", "Email", "Phone", "Weight", "Color", "Material"];
   const DATA_TYPES = [
     { value: "string", label: "Text", icon: "📝" },
     { value: "number", label: "Number", icon: "🔢" },
     { value: "boolean", label: "Boolean", icon: "☑️" },
     { value: "date", label: "Date", icon: "📅" },
-  ]
+  ];
 
-  // Generate type-color combinations
   const generateTypesColorCombinations = useCallback(() => {
-    const combinations = []
-    const types = orderTypes.length > 0 ? orderTypes : ["Pant", "Shirt"]
-    const colors = orderColors.length > 0 ? orderColors : ["Blue", "White"]
-
+    const combinations = [];
+    const types = orderTypes.length > 0 ? orderTypes : ["Pant", "Shirt"];
+    const colors = orderColors.length > 0 ? orderColors : ["Blue", "White"];
     types.forEach((type) => {
       colors.forEach((color) => {
-        combinations.push({ type, color })
-      })
-    })
+        combinations.push({ type, color });
+      });
+    });
+    return combinations;
+  }, [orderTypes, orderColors]);
 
-    return combinations
-  }, [orderTypes, orderColors])
-
-  // Memoized delete row function
   const deleteRow = useCallback((rowIdx) => {
     setRows((prevRows) => {
-      const newRows = prevRows.filter((row) => row.__index !== rowIdx)
-      // Re-index the remaining rows to maintain sequential order
-      return newRows.map((row, idx) => ({
-        ...row,
-        __index: idx,
-      }))
-    })
-  }, [])
+      const newRows = prevRows.filter((row) => row.__index !== rowIdx);
+      return newRows.map((row, idx) => ({ ...row, __index: idx }));
+    });
+  }, []);
 
-  // Memoized delete column function
   const deleteColumn = useCallback((key) => {
-    if (key === "actions") return
-
-    setColumns((cols) => cols.filter((c) => c.key !== key))
+    if (key === "actions") return;
+    setColumns((cols) => cols.filter((c) => c.key !== key));
     setRows((rs) =>
       rs.map((row) => {
-        const newRow = { ...row }
-        delete newRow[key]
-        return newRow
-      }),
-    )
+        const newRow = { ...row };
+        delete newRow[key];
+        return newRow;
+      })
+    );
+    setOriginalColumnOrder((prevOrder) => prevOrder.filter((colKey) => colKey !== key));
+  }, []);
 
-    // Update original column order when deleting columns
-    setOriginalColumnOrder((prevOrder) => prevOrder.filter((colKey) => colKey !== key))
-  }, [])
-
-  // Memoized action cell renderer
   const ActionCellRenderer = useCallback(
     ({ row }) => (
       <div className="d-flex justify-content-center align-items-center h-100">
@@ -236,8 +156,8 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
           variant="link"
           size="sm"
           onClick={(e) => {
-            e.stopPropagation()
-            deleteRow(row.__index)
+            e.stopPropagation();
+            deleteRow(row.__index);
           }}
           className="p-1 text-danger"
           style={{ border: "none", background: "none" }}
@@ -247,10 +167,9 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
         </Button>
       </div>
     ),
-    [deleteRow],
-  )
+    [deleteRow]
+  );
 
-  // Memoized header renderer
   const HeaderRenderer = useCallback(
     ({ column }) => (
       <div
@@ -270,7 +189,7 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
             className="fw-bold text-truncate small text-white"
             style={{
               fontSize: column.dataType === "number" ? "11px" : "12px",
-              textAlign: column.dataType === "number" ? "center" : "center",
+              textAlign: "center",
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
@@ -280,21 +199,15 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
           </span>
           {column.dataType && (
             <Badge bg="secondary" className="small" style={{ fontSize: "8px" }}>
-              {column.dataType === "number"
-                ? "#"
-                : column.dataType === "string"
-                  ? "T"
-                  : column.dataType === "boolean"
-                    ? "B"
-                    : "D"}
+              {column.dataType === "number" ? "#" : column.dataType === "string" ? "T" : column.dataType === "boolean" ? "B" : "D"}
             </Badge>
           )}
         </div>
         {column.key !== "actions" && (
           <button
             onClick={(e) => {
-              e.stopPropagation()
-              deleteColumn(column.key)
+              e.stopPropagation();
+              deleteColumn(column.key);
             }}
             style={{
               border: "none",
@@ -313,311 +226,290 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
         )}
       </div>
     ),
-    [deleteColumn],
-  )
+    [deleteColumn]
+  );
 
-  // Memoized initial columns with proper widths
   const initialColumns = useMemo(
-    () => [
-      {
-        key: "Item",
-        name: "Item",
-        dataType: "string",
-        editable: true,
-        headerAlign: "center",
-        resizable: true,
-        sortable: true,
-        renderEditCell: dataTypeEditors.string,
-        renderCell: dataTypeFormatters.string,
-      },
-      {
-        key: "Color",
-        name: "Color",
-        dataType: "string",
-        editable: true,
-        headerAlign: "center",
-        resizable: true,
-        sortable: true,
-        renderEditCell: dataTypeEditors.string,
-        renderCell: dataTypeFormatters.string,
-      },
-      ...["24", "26", "28", "30", "32", "34", "36", "38", "40", "42", "44"].map((size) => ({
-        key: size,
-        name: size,
-        dataType: "number",
-        editable: true,
-        headerAlign: "center",
-        resizable: true,
-        sortable: true,
-        renderEditCell: dataTypeEditors.number,
-        renderCell: dataTypeFormatters.number,
-      })),
-      {
-        key: "actions",
-        name: "Actions",
-        headerAlign: "center",
-        resizable: true,
-        sortable: false,
-        renderCell: ActionCellRenderer,
-      },
-    ],
-    [dataTypeEditors, dataTypeFormatters, ActionCellRenderer],
-  )
+    () => generateInitialColumns(dataTypeEditors, dataTypeFormatters, ActionCellRenderer),
+    [dataTypeEditors, dataTypeFormatters, ActionCellRenderer]
+  );
 
-  // Generate initial rows based on type-color combinations
-  const generateInitialRows = useCallback(() => {
-    const combinations = generateTypesColorCombinations()
+  const generateInitialRowsFromTypesColors = useCallback(() => {
+    return generateInitialRows(orderTypes, orderColors);
+  }, [orderTypes, orderColors]);
 
-    return combinations.map((combination, index) => ({
-      Item: combination.type,
-      Color: combination.color,
-      24: 0,
-      26: 0,
-      28: 0,
-      30: 0,
-      32: 0,
-      34: 0,
-      36: 0,
-      38: 0,
-      40: 0,
-      42: 0,
-      44: 0,
-      __index: index, // Ensure sequential indexing
-    }))
-  }, [generateTypesColorCombinations])
+  const resetToDefault = useCallback(() => {
+    setColumns(initialColumns);
+    setRows(generateInitialRowsFromTypesColors());
+    setFileName("");
+    setHasCustomChart(false);
+    setOriginalColumnOrder(["Item", "Color", "24", "26", "28", "30", "32", "34", "36", "38", "40", "42", "44"]);
+  }, [initialColumns, generateInitialRowsFromTypesColors]);
 
-  // Initialize with sample data or type-color combinations
   useEffect(() => {
     if (columns.length === 0 && rows.length === 0) {
-      setColumns(initialColumns)
-      setRows(generateInitialRows())
-      // Set default column order for initial setup
-      setOriginalColumnOrder(["Item", "Color", "24", "26", "28", "30", "32", "34", "36", "38", "40", "42", "44"])
-      setHasCustomChart(false) // Explicitly set as not custom chart
-      console.log("Initialized with default chart, setting originalColumnOrder to default")
+      resetToDefault();
     }
-  }, [columns.length, rows.length, initialColumns, generateInitialRows])
+  }, [columns.length, rows.length, resetToDefault]);
 
-  // Update rows when orderTypes or orderColors change (only if no custom chart)
   useEffect(() => {
     if (!hasCustomChart && (orderTypes.length > 0 || orderColors.length > 0)) {
-      const newRows = generateInitialRows()
-      setRows(newRows)
+      const newRows = generateInitialRowsFromTypesColors();
+      setRows(newRows);
     }
-  }, [orderTypes, orderColors, hasCustomChart, generateInitialRows])
+  }, [orderTypes, orderColors, hasCustomChart, generateInitialRowsFromTypesColors]);
 
-  // Add type-color combination rows to existing chart
   const addTypesColorRows = useCallback(() => {
-    if (!hasCustomChart) return
-
-    const combinations = generateTypesColorCombinations()
-    const existingCombinations = new Set(rows.map((row) => `${row.Item}-${row.Color}`))
-
+    if (!hasCustomChart) return;
+    const combinations = generateTypesColorCombinations();
+    const existingCombinations = new Set(rows.map((row) => `${row.Item}-${row.Color}`));
     const newRows = combinations
       .filter((combination) => !existingCombinations.has(`${combination.type}-${combination.color}`))
       .map((combination, index) => {
-        const newRow = {
-          __index: rows.length + index, // Sequential indexing from existing rows
-        }
-
-        // Set Item and Color if they exist in the current columns
-        if (columns.some((col) => col.key === "Item")) {
-          newRow.Item = combination.type
-        }
-        if (columns.some((col) => col.key === "Color")) {
-          newRow.Color = combination.color
-        }
-
-        // Set default values for all other columns
+        const newRow = { __index: rows.length + index };
+        if (columns.some((col) => col.key === "Item")) newRow.Item = combination.type;
+        if (columns.some((col) => col.key === "Color")) newRow.Color = combination.color;
         columns.forEach((col) => {
           if (col.key !== "Item" && col.key !== "Color" && col.key !== "actions" && !newRow.hasOwnProperty(col.key)) {
             switch (col.dataType) {
               case "number":
-                newRow[col.key] = 0
-                break
+                newRow[col.key] = 0;
+                break;
               case "boolean":
-                newRow[col.key] = false
-                break
+                newRow[col.key] = false;
+                break;
               case "date":
-                newRow[col.key] = new Date().toISOString().split("T")[0]
-                break
+                newRow[col.key] = new Date().toISOString().split("T")[0];
+                break;
               default:
-                newRow[col.key] = ""
+                newRow[col.key] = "";
             }
           }
-        })
-
-        return newRow
-      })
-
+        });
+        return newRow;
+      });
     if (newRows.length > 0) {
       setRows((prevRows) => {
-        const combinedRows = [...prevRows, ...newRows]
-        // Re-index all rows to ensure sequential order
-        return combinedRows.map((row, index) => ({
-          ...row,
-          __index: index,
-        }))
-      })
+        const combinedRows = [...prevRows, ...newRows];
+        return combinedRows.map((row, index) => ({ ...row, __index: index }));
+      });
     }
-  }, [hasCustomChart, generateTypesColorCombinations, rows, columns])
+  }, [hasCustomChart, generateTypesColorCombinations, rows, columns]);
 
-  // Add type-color rows when types/colors change and there's a custom chart
   useEffect(() => {
     if (hasCustomChart && (orderTypes.length > 0 || orderColors.length > 0)) {
-      addTypesColorRows()
+      addTypesColorRows();
     }
-  }, [orderTypes, orderColors, hasCustomChart, addTypesColorRows])
+  }, [orderTypes, orderColors, hasCustomChart, addTypesColorRows]);
 
-  // Debounced submit function to prevent duplicate submissions
   const debouncedSubmit = useCallback(
     (result) => {
       if (submitTimeoutRef.current) {
-        clearTimeout(submitTimeoutRef.current)
+        clearTimeout(submitTimeoutRef.current);
       }
-
       submitTimeoutRef.current = setTimeout(() => {
-        // Check if data actually changed
-        const currentDataString = JSON.stringify(result)
+        const currentDataString = JSON.stringify(result);
         if (lastSubmittedDataRef.current !== currentDataString) {
-          lastSubmittedDataRef.current = currentDataString
-          onSubmit?.(result)
+          lastSubmittedDataRef.current = currentDataString;
+          onSubmit?.(result);
         }
-      }, 500)
+      }, 500);
     },
-    [onSubmit],
-  )
+    [onSubmit]
+  );
 
-  // Memoized result calculation - Preserves original column order for custom charts
-  const calculatedResult = useMemo(() => {
-    if (columns.length === 0 || rows.length === 0) return null
+  const buildExportOrder = (original, columns) => {
+    const current = columns.filter((c) => c.key !== "actions").map((c) => c.key);
+    const order = [];
+    original.forEach((k) => {
+      if (current.includes(k)) order.push(k);
+    });
+    current.forEach((k) => {
+      if (!order.includes(k)) order.push(k);
+    });
+    return order;
+  };
 
-    // Sort rows by their __index to maintain display order
-    const sortedRows = [...rows].sort((a, b) => a.__index - b.__index)
+  const exportOrder = useMemo(() => buildExportOrder(originalColumnOrder, columns), [originalColumnOrder, columns]);
 
-    // Determine which column order to use
-    let columnOrder
-    if (hasCustomChart && originalColumnOrder.length > 0) {
-      // For custom charts, use the original column order from upload
-      columnOrder = originalColumnOrder.filter((colKey) =>
-        columns.some((col) => col.key === colKey && col.key !== "actions"),
-      )
-
-      // Add any new columns that weren't in the original order
-      const newColumns = columns
-        .filter((col) => col.key !== "actions" && !originalColumnOrder.includes(col.key))
-        .map((col) => col.key)
-
-      columnOrder = [...columnOrder, ...newColumns]
-      console.log("Using custom chart column order:", columnOrder)
-    } else {
-      // For default charts, use the predefined UI order
-      const defaultOrder = ["Item", "Color", "24", "26", "28", "30", "32", "34", "36", "38", "40", "42", "44"]
-      columnOrder = defaultOrder.filter((colKey) => columns.some((col) => col.key === colKey && col.key !== "actions"))
-
-      // Add any additional columns that weren't in the default order
-      const additionalColumns = columns
-        .filter((col) => col.key !== "actions" && !defaultOrder.includes(col.key))
-        .map((col) => col.key)
-
-      columnOrder = [...columnOrder, ...additionalColumns]
-      console.log("Using default chart column order:", columnOrder)
-      console.log("hasCustomChart:", hasCustomChart)
-      console.log("originalColumnOrder:", originalColumnOrder)
-      console.log(
-        "columns keys:",
-        columns.map((c) => c.key),
-      )
+  const handleExportCSV = useCallback(() => {
+    if (!rows.length) {
+      alert("No data to export.");
+      return;
     }
+    const base = fileName ? fileName.replace(/\.(csv|xlsx|xls)$/i, "") : "size_chart_export";
+    exportToCSVFile({ fileName: `${base}.csv`, columns, rows, order: exportOrder });
+  }, [columns, rows, exportOrder, fileName]);
 
-    // Create result object by explicitly setting properties in order
-    const finalResult = {}
+  const handleExportXLSX = useCallback(() => {
+    if (!rows.length) {
+      alert("No data to export.");
+      return;
+    }
+    const base = fileName ? fileName.replace(/\.(csv|xlsx|xls)$/i, "") : "size_chart_export";
+    exportToXLSXFile({ fileName: `${base}.xlsx`, columns, rows, order: exportOrder });
+  }, [columns, rows, exportOrder, fileName]);
 
-    // Process each column in the exact order specified
-    columnOrder.forEach((columnKey) => {
-      const columnData = {}
-      sortedRows.forEach((row, displayIndex) => {
-        columnData[displayIndex] = row[columnKey] ?? null
+  const handlePrint = useCallback(() => {
+    if (!rows.length) {
+      alert("Nothing to print.");
+      return;
+    }
+    const order = exportOrder;
+    const sortedRows = [...rows].sort((a, b) => a.__index - b.__index);
+    const html = `
+      <html>
+        <head>
+          <title>Size Chart</title>
+          <style>
+            body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #111827; }
+            h1 { font-size: 18px; margin: 0 0 12px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #e5e7eb; padding: 6px 8px; font-size: 12px; text-align: center; }
+            th { background: #f9fafb; font-weight: 600; }
+            @media print {
+              @page { size: auto; margin: 12mm; }
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Size Chart</h1>
+          <table>
+            <thead>
+              <tr>${order.map((h) => `<th>${h}</th>`).join("")}</tr>
+            </thead>
+            <tbody>
+              ${sortedRows
+        .map((r) => {
+          const tds = order
+            .map((k) => {
+              const t = columns.find((c) => c.key === k)?.dataType || "string";
+              const val = normalizeCellForType(r[k], t);
+              return `<td>${val ?? ""}</td>`;
+            })
+            .join("");
+          return `<tr>${tds}</tr>`;
+        })
+        .join("")}
+            </tbody>
+          </table>
+          <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 100); };</script>
+        </body>
+      </html>
+    `;
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  }, [columns, rows, exportOrder]);
+
+
+
+
+  const buildAOA = (columns, rows, order) => {
+    const header = order.slice();
+    const sortedRows = [...rows].sort((a, b) => a.__index - b.__index);
+    const body = sortedRows.map((r) =>
+      order.map((k) => {
+        const t = columns.find((c) => c.key === k)?.dataType || "string";
+        return normalizeCellForType(r[k], t);
       })
+    );
+    return [header, ...body];
+  };
 
-      // Use Object.defineProperty to ensure the property is added in order
+  const exportToCSVFile = ({ fileName, columns, rows, order }) => {
+    const aoa = buildAOA(columns, rows, order);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "SizeChart");
+    const csv = XLSX.write(wb, { bookType: "csv", type: "string" });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName.endsWith(".csv") ? fileName : `${fileName}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(a.href);
+    a.remove();
+  };
+
+  const exportToXLSXFile = ({ fileName, columns, rows, order }) => {
+    const aoa = buildAOA(columns, rows, order);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "SizeChart");
+    XLSX.writeFile(wb, fileName.endsWith(".xlsx") ? fileName : `${fileName}.xlsx`);
+  };
+
+  const calculatedResult = useMemo(() => {
+    if (columns.length === 0 || rows.length === 0) return null;
+    const order = exportOrder;
+    const sortedRows = [...rows].sort((a, b) => a.__index - b.__index);
+    const finalResult = {};
+    order.forEach((columnKey) => {
+      const columnData = {};
+      sortedRows.forEach((row, displayIndex) => {
+        const t = columns.find((c) => c.key === columnKey)?.dataType || "string";
+        columnData[displayIndex] = normalizeCellForType(row[columnKey], t);
+      });
       Object.defineProperty(finalResult, columnKey, {
         value: columnData,
         writable: true,
         enumerable: true,
         configurable: true,
-      })
-    })
+      });
+    });
+    return finalResult;
+  }, [columns, rows, exportOrder]);
 
-    console.log("Final result column order:", Object.keys(finalResult))
-    console.log("Expected column order:", columnOrder)
-    console.log("Orders match:", JSON.stringify(Object.keys(finalResult)) === JSON.stringify(columnOrder))
-
-    return finalResult
-  }, [columns, rows, hasCustomChart, originalColumnOrder])
-
-  // Submit data when it changes
   useEffect(() => {
     if (calculatedResult) {
-      debouncedSubmit(calculatedResult)
+      debouncedSubmit(calculatedResult);
     }
-
     return () => {
-      if (submitTimeoutRef.current) {
-        clearTimeout(submitTimeoutRef.current)
-      }
-    }
-  }, [calculatedResult, debouncedSubmit])
+      if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+    };
+  }, [calculatedResult, debouncedSubmit]);
 
-  // Process uploaded file with data type detection
   const handleFileUpload = useCallback(
     (e) => {
-      const file = e.target.files[0]
-      if (!file) return
-
-      setFileName(file.name)
-      setHasCustomChart(true) // Mark as having custom chart
-
-      const reader = new FileReader()
+      const file = e.target.files[0];
+      if (!file) return;
+      setFileName(file.name);
+      setHasCustomChart(true);
+      const reader = new FileReader();
       reader.onload = (evt) => {
         try {
-          const wb = XLSX.read(evt.target.result, { type: "array" })
-          const ws = wb.Sheets[wb.SheetNames[0]]
-          const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null })
-
+          const wb = XLSX.read(evt.target.result, { type: "array" });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
           if (jsonData.length === 0) {
-            alert("Empty file or no data found")
-            return
+            alert("Empty file or no data found");
+            return;
           }
-
-          const headers = jsonData[0].map((h, i) => h || `Column_${i + 1}`)
-          const dataRows = jsonData.slice(1)
-
-          // Store the original column order from the uploaded file
-          setOriginalColumnOrder(headers)
-
-          // Detect data types for each column
-          const columnTypes = {}
+          const headers = jsonData[0].map((h, i) => h || `Column_${i + 1}`);
+          const dataRows = jsonData.slice(1);
+          setOriginalColumnOrder(headers);
+          const columnTypes = {};
           headers.forEach((header, colIndex) => {
             const sampleValues = dataRows
-              .slice(0, Math.min(10, dataRows.length))
+              .slice(0, Math.min(50, dataRows.length))
               .map((row) => row[colIndex])
-              .filter((val) => val !== null && val !== undefined && val !== "")
-
+              .filter((val) => val !== null && val !== undefined && val !== "");
             if (sampleValues.length === 0) {
-              columnTypes[header] = "string"
+              columnTypes[header] = "string";
             } else {
               const typeCounts = sampleValues.reduce((acc, val) => {
-                const type = detectDataType(val)
-                acc[type] = (acc[type] || 0) + 1
-                return acc
-              }, {})
-
-              columnTypes[header] = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0][0]
+                const type = detectDataType(val);
+                acc[type] = (acc[type] || 0) + 1;
+                return acc;
+              }, {});
+              columnTypes[header] = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0][0];
             }
-          })
-
-          // Create columns with data types and proper widths - preserve original order
+          });
           const newColumns = headers.map((header) => ({
             key: header,
             name: header,
@@ -626,102 +518,81 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
             width: getColumnWidth(columnTypes[header], header),
             renderEditCell: dataTypeEditors[columnTypes[header]],
             renderCell: dataTypeFormatters[columnTypes[header]],
-          }))
-
-          // Add actions column
-          newColumns.push({
-            key: "actions",
-            name: "Actions",
-            width: 80,
-            resizable: false,
-            sortable: false,
-            renderCell: ActionCellRenderer,
-          })
-
-          // Create rows with proper typing
+          }));
+          newColumns.push({ key: "actions", name: "Actions", width: 80, resizable: false, sortable: false, renderCell: ActionCellRenderer });
           const newRows = dataRows.map((row, idx) => {
-            const rowObj = { __index: idx }
+            const rowObj = { __index: idx };
             headers.forEach((header, colIndex) => {
-              const value = row[colIndex]
-              const type = columnTypes[header]
-
-              switch (type) {
-                case "number":
-                  rowObj[header] = value === null || value === "" ? null : Number(value)
-                  break
-                case "boolean":
-                  rowObj[header] = Boolean(value)
-                  break
-                case "date":
-                  rowObj[header] = value ? new Date(value) : null
-                  break
-                default:
-                  rowObj[header] = value === null || value === undefined ? "" : String(value)
-              }
-            })
-            return rowObj
-          })
-
-          setColumns(newColumns)
-          setRows(newRows)
-
-          // After setting custom chart, add type-color combinations
+              const raw = row[colIndex];
+              rowObj[header] = normalizeCellForType(raw, columnTypes[header]);
+            });
+            return rowObj;
+          });
+          setColumns(newColumns);
+          setRows(newRows);
           setTimeout(() => {
-            addTypesColorRows()
-          }, 100)
+            addTypesColorRows();
+          }, 100);
         } catch (error) {
-          console.error("Error parsing file:", error)
-          alert("Error parsing file. Please check the file format.")
+          console.error("Error parsing file:", error);
+          alert("Error parsing file. Please check the file format.");
         }
-      }
-      reader.readAsArrayBuffer(file)
+      };
+      reader.readAsArrayBuffer(file);
     },
-    [dataTypeEditors, dataTypeFormatters, ActionCellRenderer, addTypesColorRows],
-  )
+    [dataTypeEditors, dataTypeFormatters, ActionCellRenderer, addTypesColorRows]
+  );
 
-  // Add new row
+  const getColumnWidth = (dataType, columnName) => {
+    switch (dataType) {
+      case "number":
+        return 80;
+      case "boolean":
+        return 70;
+      case "date":
+        return 120;
+      default: {
+        const baseWidth = Math.max(columnName.length * 12, 150);
+        return Math.min(baseWidth, 300);
+      }
+    }
+  };
+
   const addRow = useCallback(() => {
     if (columns.length === 0) {
-      alert("Please add columns first")
-      return
+      alert("Please add columns first");
+      return;
     }
-
-    const today = new Date().toISOString().split("T")[0] // YYYY-MM-DD format
-
+    const today = new Date().toISOString().split("T")[0];
     const newRow = columns.reduce(
       (row, col) => {
-        if (col.key === "actions") return row
-
+        if (col.key === "actions") return row;
         switch (col.dataType) {
           case "string":
-            row[col.key] = ""
-            break
+            row[col.key] = "";
+            break;
           case "number":
-            row[col.key] = 0
-            break
+            row[col.key] = 0;
+            break;
           case "boolean":
-            row[col.key] = false
-            break
+            row[col.key] = false;
+            break;
           case "date":
-            row[col.key] = today
-            break
+            row[col.key] = today;
+            break;
           default:
-            row[col.key] = ""
+            row[col.key] = "";
         }
-
-        return row
+        return row;
       },
-      { __index: rows.length },
-    )
+      { __index: rows.length }
+    );
+    setRows((prev) => [...prev, newRow]);
+  }, [columns, rows.length]);
 
-    setRows((prev) => [...prev, newRow])
-  }, [columns, rows.length])
-
-  // Add new column
   const handleAddColumn = useCallback(() => {
-    if (!newColumnName.trim()) return
-
-    const key = newColumnName.replace(/\s+/g, "_")
+    if (!newColumnName.trim()) return;
+    const key = newColumnName.replace(/\s+/g, "_");
     const newColumn = {
       key,
       name: newColumnName,
@@ -730,27 +601,17 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
       width: getColumnWidth(newColumnType, newColumnName),
       renderEditCell: dataTypeEditors[newColumnType],
       renderCell: dataTypeFormatters[newColumnType],
-    }
-
-    // Insert before actions column
-    const newColumns = [...columns]
-    const actionsIndex = newColumns.findIndex((col) => col.key === "actions")
-    if (actionsIndex !== -1) {
-      newColumns.splice(actionsIndex, 0, newColumn)
-    } else {
-      newColumns.push(newColumn)
-    }
-
-    setColumns(newColumns)
-
-    // Update original column order to include the new column
+    };
+    const newColumns = [...columns];
+    const actionsIndex = newColumns.findIndex((col) => col.key === "actions");
+    if (actionsIndex !== -1) newColumns.splice(actionsIndex, 0, newColumn);
+    else newColumns.push(newColumn);
+    setColumns(newColumns);
     setOriginalColumnOrder((prevOrder) => {
-      const newOrder = [...prevOrder]
-      // Insert the new column before the last position (to maintain order)
-      newOrder.splice(newOrder.length, 0, key)
-      return newOrder
-    })
-
+      const newOrder = [...prevOrder];
+      newOrder.splice(newOrder.length, 0, key);
+      return newOrder;
+    });
     setRows((prev) =>
       prev.map((row) => ({
         ...row,
@@ -762,119 +623,106 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
               : newColumnType === "boolean"
                 ? false
                 : null,
-      })),
-    )
+      }))
+    );
+    setNewColumnName("");
+    setNewColumnType("string");
+    setIsAddColumnOpen(false);
+  }, [newColumnName, newColumnType, columns, dataTypeEditors, dataTypeFormatters]);
 
-    // Reset form
-    setNewColumnName("")
-    setNewColumnType("string")
-    setIsAddColumnOpen(false)
-  }, [newColumnName, newColumnType, columns, dataTypeEditors, dataTypeFormatters])
-
-  // Handle cell value changes with debouncing
   const onRowsChange = useCallback((newRows) => {
     if (resizeTimeoutRef.current) {
-      clearTimeout(resizeTimeoutRef.current)
+      clearTimeout(resizeTimeoutRef.current);
     }
-
     resizeTimeoutRef.current = setTimeout(() => {
-      setRows(newRows)
-    }, 16) // Debounce to next frame
-  }, [])
+      setRows(newRows);
+    }, 16);
+  }, []);
 
-  // Memoized columns with header renderers
   const memoizedColumns = useMemo(
     () =>
       columns.map((col) => ({
         ...col,
         renderHeader: () => <HeaderRenderer column={col} />,
       })),
-    [columns, HeaderRenderer],
-  )
+    [columns, HeaderRenderer]
+  );
 
-  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
-      if (submitTimeoutRef.current) {
-        clearTimeout(submitTimeoutRef.current)
-      }
-      if (resizeTimeoutRef.current) {
-        clearTimeout(resizeTimeoutRef.current)
-      }
-    }
-  }, [])
+      if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
+    };
+  }, []);
 
   return (
-    <div style={{ padding: "20px", maxWidth: "100%", overflow: "auto" }} className="orderChart">
-      {/* Action Buttons */}
-      <div className="d-flex gap-2 mb-3 flex-wrap">
-        <div className="position-relative">
-          <input
-            type="file"
-            accept=".csv,.xls,.xlsx"
-            onChange={handleFileUpload}
-            className="position-absolute w-100 h-100 opacity-0"
-            style={{ cursor: "pointer", zIndex: 2 }}
-            id="file-upload"
-          />
-          <Button variant="outline-primary" size="sm" className="position-relative">
-            <FaUpload className="me-1" />
-            Upload CSV/Excel
+    <div style={{ padding: "20px", maxWidth: "100%", overflow: "auto" }} className="orderChart vfx-fade">
+      <div className="d-flex gap-2 mb-3 flex-wrap justify-content-between">
+        <div className="d-flex gap-2 flex-wrap">
+          <div className="position-relative">
+            <input
+              type="file"
+              accept=".csv,.xls,.xlsx"
+              onChange={handleFileUpload}
+              className="position-absolute w-100 h-100 opacity-0"
+              style={{ cursor: "pointer", zIndex: 2 }}
+              id="file-upload"
+            />
+            <Button variant="outline-primary" size="sm" className="position-relative">
+              <FaUpload className="me-1" />
+              Upload
+            </Button>
+          </div>
+
+          <Button onClick={addRow} variant="outline-success" size="sm">
+            <FaPlus className="me-1" />
+            Add Row
           </Button>
+
+          <Button onClick={() => setIsAddColumnOpen(true)} variant="outline-info" size="sm">
+            <FaPlus className="me-1" />
+            Add Column
+          </Button>
+
+          {hasCustomChart && (
+            <Button onClick={resetToDefault} variant="outline-danger" size="sm">
+              <FaUndo className="me-1" />
+              Reset
+            </Button>
+          )}
         </div>
 
-        <Button onClick={addRow} variant="outline-success" size="sm">
-          <FaPlus className="me-1" />
-          Add Row
-        </Button>
-
-        <Button onClick={() => setIsAddColumnOpen(true)} variant="outline-info" size="sm">
-          <FaPlus className="me-1" />
-          Add Column
-        </Button>
-
-        {fileName && (
-          <Badge bg="light" text="dark" className="ms-auto align-self-center">
-            📁 {fileName}
-          </Badge>
-        )}
-
-        {hasCustomChart && (
-          <Badge bg="info" text="white" className="align-self-center">
-            Custom Chart
-          </Badge>
-        )}
+        <div className="d-flex gap-2 flex-wrap">
+          <Button onClick={handleExportCSV} variant="outline-secondary" size="sm">
+            <FaFileCsv className="me-1" />
+            CSV
+          </Button>
+          <Button onClick={handleExportXLSX} variant="outline-secondary" size="sm">
+            <FaFileExcel className="me-1" />
+            Excel
+          </Button>
+          <Button onClick={handlePrint} variant="outline-dark" size="sm">
+            <FaPrint className="me-1" />
+            Print
+          </Button>
+        </div>
       </div>
 
-      {/* Data Grid */}
       {columns.length > 0 && (
         <div className="border rounded" style={{ backgroundColor: "#f8f9fa" }}>
-          <div
-            ref={gridRef}
-            style={{
-              width: "100%",
-            }}
-          >
+          <div ref={gridRef} style={{ width: "100%" }}>
             <DataGrid
               columns={memoizedColumns}
               rows={rows}
               onRowsChange={onRowsChange}
-              defaultColumnOptions={{
-                resizable: true,
-                sortable: true,
-              }}
+              defaultColumnOptions={{ resizable: true, sortable: true }}
               rowKeyGetter={(row) => row.__index}
-              style={{
-                "--rdg-header-foreground-color": "#ffffff",
-                "--rdg-border-color": "#dee2e6",
-                fontSize: "13px",
-              }}
+              style={{ "--rdg-header-foreground-color": "#ffffff", "--rdg-border-color": "#dee2e6", fontSize: "13px" }}
             />
           </div>
         </div>
       )}
 
-      {/* Add Column Modal */}
       <Modal show={isAddColumnOpen} onHide={() => setIsAddColumnOpen(false)} centered>
         <Modal.Header closeButton className="bg-primary text-white">
           <Modal.Title className="d-flex align-items-center">
@@ -893,11 +741,7 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
                 </option>
               ))}
             </Form.Select>
-            <Form.Control
-              placeholder="Or enter custom name"
-              value={newColumnName}
-              onChange={(e) => setNewColumnName(e.target.value)}
-            />
+            <Form.Control placeholder="Or enter custom name" value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} />
           </Form.Group>
 
           <Form.Group className="mb-3">
@@ -921,14 +765,12 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
         </Modal.Footer>
       </Modal>
 
-      {/* Tips */}
       <div className="mt-3 text-muted">
         <small>
-          <strong>Tips:</strong> Click cells to edit • Use column delete (×) buttons to remove columns • Upload
-          CSV/Excel files to import data • Rows auto-generate based on selected types and colors
-          {hasCustomChart && " • Custom chart column order is preserved"}
+          <strong>Tips:</strong> Click cells to edit • Use column delete (×) buttons to remove columns • Upload CSV/Excel to import data •
+          Export and Print preserve column order from your import. Numbers remain numbers; dates are YYYY-MM-DD.
         </small>
       </div>
     </div>
-  )
+  );
 }

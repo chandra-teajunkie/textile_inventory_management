@@ -27,11 +27,11 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
   const [taskName, setTaskName] = useState(task.name)
   const [product, setProduct] = useState(task.product || "")
   const [color, setColor] = useState(task.color || "")
-  const [taskUnit, setTaskUnit] = useState(task.task_unit || "UNASSIGNED")
+  const [taskUnit, setTaskUnit] = useState(task.purchase_order_unit || "UNASSIGNED")
   const [status, setStatus] = useState(task.status)
   const [dependencies, setDependencies] = useState([])
   const [loading, setLoading] = useState(false)
-  const [taskUnitName, setTaskUnitName] = useState(task.task_unit_name || "")
+  const [taskUnitName, setTaskUnitName] = useState(task.purchase_order_unit_name || "")
 
   useEffect(() => {
     if (task.dependencies) {
@@ -59,15 +59,16 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
       name: taskName,
       product,
       color,
-      task_unit: taskUnit,
-      task_unit_name: taskUnitName,
+      purchase_order_unit: taskUnit,
+      purchase_order_unit_name: taskUnitName,
       status,
       dependencies
     }
     setLoading(true)
+    console.log(payload, `${process.env.REACT_APP_PATCH_ALL_TASKS}${task.purchase_order_id}`, task)
     try {
       const resp = await fetch(
-        `${process.env.REACT_APP_PATCH_ALL_TASKS}${task.task_id}`,
+        `${process.env.REACT_APP_PATCH_ALL_TASKS}${task.purchase_order_id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -90,7 +91,7 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
     }
   }
 
-  const availableDeps = allTasks.filter(t => t.task_id !== task.task_id)
+  const availableDeps = allTasks.filter(t => t.purchase_order_id !== task.purchase_order_id)
 
   return (
     <Form
@@ -188,11 +189,11 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
           <Select
             isMulti
             value={dependencies.map(dep => {
-              const task = allTasks.find(t => t.task_id === dep)
-              return task ? { value: task.task_id, label: task.name } : null
+              const task = allTasks.find(t => t.purchase_order_id === dep)
+              return task ? { value: task.purchase_order_id, label: task.name } : null
             }).filter(Boolean)}
             onChange={selectedOptions => setDependencies(selectedOptions.map(opt => opt.value))}
-            options={availableDeps.map(t => ({ value: t.task_id, label: t.name }))}
+            options={availableDeps.map(t => ({ value: t.purchase_order_id, label: t.name }))}
             placeholder="Select dependencies"
             menuPlacement="top"
           />
@@ -203,7 +204,7 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
             style={{ height: 120 }}
           >
             {availableDeps.map(t => (
-              <option key={t.task_id} value={t.task_id}>{t.name}</option>
+              <option key={t.purchase_order_id} value={t.purchase_order_id}>{t.name}</option>
             ))}
           </Form.Select> */}
 
