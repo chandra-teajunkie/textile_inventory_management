@@ -47,6 +47,9 @@ class PurchaseOrder(SQLModel, table=True):
     outgoing_chart: Optional[str] = Field(
         default=None
     )  # JSON string of updated size chart data
+    special_notes: Optional[str] = Field(
+        default=None, description="Notes specific to this purchase order"
+    )
 
 
 class PurchaseOrderCreate(SQLModel):
@@ -58,6 +61,7 @@ class PurchaseOrderCreate(SQLModel):
     purchase_order_unit_name: Optional[str] = None
     status: PurchaseOrderStatus = Field(default=PurchaseOrderStatus.NOT_STARTED)
     dependencies: List[str] = []  # List of purchase_order_ids
+    special_notes: Optional[str] = None
 
 
 class PurchaseOrderUpdate(SQLModel):
@@ -68,3 +72,4 @@ class PurchaseOrderUpdate(SQLModel):
     purchase_order_unit_name: Optional[str] = None
     status: Optional[PurchaseOrderStatus] = None
     dependencies: Optional[List[str]] = []  # List of purchase_order_ids
+    special_notes: Optional[str] = None

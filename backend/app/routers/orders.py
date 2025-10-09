@@ -8,6 +8,7 @@ from app.utils.utils import (
     generate_unique_id,
     process_size_chart,
     update_order_metadata_if_new,
+    initialize_purchase_unit_notes,
 )
 import json
 import pandas as pd
@@ -28,6 +29,11 @@ async def create_order(
     order_create = OrderCreate(**order_data)
     # Generate a unique order_id
     unique_order_id = generate_unique_id(Order, session, "order_id")
+
+    # Normalize notes (ensures all PurchaseOrderUnit keys exist)
+    normalized_notes = initialize_purchase_unit_notes(
+        order_data.get("purchase_unit_notes")
+    )
 
     metadata_fields = ["types", "colors", "customer_name"]
 
@@ -61,6 +67,7 @@ async def create_order(
     db_order = Order(
         order_id=unique_order_id,  # Assign the generated ID
         size_chart=size_chart_data,  # Store the processed size chart data
+        purchase_unit_notes=normalized_notes,  # Store normalized notes
         **order_create.model_dump(),  # Unpacks all fields from OrderCreate model
     )
 
@@ -94,6 +101,13 @@ async def update_order(
 
     # Convert to Pydantic model (optional validation)
     order_update_model = OrderUpdate(**update_data)
+
+    # Normalize purchase_unit_notes if provided
+    if "purchase_unit_notes" in update_data:
+        normalized_notes = initialize_purchase_unit_notes(
+            update_data["purchase_unit_notes"]
+        )
+        db_order.purchase_unit_notes = normalized_notes
 
     # Apply updates dynamically using ** to unpack fields
     update_fields = order_update_model.dict(

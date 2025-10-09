@@ -6,6 +6,19 @@ from io import StringIO
 from typing import Optional
 from sqlmodel import Session
 from app.models.orders_models import OrderMetadata
+from app.models.purchase_orders_models import PurchaseOrderUnit
+import json
+
+
+def initialize_purchase_unit_notes(input_notes: Optional[dict] = None) -> str:
+    """
+    Ensure notes exist for all PurchaseOrderUnit members.
+    """
+    input_notes = input_notes or {}
+    notes_dict = {
+        unit.value: input_notes.get(unit.value, "") for unit in PurchaseOrderUnit
+    }
+    return json.dumps(notes_dict)
 
 
 def generate_unique_id(model, session, field_name: str):

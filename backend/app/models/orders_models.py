@@ -25,6 +25,7 @@ class Order(SQLModel, table=True):
         back_populates="order"
     )  # Relationship to PurchaseOrder
     size_chart: Optional[str] = Field(default=None)  # JSON string for size chart
+    purchase_unit_notes: Optional[str] = Field(default="{}")  # JSON string of notes
 
 
 class OrderCreate(SQLModel):
@@ -36,6 +37,7 @@ class OrderCreate(SQLModel):
     start_date: datetime
     due_date: datetime
     special_notes: Optional[str] = None
+    purchase_unit_notes: Optional[dict] = None
 
 
 class OrderUpdate(SQLModel):
@@ -48,6 +50,7 @@ class OrderUpdate(SQLModel):
     due_date: Optional[datetime] = None
     special_notes: Optional[str] = None
     size_chart: Optional[str] = Field(default=None)
+    purchase_unit_notes: Optional[dict] = None
 
 
 class OrderMetadata(SQLModel, table=True):
