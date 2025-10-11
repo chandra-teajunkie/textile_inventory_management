@@ -4,6 +4,11 @@ import { useState, useEffect } from "react"
 import { Card, Button, Row, Col, Tabs, Tab } from "react-bootstrap"
 import { RecentOrders } from "./RecentOrders"
 import { TasksList } from "./TasksList"
+import ComprehensiveView from "./ConsolidatedView"
+import { ConsolidatedView } from "./Overview"
+import ConsolidatedOverviewVercel from "./Vercel"
+import OverviewUI from "./chart/ConsolidatedOverview"
+import EnhancedConsolidatedOverview from "./enhancedUI"
 
 function Dashboard({ setActiveTab, toast }) {
   const [orders, setOrders] = useState([])
@@ -100,7 +105,10 @@ function Dashboard({ setActiveTab, toast }) {
 
   return (
     <div className="dashboard p-4" >
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      {/* <ConsolidatedOverviewVercel /> */}
+      <EnhancedConsolidatedOverview />
+      {/* <OverviewUI /> */}
+      {/* <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="h3 fw-bold">Dashboard</h1>
         <div className="d-flex gap-2">
           <Button variant="outline-primary">Download Report</Button>
@@ -209,6 +217,7 @@ function Dashboard({ setActiveTab, toast }) {
                 </Card.Header>
                 <Card.Body>
                   <RecentOrders orders={orders} toast={toast} />
+                  <ComprehensiveView toast={toast} />
                 </Card.Body>
                 <Card.Footer className="bg-white border-0">
                   <Button variant="link" className="text-decoration-none p-0" onClick={() => setActiveTab("orders")}>
@@ -225,6 +234,7 @@ function Dashboard({ setActiveTab, toast }) {
                 </Card.Header>
                 <Card.Body>
                   <TasksList tasks={tasks} toast={toast} />
+                  <ConsolidatedView orders={orders} tasks={tasks} toast={toast} />
                 </Card.Body>
                 <Card.Footer className="bg-white border-0">
                   <Button variant="link" className="text-decoration-none p-0" onClick={() => setActiveTab("tasks")}>
@@ -235,7 +245,7 @@ function Dashboard({ setActiveTab, toast }) {
             </Col>
           </Row>
         </Tab>
-      </Tabs>
+      </Tabs> */}
     </div>
   )
 }
