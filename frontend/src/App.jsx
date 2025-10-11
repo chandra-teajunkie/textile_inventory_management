@@ -48,7 +48,7 @@ function App() {
           />
           <span className="text-primary fw-bold" style={{ fontSize: "1.5rem" }}>SIDHU Textiles</span>
         </div>
-        <div className="position-relative ms-auto flex-grow-0 me-3">
+        {/* <div className="position-relative ms-auto flex-grow-0 me-3">
           <i className="bi bi-search position-absolute" style={{ left: "10px", top: "10px", fontSize: "0.9rem" }}></i>
           <input
             type="search"
@@ -120,7 +120,7 @@ function App() {
               </a>
             </li>
           </ul>
-        </div>
+        </div> */}
       </header>
 
       <div className="d-flex pageBody">
