@@ -50,6 +50,8 @@ class PurchaseOrder(SQLModel, table=True):
     special_notes: Optional[str] = Field(
         default=None, description="Notes specific to this purchase order"
     )
+    incoming_chart_notes: Optional[str] = Field(default=None)
+    outgoing_chart_notes: Optional[str] = Field(default=None)
 
 
 class PurchaseOrderCreate(SQLModel):
@@ -62,6 +64,8 @@ class PurchaseOrderCreate(SQLModel):
     status: PurchaseOrderStatus = Field(default=PurchaseOrderStatus.NOT_STARTED)
     dependencies: List[str] = []  # List of purchase_order_ids
     special_notes: Optional[str] = None
+    incoming_chart_notes: Optional[str] = None
+    outgoing_chart_notes: Optional[str] = None
 
 
 class PurchaseOrderUpdate(SQLModel):
@@ -73,3 +77,5 @@ class PurchaseOrderUpdate(SQLModel):
     status: Optional[PurchaseOrderStatus] = None
     dependencies: Optional[List[str]] = []  # List of purchase_order_ids
     special_notes: Optional[str] = None
+    incoming_chart_notes: Optional[str] = None
+    outgoing_chart_notes: Optional[str] = None
