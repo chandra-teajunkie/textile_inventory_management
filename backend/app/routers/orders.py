@@ -68,7 +68,7 @@ async def create_order(
         order_id=unique_order_id,  # Assign the generated ID
         size_chart=size_chart_data,  # Store the processed size chart data
         purchase_unit_notes=normalized_notes,  # Store normalized notes
-        **order_create.model_dump(),  # Unpacks all fields from OrderCreate model
+        **order_create.model_dump(exclude={"purchase_unit_notes"}),
     )
 
     session.add(db_order)

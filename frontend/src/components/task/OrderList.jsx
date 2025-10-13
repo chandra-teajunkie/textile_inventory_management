@@ -8,6 +8,9 @@ import { FaTrash } from "react-icons/fa"
 
 import { GrLanguage, GrClose } from "react-icons/gr";
 import './overlay.css'
+import { parseJsonSafe } from "../../utils/jsonUtils"
+import { OverlayTrigger, Popover } from "react-bootstrap";
+import { generatePrintableHtml, printHtml } from "../../utils/exportUtils";
 
 function OrderList({ toast, setActiveTab }) {
   const [orders, setOrders] = useState([])
@@ -276,6 +279,7 @@ function OrderList({ toast, setActiveTab }) {
                       <th>Type</th>
                       <th>Date</th>
                       <th>Status</th>
+                      <th>Notes</th>
                       <th className="text-end">Actions</th>
                     </tr>
                   </thead>
@@ -292,6 +296,74 @@ function OrderList({ toast, setActiveTab }) {
                               {order.status || "Processing"}
                             </Badge>
                           </td>
+                          <td>
+                            {order.special_notes && order.special_notes.trim() !== "" && (() => {
+                              // Safely parse in case it's JSON or just plain text
+                              let notes = [];
+                              try {
+                                const parsed = JSON.parse(order.special_notes);
+                                if (Array.isArray(parsed)) {
+                                  notes = parsed;
+                                } else if (typeof parsed === "object") {
+                                  notes = Object.entries(parsed).map(([key, value]) => `${key}: ${value}`);
+                                } else {
+                                  notes = [String(parsed)];
+                                }
+                              } catch {
+                                // fallback: just treat as plain string
+                                notes = [order.special_notes];
+                              }
+
+                              const popover = (
+                                <Popover id="special-notes-popover">
+                                  <Popover.Header as="h3">Special Notes</Popover.Header>
+                                  <Popover.Body>
+                                    <div className="grid grid-cols-1 gap-2">
+                                      {notes.map((note, idx) => (
+                                        <div key={idx} className="d-flex flex-column border-bottom pb-1 mb-1">
+                                          <span>{note.trim() !== "" ? note : "No details"}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </Popover.Body>
+                                </Popover>
+                              );
+
+                              return (
+                                <OverlayTrigger trigger="click" placement="bottom" overlay={popover} rootClose>
+                                  <Badge bg="info" className="me-1" style={{ cursor: "pointer" }}>
+                                    <i className="bi bi-journal-text"></i>
+                                  </Badge>
+                                </OverlayTrigger>
+                              );
+                            })()}
+                            {order.purchase_unit_notes && (() => {
+                              const notesObj = parseJsonSafe(order.purchase_unit_notes);
+                              const popover = (
+                                <Popover id="unit-notes-popover">
+                                  <Popover.Header as="h3">Unit Notes</Popover.Header>
+                                  <Popover.Body>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {Object.entries(notesObj).map(([unit, note]) => (
+                                        <div key={unit} className="d-flex flex-column border-bottom pb-1 mb-1">
+                                          <strong>{unit}</strong>
+                                          <span>{note && note.trim() !== "" ? note : "No notes"}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </Popover.Body>
+                                </Popover>
+                              );
+
+                              return (
+                                <OverlayTrigger trigger="click" placement="bottom" overlay={popover}>
+                                  <Badge bg="secondary" className="me-1" style={{ cursor: "pointer" }}>
+                                    <i className="bi bi-card-text"></i>
+                                  </Badge>
+                                </OverlayTrigger>
+                              );
+                            })()}
+                          </td>
                           <td className="text-end">
                             <div className="d-flex justify-content-end gap-2">
                               <Button variant="primary" size="sm" onClick={() => handleCreateTask(order)}>
@@ -306,6 +378,45 @@ function OrderList({ toast, setActiveTab }) {
                                 {/* FEATURE: Display task count */}
                                 {taskMap[order.order_id] && ` (${taskMap[order.order_id].length})`}
                               </Button>
+                              <Dropdown>
+                                <Dropdown.Toggle variant="info" size="sm">
+                                  Print
+                                </Dropdown.Toggle>
+                                <Dropdown.Menu>
+                                  <Dropdown.Header>Order Only</Dropdown.Header>
+                                  <Dropdown.Item onClick={() => {
+                                    try {
+                                      const html = generatePrintableHtml(order);
+                                      printHtml(html);
+                                    } catch (error) {
+                                      console.error('Print generation failed:', error);
+                                      toast.current.show({
+                                        severity: "error",
+                                        summary: "Error",
+                                        detail: "Failed to generate print view. Please try again.",
+                                        life: 3000,
+                                      });
+                                    }
+                                  }}>Print Order Details</Dropdown.Item>
+                                  <Dropdown.Divider />
+                                  <Dropdown.Header>Order with Tasks</Dropdown.Header>
+                                  <Dropdown.Item onClick={() => {
+                                    try {
+                                      const tasks = taskMap[order.order_id] || [];
+                                      const html = generatePrintableHtml(order, tasks, true);
+                                      printHtml(html);
+                                    } catch (error) {
+                                      console.error('Print generation failed:', error);
+                                      toast.current.show({
+                                        severity: "error",
+                                        summary: "Error",
+                                        detail: "Failed to generate print view. Please try again.",
+                                        life: 3000,
+                                      });
+                                    }
+                                  }}>Print Order with Tasks</Dropdown.Item>
+                                </Dropdown.Menu>
+                              </Dropdown>
                               <Button
                                 variant="danger"
                                 size="sm"
@@ -404,6 +515,7 @@ function OrderList({ toast, setActiveTab }) {
                 <TaskModal
                   orderId={selectedOrder.order_id}
                   selectedOrder={selectedOrder}
+                  orderPurchaseUnitNotes={selectedOrder?.purchase_unit_notes}
                   onClose={() => setShowTaskModal(false)}
                   onTaskCreated={handleTaskCreated}
                   toast={toast}

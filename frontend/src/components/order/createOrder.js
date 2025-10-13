@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Form, Button, Row, Col, Card, Badge } from "react-bootstrap"
+import { Form, Button, Row, Col, Card, Badge, Tabs, Tab } from "react-bootstrap"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import CreatableSelect from "react-select/creatable"
 import EnhancedDataGrid from "./createCustomChart"
+import { PurchaseOrderUnit } from "../../utils/constants"
 
 function OrderForm({ toast }) {
     const [form, setForm] = useState({
@@ -17,6 +18,7 @@ function OrderForm({ toast }) {
         orderDate: new Date(),
         startDate: new Date(),
         dueDate: new Date(),
+        purchase_unit_notes: Object.values(PurchaseOrderUnit).reduce((acc, unit) => ({ ...acc, [unit]: "" }), {}),
     })
 
     const [sizeChartData, setSizeChartData] = useState(null)
@@ -27,6 +29,10 @@ function OrderForm({ toast }) {
         customer_name: [],
     })
 
+    // State for active notes tab and refs for textareas
+    const [activeNoteTab, setActiveNoteTab] = useState(Object.values(PurchaseOrderUnit)[0]);
+    const noteTextareaRefs = useRef(new Map());
+
     // Track toast to prevent duplicates
     const lastToastTimeRef = useRef(0)
 
@@ -34,6 +40,13 @@ function OrderForm({ toast }) {
     useEffect(() => {
         fetchDropdownOptions()
     }, [])
+
+    // Effect to focus textarea when activeNoteTab changes
+    useEffect(() => {
+        if (activeNoteTab && noteTextareaRefs.current.has(activeNoteTab)) {
+            noteTextareaRefs.current.get(activeNoteTab).focus();
+        }
+    }, [activeNoteTab]);
 
     const fetchDropdownOptions = async () => {
         try {
@@ -174,6 +187,7 @@ function OrderForm({ toast }) {
             start_date: form.startDate.toISOString(),
             due_date: form.dueDate.toISOString(),
             special_notes: form.specialNotes,
+            purchase_unit_notes: form.purchase_unit_notes,
         }
 
         try {
@@ -204,6 +218,7 @@ function OrderForm({ toast }) {
                     orderDate: new Date(),
                     startDate: new Date(),
                     dueDate: new Date(),
+                    purchase_unit_notes: Object.values(PurchaseOrderUnit).reduce((acc, unit) => ({ ...acc, [unit]: "" }), {}),
                 })
                 setSizeChartData(null)
             } else {
@@ -276,6 +291,22 @@ function OrderForm({ toast }) {
         return values.map((value) => ({ value, label: value }))
     }
 
+    // Add function to calculate total pieces from size chart
+    const calculateTotalPieces = () => {
+        // Assuming sizeChart is an array of objects and each row has a 'quantity' field
+        if (!sizeChartData || !Array.isArray(sizeChartData)) return 0;
+        return Object.values(sizeChartData[Object.keys(sizeChartData)[0]]).reduce((total, quantity) => total + (parseInt(quantity, 10) || 0), 0);
+    };
+
+    // New helper functions for size chart totals
+    const getRowTotal = (row, sizes) => {
+        return sizes.reduce((sum, size) => sum + (parseInt(row[size], 10) || 0), 0);
+    };
+
+    const getOverallTotal = (sizeChart, sizes) => {
+        return sizeChart.reduce((overall, row) => overall + getRowTotal(row, sizes), 0);
+    };
+
     return (
         <div className="p-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
@@ -295,8 +326,8 @@ function OrderForm({ toast }) {
                                     <Form.Label>Number of Pieces *</Form.Label>
                                     <Form.Control
                                         type="number"
+                                        disabled
                                         value={form.overallPieces}
-                                        onChange={(e) => handleChange("overallPieces", e.target.value)}
                                         placeholder="Enter total pieces"
                                         required
                                     />
@@ -374,6 +405,42 @@ function OrderForm({ toast }) {
                                     />
                                 </Form.Group>
 
+                                <h5 className="mb-3">Purchase Unit Notes</h5>
+                                <Tabs activeKey={activeNoteTab} onSelect={(k) => setActiveNoteTab(k)} id="purchase-unit-notes-tabs" className="mb-3">
+                                    {Object.values(PurchaseOrderUnit).map((unit) => (
+                                        <Tab
+                                            eventKey={unit}
+                                            title={
+                                                <>
+                                                    {unit.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                                                    {form.purchase_unit_notes[unit] && (
+                                                        <Badge pill bg="success" className="ms-2">
+                                                            <i className="bi bi-check"></i>
+                                                        </Badge>
+                                                    )}
+                                                </>
+                                            }
+                                            key={unit}
+                                        >
+                                            <Form.Group className="mb-3 mt-3">
+                                                <Form.Control
+                                                    as="textarea"
+                                                    rows={3}
+                                                    ref={(el) => noteTextareaRefs.current.set(unit, el)} // Assign ref dynamically
+                                                    value={form.purchase_unit_notes[unit] || ''}
+                                                    onChange={(e) =>
+                                                        setForm((prev) => ({
+                                                            ...prev,
+                                                            purchase_unit_notes: { ...prev.purchase_unit_notes, [unit]: e.target.value },
+                                                        }))
+                                                    }
+                                                    placeholder={`Enter notes for the ${unit.toLowerCase().replace(/_/g, " ")} unit`}
+                                                />
+                                            </Form.Group>
+                                        </Tab>
+                                    ))}
+                                </Tabs>
+
                                 <Form.Group className="mb-3">
                                     <Form.Label>Order Date *</Form.Label>
                                     <DatePicker
@@ -423,7 +490,8 @@ function OrderForm({ toast }) {
                         </p>
 
                         <div style={{ marginBottom: "20px", overflow: "hidden" }}>
-                            <EnhancedDataGrid onSubmit={handleTableSubmit} orderTypes={form.types} orderColors={form.colors} />
+                            <EnhancedDataGrid onSubmit={handleTableSubmit} orderTypes={form.types} orderColors={form.colors}
+                                setForm={setForm} form={form} />
                         </div>
 
                         <div className="d-flex justify-content-end mt-4">

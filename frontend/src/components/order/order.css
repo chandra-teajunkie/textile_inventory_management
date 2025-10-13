@@ -17,3 +17,17 @@
     justify-content: center;
     color: #ddd !important;
 }
+
+
+.nav-item .nav-link {
+    color: black !important;
+}
+
+.nav-item .nav-link.active {
+    color: var(--bs-nav-link-color) !important;
+}
+
+
+.rdg-no-actions {
+    pointer-events: none !important;
+}

@@ -14,10 +14,13 @@ import {
   generateInitialRows
 } from '../lib/chartUtils';
 
-export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColors = [] }) {
+// Helper to generate a simple unique ID
+const createKey = () => `id_${Date.now()}_${Math.random()}`;
+
+export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColors = [], setForm = () => { } }) {
   const [columns, setColumns] = useState([]);
   const [rows, setRows] = useState([]);
-  const [fileName, setFileName] = useState("");
+  const [fileName, setFileName] = useState("Size Chart");
   const [isAddColumnOpen, setIsAddColumnOpen] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
   const [newColumnType, setNewColumnType] = useState("string");
@@ -25,7 +28,7 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
   const [originalColumnOrder, setOriginalColumnOrder] = useState([]);
   const gridRef = useRef(null);
   const submitTimeoutRef = useRef(null);
-  const lastSubmittedDataRef = useRef(null); // Added this line
+  const lastSubmittedDataRef = useRef(null);
   const resizeTimeoutRef = useRef(null);
 
   const dataTypeEditors = useMemo(
@@ -60,35 +63,6 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
           autoFocus
         />
       ),
-      boolean: (props) => (
-        <input
-          type="checkbox"
-          checked={!!props.row[props.column.key]}
-          onChange={(e) =>
-            props.onRowChange({
-              ...props.row,
-              [props.column.key]: e.target.checked,
-            })
-          }
-          style={{ margin: "auto", display: "block" }}
-          autoFocus
-        />
-      ),
-      date: (props) => (
-        <input
-          type="date"
-          value={props.row[props.column.key] ? new Date(props.row[props.column.key]).toISOString().split("T")[0] : ""}
-          onChange={(e) =>
-            props.onRowChange({
-              ...props.row,
-              [props.column.key]: e.target.value ? new Date(e.target.value) : null,
-            })
-          }
-          className="rdg-text-editor"
-          style={{ width: "100%", height: "100%", border: "none", padding: "4px", outline: "none" }}
-          autoFocus
-        />
-      ),
     }),
     []
   );
@@ -99,12 +73,6 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
       string: (props) => (
         <div style={{ padding: "4px 8px", overflow: "hidden", textOverflow: "ellipsis" }}>{props.row[props.column.key] ?? ""}</div>
       ),
-      boolean: (props) => <div style={{ textAlign: "center", padding: "4px" }}>{props.row[props.column.key] ? "✓" : "✗"}</div>,
-      date: (props) => (
-        <div style={{ padding: "4px", textAlign: "center" }}>
-          {props.row[props.column.key] ? new Date(props.row[props.column.key]).toLocaleDateString() : ""}
-        </div>
-      ),
     }),
     []
   );
@@ -113,27 +81,10 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
   const DATA_TYPES = [
     { value: "string", label: "Text", icon: "📝" },
     { value: "number", label: "Number", icon: "🔢" },
-    { value: "boolean", label: "Boolean", icon: "☑️" },
-    { value: "date", label: "Date", icon: "📅" },
   ];
 
-  const generateTypesColorCombinations = useCallback(() => {
-    const combinations = [];
-    const types = orderTypes.length > 0 ? orderTypes : ["Pant", "Shirt"];
-    const colors = orderColors.length > 0 ? orderColors : ["Blue", "White"];
-    types.forEach((type) => {
-      colors.forEach((color) => {
-        combinations.push({ type, color });
-      });
-    });
-    return combinations;
-  }, [orderTypes, orderColors]);
-
-  const deleteRow = useCallback((rowIdx) => {
-    setRows((prevRows) => {
-      const newRows = prevRows.filter((row) => row.__index !== rowIdx);
-      return newRows.map((row, idx) => ({ ...row, __index: idx }));
-    });
+  const deleteRow = useCallback((rowKey) => {
+    setRows((prevRows) => prevRows.filter((row) => row.key !== rowKey));
   }, []);
 
   const deleteColumn = useCallback((key) => {
@@ -157,7 +108,7 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
           size="sm"
           onClick={(e) => {
             e.stopPropagation();
-            deleteRow(row.__index);
+            deleteRow(row.key);
           }}
           className="p-1 text-danger"
           style={{ border: "none", background: "none" }}
@@ -179,27 +130,13 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
           backgroundColor: "#343a40",
           color: "#ffffff",
           fontWeight: "bold",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
         }}
       >
-        <div className="d-flex align-items-center gap-2 flex-grow-1">
-          <span
-            className="fw-bold text-truncate small text-white"
-            style={{
-              fontSize: column.dataType === "number" ? "11px" : "12px",
-              textAlign: "center",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {column.name}
-          </span>
+        <div className="d-flex align-items-center gap-2 flex-grow-1 justify-content-center">
+          <span className="fw-bold text-truncate small text-white">{column.name}</span>
           {column.dataType && (
             <Badge bg="secondary" className="small" style={{ fontSize: "8px" }}>
-              {column.dataType === "number" ? "#" : column.dataType === "string" ? "T" : column.dataType === "boolean" ? "B" : "D"}
+              {column.dataType === "number" ? "#" : "T"}
             </Badge>
           )}
         </div>
@@ -209,16 +146,8 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
               e.stopPropagation();
               deleteColumn(column.key);
             }}
-            style={{
-              border: "none",
-              background: "none",
-              color: "#dc3545",
-              cursor: "pointer",
-              padding: "2px 4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            className="p-1 text-danger"
+            style={{ border: "none", background: "none", cursor: "pointer" }}
             title="Delete column"
           >
             <FaTimes size={10} />
@@ -230,21 +159,21 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
   );
 
   const initialColumns = useMemo(
-    () => generateInitialColumns(dataTypeEditors, dataTypeFormatters, ActionCellRenderer),
-    [dataTypeEditors, dataTypeFormatters, ActionCellRenderer]
+    () => generateInitialColumns(dataTypeEditors, dataTypeFormatters),
+    [dataTypeEditors, dataTypeFormatters]
   );
 
-  const generateInitialRowsFromTypesColors = useCallback(() => {
-    return generateInitialRows(orderTypes, orderColors);
-  }, [orderTypes, orderColors]);
+  const generateInitialRowsWithKeys = useCallback((types, colors) => {
+    return generateInitialRows(types, colors).map(row => ({ ...row, key: createKey() }));
+  }, []);
 
   const resetToDefault = useCallback(() => {
     setColumns(initialColumns);
-    setRows(generateInitialRowsFromTypesColors());
+    setRows(generateInitialRowsWithKeys(orderTypes, orderColors));
     setFileName("");
     setHasCustomChart(false);
     setOriginalColumnOrder(["Item", "Color", "24", "26", "28", "30", "32", "34", "36", "38", "40", "42", "44"]);
-  }, [initialColumns, generateInitialRowsFromTypesColors]);
+  }, [initialColumns, generateInitialRowsWithKeys, orderTypes, orderColors]);
 
   useEffect(() => {
     if (columns.length === 0 && rows.length === 0) {
@@ -254,47 +183,30 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
 
   useEffect(() => {
     if (!hasCustomChart && (orderTypes.length > 0 || orderColors.length > 0)) {
-      const newRows = generateInitialRowsFromTypesColors();
+      const newRows = generateInitialRowsWithKeys(orderTypes, orderColors);
       setRows(newRows);
     }
-  }, [orderTypes, orderColors, hasCustomChart, generateInitialRowsFromTypesColors]);
+  }, [orderTypes, orderColors, hasCustomChart, generateInitialRowsWithKeys]);
 
   const addTypesColorRows = useCallback(() => {
     if (!hasCustomChart) return;
-    const combinations = generateTypesColorCombinations();
+    const combinations = generateInitialRowsWithKeys(orderTypes, orderColors);
     const existingCombinations = new Set(rows.map((row) => `${row.Item}-${row.Color}`));
     const newRows = combinations
-      .filter((combination) => !existingCombinations.has(`${combination.type}-${combination.color}`))
-      .map((combination, index) => {
-        const newRow = { __index: rows.length + index };
-        if (columns.some((col) => col.key === "Item")) newRow.Item = combination.type;
-        if (columns.some((col) => col.key === "Color")) newRow.Color = combination.color;
+      .filter((combination) => !existingCombinations.has(`${combination.Item}-${combination.Color}`))
+      .map((combination) => {
+        const newRow = { ...combination };
         columns.forEach((col) => {
-          if (col.key !== "Item" && col.key !== "Color" && col.key !== "actions" && !newRow.hasOwnProperty(col.key)) {
-            switch (col.dataType) {
-              case "number":
-                newRow[col.key] = 0;
-                break;
-              case "boolean":
-                newRow[col.key] = false;
-                break;
-              case "date":
-                newRow[col.key] = new Date().toISOString().split("T")[0];
-                break;
-              default:
-                newRow[col.key] = "";
-            }
+          if (!newRow.hasOwnProperty(col.key)) {
+            newRow[col.key] = col.dataType === 'number' ? 0 : '';
           }
         });
         return newRow;
       });
     if (newRows.length > 0) {
-      setRows((prevRows) => {
-        const combinedRows = [...prevRows, ...newRows];
-        return combinedRows.map((row, index) => ({ ...row, __index: index }));
-      });
+      setRows((prevRows) => [...prevRows, ...newRows]);
     }
-  }, [hasCustomChart, generateTypesColorCombinations, rows, columns]);
+  }, [hasCustomChart, rows, columns, orderTypes, orderColors, generateInitialRowsWithKeys]);
 
   useEffect(() => {
     if (hasCustomChart && (orderTypes.length > 0 || orderColors.length > 0)) {
@@ -318,152 +230,62 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
     [onSubmit]
   );
 
-  const buildExportOrder = (original, columns) => {
-    const current = columns.filter((c) => c.key !== "actions").map((c) => c.key);
+  const exportOrder = useMemo(() => {
+    const current = columns.map(c => c.key);
     const order = [];
-    original.forEach((k) => {
+    originalColumnOrder.forEach(k => {
       if (current.includes(k)) order.push(k);
     });
-    current.forEach((k) => {
+    current.forEach(k => {
       if (!order.includes(k)) order.push(k);
     });
     return order;
-  };
+  }, [originalColumnOrder, columns]);
 
-  const exportOrder = useMemo(() => buildExportOrder(originalColumnOrder, columns), [originalColumnOrder, columns]);
-
-  const handleExportCSV = useCallback(() => {
-    if (!rows.length) {
-      alert("No data to export.");
-      return;
-    }
-    const base = fileName ? fileName.replace(/\.(csv|xlsx|xls)$/i, "") : "size_chart_export";
-    exportToCSVFile({ fileName: `${base}.csv`, columns, rows, order: exportOrder });
-  }, [columns, rows, exportOrder, fileName]);
-
-  const handleExportXLSX = useCallback(() => {
-    if (!rows.length) {
-      alert("No data to export.");
-      return;
-    }
-    const base = fileName ? fileName.replace(/\.(csv|xlsx|xls)$/i, "") : "size_chart_export";
-    exportToXLSXFile({ fileName: `${base}.xlsx`, columns, rows, order: exportOrder });
-  }, [columns, rows, exportOrder, fileName]);
-
-  const handlePrint = useCallback(() => {
-    if (!rows.length) {
-      alert("Nothing to print.");
-      return;
-    }
-    const order = exportOrder;
-    const sortedRows = [...rows].sort((a, b) => a.__index - b.__index);
-    const html = `
-      <html>
-        <head>
-          <title>Size Chart</title>
-          <style>
-            body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #111827; }
-            h1 { font-size: 18px; margin: 0 0 12px; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #e5e7eb; padding: 6px 8px; font-size: 12px; text-align: center; }
-            th { background: #f9fafb; font-weight: 600; }
-            @media print {
-              @page { size: auto; margin: 12mm; }
-              body { padding: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          <h1>Size Chart</h1>
-          <table>
-            <thead>
-              <tr>${order.map((h) => `<th>${h}</th>`).join("")}</tr>
-            </thead>
-            <tbody>
-              ${sortedRows
-        .map((r) => {
-          const tds = order
-            .map((k) => {
-              const t = columns.find((c) => c.key === k)?.dataType || "string";
-              const val = normalizeCellForType(r[k], t);
-              return `<td>${val ?? ""}</td>`;
-            })
-            .join("");
-          return `<tr>${tds}</tr>`;
-        })
-        .join("")}
-            </tbody>
-          </table>
-          <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 100); };</script>
-        </body>
-      </html>
-    `;
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-  }, [columns, rows, exportOrder]);
-
-
-
-
-  const buildAOA = (columns, rows, order) => {
-    const header = order.slice();
-    const sortedRows = [...rows].sort((a, b) => a.__index - b.__index);
-    const body = sortedRows.map((r) =>
-      order.map((k) => {
-        const t = columns.find((c) => c.key === k)?.dataType || "string";
-        return normalizeCellForType(r[k], t);
-      })
-    );
-    return [header, ...body];
-  };
-
-  const exportToCSVFile = ({ fileName, columns, rows, order }) => {
-    const aoa = buildAOA(columns, rows, order);
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "SizeChart");
-    const csv = XLSX.write(wb, { bookType: "csv", type: "string" });
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = fileName.endsWith(".csv") ? fileName : `${fileName}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    URL.revokeObjectURL(a.href);
-    a.remove();
-  };
-
-  const exportToXLSXFile = ({ fileName, columns, rows, order }) => {
-    const aoa = buildAOA(columns, rows, order);
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "SizeChart");
-    XLSX.writeFile(wb, fileName.endsWith(".xlsx") ? fileName : `${fileName}.xlsx`);
-  };
+  const numericKeysFromColumns = (cols) => cols.filter((c) => c.dataType === "number" && c.key !== "actions").map((c) => c.key);
 
   const calculatedResult = useMemo(() => {
-    if (columns.length === 0 || rows.length === 0) return null;
-    const order = exportOrder;
-    const sortedRows = [...rows].sort((a, b) => a.__index - b.__index);
+    if (columns.length === 0) return null;
+    const numericKeys = numericKeysFromColumns(columns);
+
+    const columnTotals = numericKeys.reduce((acc, key) => {
+      acc[key] = rows.reduce((sum, row) => sum + (Number(row[key]) || 0), 0);
+      return acc;
+    }, {});
+
+    const overallTotal = Object.values(columnTotals).reduce((sum, total) => sum + total, 0);
+
     const finalResult = {};
-    order.forEach((columnKey) => {
-      const columnData = {};
-      sortedRows.forEach((row, displayIndex) => {
-        const t = columns.find((c) => c.key === columnKey)?.dataType || "string";
-        columnData[displayIndex] = normalizeCellForType(row[columnKey], t);
-      });
-      Object.defineProperty(finalResult, columnKey, {
-        value: columnData,
-        writable: true,
-        enumerable: true,
-        configurable: true,
-      });
+    exportOrder.forEach((key) => {
+      if (key === 'Item' || key === 'Color' || columnTotals[key] > 0) {
+        const columnData = {};
+        rows.forEach((row, displayIndex) => {
+          const t = columns.find((c) => c.key === key)?.dataType || "string";
+          columnData[displayIndex] = normalizeCellForType(row[key], t);
+        });
+        finalResult[key] = columnData;
+      }
     });
+
+    Object.defineProperty(finalResult, "_overall_total", { value: overallTotal, enumerable: false, writable: true });
     return finalResult;
   }, [columns, rows, exportOrder]);
+
+  useEffect(() => {
+    if (calculatedResult) {
+      const overallTotal = calculatedResult._overall_total;
+      setForm(prevForm => {
+        const newOverallPieces = overallTotal ? overallTotal.toString() : "";
+        if (prevForm.overallPieces !== newOverallPieces) {
+          return {
+            ...prevForm,
+            overallPieces: newOverallPieces,
+          };
+        }
+        return prevForm;
+      });
+    }
+  }, [calculatedResult, setForm]);
 
   useEffect(() => {
     if (calculatedResult) {
@@ -495,10 +317,7 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
           setOriginalColumnOrder(headers);
           const columnTypes = {};
           headers.forEach((header, colIndex) => {
-            const sampleValues = dataRows
-              .slice(0, Math.min(50, dataRows.length))
-              .map((row) => row[colIndex])
-              .filter((val) => val !== null && val !== undefined && val !== "");
+            const sampleValues = dataRows.slice(0, 50).map((row) => row[colIndex]).filter(Boolean);
             if (sampleValues.length === 0) {
               columnTypes[header] = "string";
             } else {
@@ -514,14 +333,13 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
             key: header,
             name: header,
             dataType: columnTypes[header],
-            editable: true,
+            editable: ((header == "Item" || header == "Color") ? false : true),
             width: getColumnWidth(columnTypes[header], header),
             renderEditCell: dataTypeEditors[columnTypes[header]],
             renderCell: dataTypeFormatters[columnTypes[header]],
           }));
-          newColumns.push({ key: "actions", name: "Actions", width: 80, resizable: false, sortable: false, renderCell: ActionCellRenderer });
-          const newRows = dataRows.map((row, idx) => {
-            const rowObj = { __index: idx };
+          const newRows = dataRows.map((row) => {
+            const rowObj = { key: createKey() };
             headers.forEach((header, colIndex) => {
               const raw = row[colIndex];
               rowObj[header] = normalizeCellForType(raw, columnTypes[header]);
@@ -540,17 +358,13 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
       };
       reader.readAsArrayBuffer(file);
     },
-    [dataTypeEditors, dataTypeFormatters, ActionCellRenderer, addTypesColorRows]
+    [dataTypeEditors, dataTypeFormatters, addTypesColorRows]
   );
 
   const getColumnWidth = (dataType, columnName) => {
     switch (dataType) {
       case "number":
         return 80;
-      case "boolean":
-        return 70;
-      case "date":
-        return 120;
       default: {
         const baseWidth = Math.max(columnName.length * 12, 150);
         return Math.min(baseWidth, 300);
@@ -563,32 +377,17 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
       alert("Please add columns first");
       return;
     }
-    const today = new Date().toISOString().split("T")[0];
     const newRow = columns.reduce(
       (row, col) => {
-        if (col.key === "actions") return row;
-        switch (col.dataType) {
-          case "string":
-            row[col.key] = "";
-            break;
-          case "number":
-            row[col.key] = 0;
-            break;
-          case "boolean":
-            row[col.key] = false;
-            break;
-          case "date":
-            row[col.key] = today;
-            break;
-          default:
-            row[col.key] = "";
+        if (col.key !== "actions") {
+          row[col.key] = col.dataType === 'number' ? 0 : '';
         }
         return row;
       },
-      { __index: rows.length }
+      { key: createKey() }
     );
     setRows((prev) => [...prev, newRow]);
-  }, [columns, rows.length]);
+  }, [columns]);
 
   const handleAddColumn = useCallback(() => {
     if (!newColumnName.trim()) return;
@@ -602,33 +401,18 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
       renderEditCell: dataTypeEditors[newColumnType],
       renderCell: dataTypeFormatters[newColumnType],
     };
-    const newColumns = [...columns];
-    const actionsIndex = newColumns.findIndex((col) => col.key === "actions");
-    if (actionsIndex !== -1) newColumns.splice(actionsIndex, 0, newColumn);
-    else newColumns.push(newColumn);
-    setColumns(newColumns);
-    setOriginalColumnOrder((prevOrder) => {
-      const newOrder = [...prevOrder];
-      newOrder.splice(newOrder.length, 0, key);
-      return newOrder;
-    });
+    setColumns(prev => [...prev, newColumn]);
+    setOriginalColumnOrder((prevOrder) => [...prevOrder, key]);
     setRows((prev) =>
       prev.map((row) => ({
         ...row,
-        [key]:
-          newColumnType === "string"
-            ? ""
-            : newColumnType === "number"
-              ? null
-              : newColumnType === "boolean"
-                ? false
-                : null,
+        [key]: newColumnType === "number" ? 0 : "",
       }))
     );
     setNewColumnName("");
     setNewColumnType("string");
     setIsAddColumnOpen(false);
-  }, [newColumnName, newColumnType, columns, dataTypeEditors, dataTypeFormatters]);
+  }, [newColumnName, newColumnType, dataTypeEditors, dataTypeFormatters]);
 
   const onRowsChange = useCallback((newRows) => {
     if (resizeTimeoutRef.current) {
@@ -639,14 +423,63 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
     }, 16);
   }, []);
 
-  const memoizedColumns = useMemo(
-    () =>
-      columns.map((col) => ({
-        ...col,
-        renderHeader: () => <HeaderRenderer column={col} />,
-      })),
-    [columns, HeaderRenderer]
-  );
+  const memoizedColumns = useMemo(() => {
+    const numericKeys = numericKeysFromColumns(columns);
+    const baseColumns = columns.filter(c => c.key !== 'actions').map(col => ({
+      ...col,
+      renderHeader: () => <HeaderRenderer column={col} />,
+      renderSummaryCell: numericKeys.includes(col.key)
+        ? (props) => (
+          <div style={{ textAlign: 'center', padding: 4, fontWeight: 'bold' }}>
+            {props.row[col.key]}
+          </div>
+        )
+        : undefined,
+    }));
+
+    const totalColumn = {
+      key: "_row_total",
+      name: "Total",
+      width: 90,
+      resizable: false,
+      sortable: false,
+      editable: false,
+      renderCell: (props) => {
+        const val = numericKeys.reduce((s, k) => s + (Number(props.row[k]) || 0), 0);
+        return <div style={{ textAlign: 'center', padding: 4 }}>{val}</div>;
+      },
+      renderSummaryCell: (props) => (
+        <div style={{ textAlign: 'center', padding: 4, fontWeight: 'bold' }}>
+          {props.row._row_total}
+        </div>
+      )
+    };
+
+    const actionsColumn = {
+      key: "actions",
+      name: "Actions",
+      width: 80,
+      resizable: false,
+      sortable: false,
+      editable: false,
+      renderCell: ActionCellRenderer
+    };
+
+    return [...baseColumns, totalColumn, actionsColumn];
+  }, [columns, HeaderRenderer, ActionCellRenderer]);
+
+  const summaryRows = useMemo(() => {
+    const totals = { _row_total: 0 };
+    for (const row of rows) {
+      for (const col of columns) {
+        if (col.dataType === 'number') {
+          totals[col.key] = (totals[col.key] || 0) + (Number(row[col.key]) || 0);
+        }
+      }
+    }
+    totals._row_total = numericKeysFromColumns(columns).reduce((acc, key) => acc + (totals[key] || 0), 0);
+    return [totals];
+  }, [rows, columns]);
 
   useEffect(() => {
     return () => {
@@ -655,11 +488,247 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
     };
   }, []);
 
+
+  const handlePrint = useCallback(() => {
+    if (rows.length === 0) {
+      alert("No data to print")
+      return
+    }
+    const numericKeys = numericKeysFromColumns(columns)
+    const displayColumns = columns.filter((c) => c.key !== "actions")
+
+    // Build table headers
+    const headerCells = displayColumns.map((c) => `<th>${c.name}</th>`).join("")
+    const headerRow = `<tr>${headerCells}<th>Total</th></tr>`
+
+    // Build data rows with row totals
+    const dataRows = rows
+      .map((row) => {
+        const cells = displayColumns
+          .map((c) => {
+            const val = row[c.key] ?? ""
+            return `<td>${val}</td>`
+          })
+          .join("")
+
+        const rowTotal = numericKeys.reduce((s, k) => s + (Number(row[k]) || 0), 0)
+        return `<tr>${cells}<td>${rowTotal}</td></tr>`
+      })
+      .join("")
+
+    // Build totals row
+    const totalsCells = displayColumns
+      .map((c) => {
+        if (c.dataType === "number") {
+          const total = rows.reduce((sum, row) => sum + (Number(row[c.key]) || 0), 0)
+          return `<td><strong>${total}</strong></td>`
+        }
+        return `<td><strong>${c.key === displayColumns[0].key ? "TOTAL" : ""}</strong></td>`
+      })
+      .join("")
+
+    const overallTotal = numericKeys.reduce((acc, key) => {
+      return acc + rows.reduce((sum, row) => sum + (Number(row[key]) || 0), 0)
+    }, 0)
+
+    const totalsRow = `<tr style="background-color: #f8f9fa; font-weight: bold;">${totalsCells}<td><strong>${overallTotal}</strong></td></tr>`
+
+    const printWindow = window.open("", "_blank")
+    if (!printWindow) {
+      alert("Please allow pop-ups to print")
+      return
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print Data Grid</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              padding: 20px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            th, td {
+              border: 1px solid #dee2e6;
+              padding: 8px;
+              text-align: center;
+            }
+            th {
+              background-color: #343a40;
+              color: white;
+              font-weight: bold;
+            }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <h2>${fileName || "Data Grid"}</h2>
+          <table>
+            <thead>${headerRow}</thead>
+            <tbody>${dataRows}${totalsRow}</tbody>
+          </table>
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() {
+                window.close();
+              };
+            };
+          </script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }, [rows, columns, fileName])
+
+  const handleExportCSV = useCallback(() => {
+    if (rows.length === 0) {
+      alert("No data to export")
+      return
+    }
+    const headers = columns.filter((c) => c.key !== "actions").map((c) => c.name)
+    headers.push("Total") // Add Total column header
+
+    const csvRows = [headers.join(",")]
+
+    // Calculate numeric columns for row totals
+    const numericKeys = numericKeysFromColumns(columns)
+
+    // Add data rows with row totals
+    rows.forEach((row) => {
+      const values = columns
+        .filter((c) => c.key !== "actions")
+        .map((c) => {
+          const val = row[c.key] ?? ""
+          return typeof val === "string" && val.includes(",") ? `"${val}"` : val
+        })
+
+      // Calculate row total
+      const rowTotal = numericKeys.reduce((s, k) => s + (Number(row[k]) || 0), 0)
+      values.push(rowTotal)
+
+      csvRows.push(values.join(","))
+    })
+
+    // Add totals row
+    const totalsRow = columns
+      .filter((c) => c.key !== "actions")
+      .map((c) => {
+        if (c.dataType === "number") {
+          return rows.reduce((sum, row) => sum + (Number(row[c.key]) || 0), 0)
+        }
+        return c.key === columns[0].key ? "TOTAL" : ""
+      })
+
+    // Add overall total
+    const overallTotal = numericKeys.reduce((acc, key) => {
+      return acc + rows.reduce((sum, row) => sum + (Number(row[key]) || 0), 0)
+    }, 0)
+    totalsRow.push(overallTotal)
+
+    csvRows.push(totalsRow.join(","))
+
+    const csvContent = csvRows.join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const link = document.createElement("a")
+    link.href = URL.createObjectURL(blob)
+    link.download = fileName || "data-export.csv"
+    link.click()
+  }, [rows, columns, fileName])
+
+  const handleExportXLSX = useCallback(() => {
+    if (rows.length === 0) {
+      alert("No data to export")
+      return
+    }
+    const headers = columns.filter((c) => c.key !== "actions").map((c) => c.name)
+    headers.push("Total") // Add Total column header
+
+    const numericKeys = numericKeysFromColumns(columns)
+
+    // Add data rows with row totals
+    const data = rows.map((row) => {
+      const rowData = columns.filter((c) => c.key !== "actions").map((c) => row[c.key] ?? "")
+      const rowTotal = numericKeys.reduce((s, k) => s + (Number(row[k]) || 0), 0)
+      rowData.push(rowTotal)
+      return rowData
+    })
+
+    // Add totals row
+    const totalsRow = columns
+      .filter((c) => c.key !== "actions")
+      .map((c) => {
+        if (c.dataType === "number") {
+          const total = rows.reduce((sum, row) => sum + (Number(row[c.key]) || 0), 0)
+          return total
+        }
+        return c.key === columns[0].key ? "TOTAL" : ""
+      })
+
+    // Add overall total
+    const overallTotal = numericKeys.reduce((acc, key) => {
+      return acc + rows.reduce((sum, row) => sum + (Number(row[key]) || 0), 0)
+    }, 0)
+    totalsRow.push(overallTotal)
+
+    data.push(totalsRow)
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...data])
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1")
+    XLSX.writeFile(wb, fileName || "data-export.xlsx")
+  }, [rows, columns, fileName])
+
+
+  const exportToCSVFile = ({ fileName, columns, rows, order }) => {
+    const aoa = buildAOA(columns, rows, order);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "SizeChart");
+    const csv = XLSX.write(wb, { bookType: "csv", type: "string" });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName.endsWith(".csv") ? fileName : `${fileName}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(a.href);
+    a.remove();
+  };
+
+  const exportToXLSXFile = ({ fileName, columns, rows, order }) => {
+    const aoa = buildAOA(columns, rows, order);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "SizeChart");
+    XLSX.writeFile(wb, fileName.endsWith(".xlsx") ? fileName : `${fileName}.xlsx`);
+  };
+
+  const buildAOA = (columns, rows, order) => {
+    const header = order.slice();
+    const sortedRows = [...rows].sort((a, b) => a.__index - b.__index);
+    const body = sortedRows.map((r) =>
+      order.map((k) => {
+        const t = columns.find((c) => c.key === k)?.dataType || "string";
+        return normalizeCellForType(r[k], t);
+      })
+    );
+    return [header, ...body];
+  };
+
   return (
     <div style={{ padding: "20px", maxWidth: "100%", overflow: "auto" }} className="orderChart vfx-fade">
       <div className="d-flex gap-2 mb-3 flex-wrap justify-content-between">
         <div className="d-flex gap-2 flex-wrap">
-          <div className="position-relative">
+          {/* <div className="position-relative">
             <input
               type="file"
               accept=".csv,.xls,.xlsx"
@@ -677,7 +746,7 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
           <Button onClick={addRow} variant="outline-success" size="sm">
             <FaPlus className="me-1" />
             Add Row
-          </Button>
+          </Button> */}
 
           <Button onClick={() => setIsAddColumnOpen(true)} variant="outline-info" size="sm">
             <FaPlus className="me-1" />
@@ -715,9 +784,10 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
               columns={memoizedColumns}
               rows={rows}
               onRowsChange={onRowsChange}
-              defaultColumnOptions={{ resizable: true, sortable: true }}
-              rowKeyGetter={(row) => row.__index}
-              style={{ "--rdg-header-foreground-color": "#ffffff", "--rdg-border-color": "#dee2e6", fontSize: "13px" }}
+              rowKeyGetter={(row) => row.key}
+              bottomSummaryRows={summaryRows}
+              className="rdg-light"
+              style={{ "--rdg-header-background-color": "#343a40", "--rdg-header-foreground-color": "#ffffff", "--rdg-border-color": "#dee2e6", fontSize: "13px" }}
             />
           </div>
         </div>
@@ -764,13 +834,6 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
           </Button>
         </Modal.Footer>
       </Modal>
-
-      <div className="mt-3 text-muted">
-        <small>
-          <strong>Tips:</strong> Click cells to edit • Use column delete (×) buttons to remove columns • Upload CSV/Excel to import data •
-          Export and Print preserve column order from your import. Numbers remain numbers; dates are YYYY-MM-DD.
-        </small>
-      </div>
     </div>
   );
 }

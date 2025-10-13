@@ -43,6 +43,7 @@ import {
 } from "react-icons/fa"
 import { GiSewingMachine, GiHeavyCollar } from "react-icons/gi"
 import { TbHttpGet } from "react-icons/tb"
+import { parseJsonSafe } from "../utils/jsonUtils"
 
 // --- Constants and Helper Functions ---
 const TASK_UNITS = [
@@ -473,7 +474,7 @@ const ConsolidatedOverview = ({ toast }) => {
             filteredData.forEach((order) => {
                 if (order.tasks.length > 0) {
                     order.tasks.forEach((task) => {
-                        const dependencies = task.dependencies ? JSON.parse(task.dependencies) : []
+                        const dependencies = task.dependencies ? parseJsonSafe(task.dependencies, []) : []
                         const row = [
                             order.order_id,
                             `"${order.customer_name}"`,

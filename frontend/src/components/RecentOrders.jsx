@@ -1,5 +1,7 @@
 import { Badge, Dropdown } from "react-bootstrap"
 
+import { parseJsonSafe } from "../utils/jsonUtils"
+
 function RecentOrders({ orders = [], toast }) {
   const getStatusColor = (status) => {
     switch (status) {
@@ -54,6 +56,7 @@ function RecentOrders({ orders = [], toast }) {
             <th>Type</th>
             <th>Date</th>
             <th>Status</th>
+            <th>Notes</th>
             <th className="text-end">Actions</th>
           </tr>
         </thead>
@@ -66,6 +69,18 @@ function RecentOrders({ orders = [], toast }) {
               <td>{new Date(order.order_date).toLocaleDateString()}</td>
               <td>
                 <Badge bg={getStatusColor(order.status || "Processing")}>{order.status || "Processing"}</Badge>
+              </td>
+              <td>
+                {(order.special_notes && order.special_notes.trim() !== "") && (
+                  <Badge bg="info" className="me-1" title={`Special Notes: ${order.special_notes}`}>
+                    <i className="bi bi-journal-text"></i>
+                  </Badge>
+                )}
+                {(order.purchase_unit_notes && parseJsonSafe(order.purchase_unit_notes).PROCUREMENT && parseJsonSafe(order.purchase_unit_notes).PROCUREMENT.trim() !== "") && (
+                  <Badge bg="secondary" title={`PROCUREMENT Notes: ${parseJsonSafe(order.purchase_unit_notes).PROCUREMENT}`}>
+                    <i className="bi bi-card-text"></i>
+                  </Badge>
+                )}
               </td>
               <td className="text-end">
                 <Dropdown align="end">

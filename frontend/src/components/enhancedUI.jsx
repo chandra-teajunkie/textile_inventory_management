@@ -9,12 +9,10 @@ import {
     Badge,
     Table,
     Form,
-    Spinner,
     Dropdown,
     Tabs,
     Tab,
     ProgressBar,
-    Alert,
     Modal,
     ListGroup,
 } from "react-bootstrap"
@@ -66,11 +64,14 @@ import {
     FaExclamationCircle,
     FaFire,
     FaCalendarTimes,
+    FaListAlt,
     FaEye,
     FaTimes,
 } from "react-icons/fa"
 import { GiSewingMachine, GiHeavyCollar } from "react-icons/gi"
 import { TbHttpGet } from "react-icons/tb"
+import { parseJsonSafe } from "../utils/jsonUtils"
+import { OverlayTrigger, Popover } from "react-bootstrap"
 
 // --- Constants and Helper Functions ---
 const TASK_UNITS = [
@@ -738,36 +739,66 @@ const ProductionProgressChart = ({ tasks, onSegmentClick }) => {
 
 const TaskTimelineChart = ({ orders, dateRange, onDateRangeChange }) => {
     const [timelineRange, setTimelineRange] = useState("last30")
+    const [expandedOrdersTimeline, setExpandedOrdersTimeline] = useState({})
 
     const data = useMemo(() => {
         const { start, end } = getDateRange(timelineRange)
         const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
 
-        const timelineData = Array.from({ length: days }, (_, i) => {
-            const date = new Date(start)
-            date.setDate(date.getDate() + i)
-            return {
-                date: date.toISOString().split("T")[0],
-                displayDate: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        // Build initial timeline within the preset range
+        const timelineMap = new Map()
+
+        for (let i = 0; i < days; i++) {
+            const dateObj = new Date(start)
+            dateObj.setDate(dateObj.getDate() + i)
+            const key = dateObj.toISOString().split("T")[0]
+            timelineMap.set(key, {
+                date: key,
+                displayDate: dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
                 orders: 0,
                 overdue: 0,
                 ordersList: [],
-            }
-        })
+            })
+        }
 
+        // Helper to normalize order date (fallback to due_date)
+        const normalizeOrderDate = (order) => {
+            const tryDate = order.order_date || order.due_date
+            if (!tryDate) return null
+            const d = new Date(tryDate)
+            if (isNaN(d)) return null
+            return d.toISOString().split("T")[0]
+        }
+
+        // Ensure all orders are represented — if an order's date is outside the preset range, add it as its own day
         orders.forEach((order) => {
-            const orderDate = new Date(order.order_date).toISOString().split("T")[0]
-            const dayData = timelineData.find((d) => d.date === orderDate)
-            if (dayData) {
-                dayData.orders += 1
-                dayData.ordersList.push(order)
-                if (isOverdue(order.due_date)) {
-                    dayData.overdue += 1
-                }
+            const orderDateKey = normalizeOrderDate(order)
+            if (!orderDateKey) return
+
+            if (!timelineMap.has(orderDateKey)) {
+                // create a day entry for this date
+                const d = new Date(orderDateKey)
+                timelineMap.set(orderDateKey, {
+                    date: orderDateKey,
+                    displayDate: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+                    orders: 0,
+                    overdue: 0,
+                    ordersList: [],
+                })
+            }
+
+            const dayData = timelineMap.get(orderDateKey)
+            dayData.orders += 1
+            dayData.ordersList.push(order)
+            // Use order.isOverdue (already considers completed tasks)
+            if (order.isOverdue) {
+                dayData.overdue += 1
             }
         })
 
-        return timelineData
+        // Convert map to sorted array by date
+        const timelineArray = Array.from(timelineMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date))
+        return timelineArray
     }, [orders, timelineRange])
 
     const handlePresetChange = (preset) => {
@@ -777,7 +808,6 @@ const TaskTimelineChart = ({ orders, dateRange, onDateRangeChange }) => {
             onDateRangeChange(range)
         }
     }
-
     return (
         <div>
             <Card className="shadow-sm border-0 mb-3">
@@ -789,6 +819,31 @@ const TaskTimelineChart = ({ orders, dateRange, onDateRangeChange }) => {
                                 Orders Timeline Analysis
                             </Card.Title>
                         </div>
+                        <div className="d-flex align-items-center">
+                            <div className="me-3 small text-muted d-flex align-items-center gap-2">
+                                <span
+                                    className="d-inline-block"
+                                    style={{ width: 12, height: 12, background: "#0088FE", borderRadius: 2 }}
+                                ></span>
+                                <span>Orders</span>
+                            </div>
+                            <div className="me-3 small text-muted d-flex align-items-center gap-2">
+                                <span
+                                    className="d-inline-block"
+                                    style={{ width: 12, height: 12, background: "#FF8042", borderRadius: 2 }}
+                                ></span>
+                                <span>Overdue</span>
+                            </div>
+                            <div className="me-3 small text-muted d-flex align-items-center gap-2">
+                                <Badge bg="success" style={{ padding: "4px 6px" }}></Badge>
+                                <span>Completed</span>
+                            </div>
+                            <div className="me-3 small text-muted d-flex align-items-center gap-2">
+                                <Badge bg="warning" style={{ padding: "4px 6px" }}></Badge>
+                                <span>In Progress</span>
+                            </div>
+                        </div>
+
                         <div className="btn-group">
                             {Object.entries(DATE_PRESETS).map(([key, preset]) => (
                                 <Button
@@ -805,7 +860,7 @@ const TaskTimelineChart = ({ orders, dateRange, onDateRangeChange }) => {
                 </Card.Header>
             </Card>
 
-            <Card className="shadow-sm border-0 h-100" id="timeline-chart">
+            <Card className="shadow-sm border-0 h-100 mb-3" id="timeline-chart">
                 <Card.Body>
                     <ResponsiveContainer width="100%" height={400}>
                         <ComposedChart data={data}>
@@ -815,8 +870,8 @@ const TaskTimelineChart = ({ orders, dateRange, onDateRangeChange }) => {
                             <RechartsTooltip
                                 labelFormatter={(value, payload) => {
                                     if (payload && payload[0]) {
-                                        const data = payload[0].payload
-                                        return `${value} - ${data.orders} orders${data.overdue > 0 ? `, ${data.overdue} overdue` : ""}`
+                                        const d = payload[0].payload
+                                        return `${value} — ${d.orders} orders${d.overdue > 0 ? `, ${d.overdue} overdue` : ""}`
                                     }
                                     return value
                                 }}
@@ -827,6 +882,110 @@ const TaskTimelineChart = ({ orders, dateRange, onDateRangeChange }) => {
                             <Line type="monotone" dataKey="overdue" stroke="#FF8042" strokeWidth={3} name="Overdue" />
                         </ComposedChart>
                     </ResponsiveContainer>
+                </Card.Body>
+            </Card>
+
+            {/* Orders detail panel showing order list with progress and tasks */}
+            <Card className="shadow-sm border-0">
+                <Card.Header className="bg-light">
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex align-items-center">
+                            <FaListAlt className="me-2 text-primary" />
+                            <Card.Title as="h6" className="mb-0">
+                                Orders Detail & Task Progress
+                            </Card.Title>
+                        </div>
+                        <small className="text-muted">Showing {orders.length} orders</small>
+                    </div>
+                </Card.Header>
+                <Card.Body>
+                    {orders && orders.length > 0 ? (
+                        <div className="list-group list-group-flush">
+                            {orders.map((order) => {
+                                const tasks = order.tasks || []
+                                const completed = tasks.filter((t) => t.status === "COMPLETED").length
+                                const progress = tasks.length ? Math.round((completed / tasks.length) * 100) : 0
+                                const overdue = isOverdue(order.due_date)
+                                const keyId = order.order_id || order.id || JSON.stringify(order)
+
+                                return (
+                                    <div key={keyId} className="list-group-item py-3">
+                                        <div className="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <div className="fw-bold">
+                                                    {order.customer_name || order.customer || order.name || order.order_id}
+                                                </div>
+                                                <div className="small text-muted">
+                                                    Order: {order.order_id || order.id} • {order.product || ""}
+                                                </div>
+                                                <div className="small text-muted">Due: {order.due_date || order.dueDate || "—"}</div>
+                                            </div>
+                                            <div className="text-end" style={{ minWidth: 160 }}>
+                                                {overdue && (
+                                                    <Badge bg="danger" className="mb-1">
+                                                        Overdue
+                                                    </Badge>
+                                                )}
+                                                <div className="small text-muted">Tasks: {tasks.length}</div>
+                                                <div style={{ width: 160 }}>
+                                                    <ProgressBar
+                                                        now={progress}
+                                                        label={`${progress}%`}
+                                                        variant={progress === 100 ? "success" : progress > 50 ? "warning" : "primary"}
+                                                        style={{ height: "10px" }}
+                                                    />
+                                                </div>
+                                                <div className="mt-2">
+                                                    <Button
+                                                        variant="link"
+                                                        size="sm"
+                                                        onClick={() => setExpandedOrdersTimeline((p) => ({ ...p, [keyId]: !p[keyId] }))}
+                                                    >
+                                                        {expandedOrdersTimeline[keyId] ? "Hide tasks" : "Show tasks"}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {expandedOrdersTimeline[keyId] && (
+                                            <div className="mt-3">
+                                                {tasks.length > 0 ? (
+                                                    <div className="row g-2">
+                                                        {tasks.map((t, idx) => (
+                                                            <div key={idx} className="col-12 col-md-6 mb-2">
+                                                                <Card className="p-2">
+                                                                    <div className="d-flex justify-content-between">
+                                                                        <div>
+                                                                            <div className="fw-bold small">{t.name || t.task_name || `Task ${idx + 1}`}</div>
+                                                                            <div className="small text-muted">
+                                                                                Unit: {t.purchase_order_unit || t.unit || "—"}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="text-end">
+                                                                            <Badge bg={getTaskStatusVariant(t.status)} className="mb-1">
+                                                                                {t.status || "N/A"}
+                                                                            </Badge>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="mt-2">
+                                                                        <small className="text-muted">Due: {t.due_date || t.dueDate || "—"}</small>
+                                                                    </div>
+                                                                </Card>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-muted small">No tasks for this order</div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <div className="text-center text-muted py-3">No orders in the selected range</div>
+                    )}
                 </Card.Body>
             </Card>
         </div>
@@ -1097,13 +1256,20 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 const tasksResults = await Promise.all(tasksPromises)
 
                 // Combine orders and tasks
-                const combinedData = orders.map((order, index) => ({
-                    ...order,
-                    tasks: tasksResults[index] || [],
-                    isOverdue: isOverdue(order.due_date),
-                    daysUntilDue: getDaysUntilDue(order.due_date),
-                    isUrgent: isOverdue(order.due_date) || (tasksResults[index] || []).some((task) => task.status === "BLOCKED"),
-                }))
+                const combinedData = orders.map((order, index) => {
+                    const tasks = tasksResults[index] || []
+                    const allTasksCompleted = tasks.length > 0 && tasks.every((t) => t.status === "COMPLETED")
+                    const overdueByDate = isOverdue(order.due_date)
+
+                    return {
+                        ...order,
+                        tasks,
+                        // If all tasks are completed, consider the order completed regardless of due date
+                        isOverdue: !allTasksCompleted && overdueByDate,
+                        daysUntilDue: allTasksCompleted ? null : getDaysUntilDue(order.due_date),
+                        isUrgent: (!allTasksCompleted && overdueByDate) || tasks.some((task) => task.status === "BLOCKED"),
+                    }
+                })
 
                 setAllData(combinedData)
             } catch (err) {
@@ -1163,6 +1329,12 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
     }, [allData, filterTaskStatus, filterTaskUnit, filterCustomer, dateRange, showOverdueOnly])
 
     const allTasks = useMemo(() => filteredData.flatMap((order) => order.tasks), [filteredData])
+
+    // New helper function to check if all tasks in an order are completed
+    const areAllTasksCompleted = (tasks) => {
+        if (!tasks || tasks.length === 0) return false
+        return tasks.every((task) => task.status === "COMPLETED")
+    }
 
     // UI Handlers
     const toggleOrderExpansion = (orderId) => {
@@ -1230,7 +1402,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
             filteredData.forEach((order) => {
                 if (order.tasks.length > 0) {
                     order.tasks.forEach((task) => {
-                        const dependencies = task.dependencies ? JSON.parse(task.dependencies) : []
+                        const dependencies = task.dependencies ? parseJsonSafe(task.dependencies, []) : []
                         const row = [
                             order.order_id,
                             `"${order.customer_name}"`,
@@ -1305,7 +1477,6 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
 
     const exportToPdf = async () => {
         try {
-            // Show loading state
             if (toast?.current) {
                 toast.current.show({
                     severity: "info",
@@ -1315,92 +1486,90 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 })
             }
 
+            const charts = await captureCharts()
+            const validCharts = Object.entries(charts).filter(([_, chart]) => chart.dataUrl && !chart.error)
+
             const doc = new jsPDF("l", "mm", "a4") // Landscape orientation
             let yPosition = 20
 
-            // Title
-            doc.setFontSize(16)
+            doc.setFontSize(18)
+            doc.setFont(undefined, "bold")
+            doc.text("SIDHU Textiles", 14, yPosition)
+            yPosition += 8
+
+            doc.setFontSize(9)
+            doc.setFont(undefined, "normal")
+            doc.text("MFRS: EXPORTERS OF HIGH CLASS HOSIERY & SPORTS WEARS", 14, yPosition)
+            yPosition += 6
+            doc.text("17/1, Near Sivan Theatre (North), I st Street", 14, yPosition)
+            yPosition += 5
+            doc.text("Kumaranandhapuram, TIRUPUR - 641 602.", 14, yPosition)
+            yPosition += 5
+            doc.text("Phone: 0421 - 2477863, 94430 31108", 14, yPosition)
+            yPosition += 5
+            doc.text("GSTIN: 33ACWPM6268J1ZV", 14, yPosition)
+            yPosition += 10
+
+            // Add Ref and Date fields
+            const currentDate = new Date().toLocaleDateString()
+            doc.text(`Ref: ORD-${new Date().getTime()}`, 14, yPosition)
+            doc.text(`Date: ${currentDate}`, 220, yPosition)
+            yPosition += 10
+
+            // Add separator line
+            doc.setLineWidth(0.5)
+            doc.line(14, yPosition, 283, yPosition)
+            yPosition += 10
+
+            doc.setFontSize(14)
+            doc.setFont(undefined, "bold")
             doc.text("Orders and Tasks Analysis Report", 14, yPosition)
-            yPosition += 15
+            yPosition += 10
 
-            // Date and Summary
             doc.setFontSize(10)
-            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, yPosition)
-            doc.text(`Total Orders: ${filteredData.length}`, 100, yPosition)
-            doc.text(`Total Tasks: ${allTasks.length}`, 180, yPosition)
-            doc.text(`Overdue Orders: ${filteredData.filter((o) => o.isOverdue).length}`, 240, yPosition)
-            yPosition += 15
+            doc.setFont(undefined, "bold")
+            doc.text("Summary:", 14, yPosition)
+            yPosition += 8
 
-            // Task Status Summary
+            doc.setFont(undefined, "normal")
+            const summaryCol1X = 20
+            const summaryCol2X = 100
+            const summaryCol3X = 180
+
+            doc.text(`Total Orders: ${filteredData.length}`, summaryCol1X, yPosition)
+            doc.text(`Total Tasks: ${allTasks.length}`, summaryCol2X, yPosition)
+            doc.text(`Overdue Orders: ${filteredData.filter((o) => o.isOverdue).length}`, summaryCol3X, yPosition)
+            yPosition += 6
+
+            doc.text(`Completed Tasks: ${allTasks.filter((t) => t.status === "COMPLETED").length}`, summaryCol1X, yPosition)
+            doc.text(`In Progress: ${allTasks.filter((t) => t.status === "IN PROGRESS").length}`, summaryCol2X, yPosition)
+            doc.text(`Blocked: ${allTasks.filter((t) => t.status === "BLOCKED").length}`, summaryCol3X, yPosition)
+            yPosition += 6
+
+            doc.text(`Not Started: ${allTasks.filter((t) => t.status === "NOT STARTED").length}`, summaryCol1X, yPosition)
+            doc.text(`Urgent Items: ${filteredData.filter((o) => o.isUrgent).length}`, summaryCol2X, yPosition)
+            yPosition += 12
+
+            doc.setFont(undefined, "bold")
+            doc.text("Task Status by Unit:", 14, yPosition)
+            yPosition += 8
+
+            doc.setFont(undefined, "normal")
             const taskStatusCounts = allTasks.reduce((acc, task) => {
                 acc[task.status] = (acc[task.status] || 0) + 1
                 return acc
             }, {})
 
-            doc.text("Task Status Summary:", 14, yPosition)
-            yPosition += 8
             Object.entries(taskStatusCounts).forEach(([status, count]) => {
                 doc.text(`${status}: ${count}`, 20, yPosition)
                 yPosition += 6
             })
             yPosition += 10
 
-            // Capture and add charts
-            const charts = await captureCharts()
-            const validCharts = Object.entries(charts).filter(([_, chart]) => chart.dataUrl && !chart.error)
+            doc.setFont(undefined, "bold")
+            doc.text("Detailed Orders and Tasks:", 14, yPosition)
+            yPosition += 8
 
-            if (validCharts.length > 0) {
-                doc.text("Analytics Charts:", 14, yPosition)
-                yPosition += 10
-
-                // Add charts in a 2x2 grid
-                const chartWidth = 120
-                const chartHeight = 80
-                const chartSpacing = 10
-
-                validCharts.forEach(([chartId, chart], index) => {
-                    const row = Math.floor(index / 2)
-                    const col = index % 2
-
-                    const chartX = 14 + col * (chartWidth + chartSpacing)
-                    const chartY = yPosition + row * (chartHeight + chartSpacing)
-
-                    // Add new page if needed
-                    if (chartY + chartHeight > 180) {
-                        doc.addPage()
-                        yPosition = 20
-                        const newChartY = yPosition + (row - Math.floor(validCharts.length / 4)) * (chartHeight + chartSpacing)
-
-                        try {
-                            doc.addImage(chart.dataUrl, "PNG", chartX, newChartY, chartWidth, chartHeight)
-                            // Add chart title
-                            doc.setFontSize(8)
-                            doc.text(chart.name, chartX, newChartY - 5)
-                            doc.setFontSize(10)
-                        } catch (error) {
-                            console.warn(`Failed to add chart ${chartId} to PDF:`, error)
-                        }
-                    } else {
-                        try {
-                            doc.addImage(chart.dataUrl, "PNG", chartX, chartY, chartWidth, chartHeight)
-                            // Add chart title
-                            doc.setFontSize(8)
-                            doc.text(chart.name, chartX, chartY - 5)
-                            doc.setFontSize(10)
-                        } catch (error) {
-                            console.warn(`Failed to add chart ${chartId} to PDF:`, error)
-                        }
-                    }
-                })
-
-                yPosition += Math.ceil(validCharts.length / 2) * (chartHeight + chartSpacing) + 15
-            }
-
-            // Add new page for table
-            doc.addPage()
-            yPosition = 20
-
-            // Main data table
             const tableData = []
             filteredData.forEach((order) => {
                 if (order.tasks.length > 0) {
@@ -1444,14 +1613,61 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                     6: { cellWidth: 25 },
                 },
                 didDrawCell: (data) => {
-                    // Highlight overdue rows
                     if (data.column.index === 3 && data.cell.text[0] === "OVERDUE") {
                         doc.setFillColor(255, 0, 0, 0.1)
                     }
                 },
             })
 
-            doc.save(`orders_tasks_analysis_${new Date().toISOString().slice(0, 10)}.pdf`)
+            if (validCharts.length > 0) {
+                doc.addPage()
+                yPosition = 20
+
+                doc.setFontSize(14)
+                doc.setFont(undefined, "bold")
+                doc.text("Analytics Charts", 14, yPosition)
+                yPosition += 15
+
+                const chartWidth = 130
+                const chartHeight = 85
+                const chartSpacing = 10
+
+                validCharts.forEach(([chartId, chart], index) => {
+                    const row = Math.floor(index / 2)
+                    const col = index % 2
+
+                    const chartX = 14 + col * (chartWidth + chartSpacing)
+                    const chartY = yPosition + row * (chartHeight + chartSpacing)
+
+                    // Add new page if needed
+                    if (chartY + chartHeight > 180) {
+                        doc.addPage()
+                        yPosition = 20
+                        const newRow = index - Math.floor(index / 2) * 2
+                        const newChartY = yPosition + newRow * (chartHeight + chartSpacing)
+
+                        try {
+                            doc.setFontSize(10)
+                            doc.setFont(undefined, "bold")
+                            doc.text(chart.name, chartX, newChartY - 3)
+                            doc.addImage(chart.dataUrl, "PNG", chartX, newChartY, chartWidth, chartHeight)
+                        } catch (error) {
+                            console.warn(`Failed to add chart ${chartId} to PDF:`, error)
+                        }
+                    } else {
+                        try {
+                            doc.setFontSize(10)
+                            doc.setFont(undefined, "bold")
+                            doc.text(chart.name, chartX, chartY - 3)
+                            doc.addImage(chart.dataUrl, "PNG", chartX, chartY, chartWidth, chartHeight)
+                        } catch (error) {
+                            console.warn(`Failed to add chart ${chartId} to PDF:`, error)
+                        }
+                    }
+                })
+            }
+
+            doc.save(`sidhu_textiles_report_${new Date().toISOString().slice(0, 10)}.pdf`)
 
             if (toast?.current) {
                 toast.current.show({
@@ -1476,7 +1692,6 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
 
     const handlePrint = async () => {
         try {
-            // Show loading state
             if (toast?.current) {
                 toast.current.show({
                     severity: "info",
@@ -1486,13 +1701,11 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 })
             }
 
-            // Capture charts first
             const charts = await captureCharts()
             const validCharts = Object.entries(charts).filter(([_, chart]) => chart.dataUrl && !chart.error)
 
             const printWindow = window.open("", "", "width=1400,height=900")
 
-            // Generate chart HTML
             const chartHtml =
                 validCharts.length > 0
                     ? validCharts
@@ -1510,17 +1723,58 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Orders and Tasks Analysis Report</title>
+          
           <style>
             body { 
               font-family: Arial, sans-serif; 
               margin: 20px; 
               font-size: 11px;
             }
+            .letterhead {
+              border-bottom: 3px solid #007bff;
+              padding-bottom: 15px;
+              margin-bottom: 20px;
+            }
+            .letterhead h1 {
+              font-size: 24px;
+              margin: 0 0 5px 0;
+              color: #007bff;
+            }
+            .letterhead .tagline {
+              font-size: 11px;
+              font-weight: bold;
+              color: #555;
+              margin: 5px 0;
+            }
+            .letterhead .address {
+              font-size: 10px;
+              color: #666;
+              line-height: 1.4;
+            }
+            .letterhead .ref-date {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 10px;
+              font-size: 10px;
+              font-weight: bold;
+            }
+            .letterhead h1 {
+              display: flex;
+              justify-content: center;
+            }
             h1 { 
               color: #333; 
               border-bottom: 2px solid #007bff;
               padding-bottom: 10px;
+              font-size: 18px;
+              margin-top: 20px;
+            }
+            h2 {
+              color: #555;
+              font-size: 16px;
+              margin-top: 25px;
+              border-bottom: 1px solid #ddd;
+              padding-bottom: 5px;
             }
             h4 {
               color: #555;
@@ -1545,9 +1799,34 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
             }
             .urgent { border-left-color: #dc3545 !important; }
             .overdue { border-left-color: #fd7e14 !important; }
+            .task-status-breakdown {
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 5px;
+              margin: 15px 0;
+            }
+            .task-status-breakdown h3 {
+              font-size: 14px;
+              margin: 0 0 10px 0;
+              color: #333;
+            }
+            .task-status-breakdown ul {
+              list-style: none;
+              padding: 0;
+              margin: 0;
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+              gap: 10px;
+            }
+            .task-status-breakdown li {
+              background: white;
+              padding: 8px 12px;
+              border-radius: 3px;
+              border-left: 3px solid #007bff;
+            }
             .charts-section {
-              margin: 20px 0;
-              page-break-inside: avoid;
+              margin: 30px 0;
+              page-break-before: always;
             }
             .charts-grid {
               display: grid;
@@ -1605,6 +1884,21 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
           </style>
         </head>
         <body>
+          <div class="letterhead">
+            <h1>SIDHU Textiles</h1>
+            <div class="tagline">MFRS: EXPORTERS OF HIGH CLASS HOSIERY & SPORTS WEARS</div>
+            <div class="address">
+              17/1, Near Sivan Theatre (North), I st Street<br>
+              Kumaranandhapuram, TIRUPUR - 641 602.<br>
+              Phone: 0421 - 2477863, 94430 31108<br>
+              GSTIN: 33ACWPM6268J1ZV
+            </div>
+            <div class="ref-date">
+              <span>Ref: ORD-${new Date().getTime()}</span>
+              <span>Date: ${new Date().toLocaleDateString()}</span>
+            </div>
+          </div>
+
           <h1>Orders and Tasks Analysis Report</h1>
           <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
           
@@ -1617,41 +1911,48 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
             <div class="summary-item urgent">Urgent Items: ${filteredData.filter((o) => o.isUrgent).length}</div>
           </div>
 
-        <div class="charts-section">
-          <h2>Analytics Charts</h2>
-          <div class="charts-grid">
-            ${chartHtml}
+          <div class="task-status-breakdown">
+            <h3>Task Status Breakdown</h3>
+            <ul>
+              ${Object.entries(
+                allTasks.reduce((acc, task) => {
+                    acc[task.status] = (acc[task.status] || 0) + 1
+                    return acc
+                }, {}),
+            )
+                    .map(([status, count]) => `<li><strong>${status}:</strong> ${count} tasks</li>`)
+                    .join("")}
+            </ul>
           </div>
-        </div>
 
-        <h2>Detailed Data</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Order Date</th>
-              <th>Due Date</th>
-              <th>Status</th>
-              <th>Task Name</th>
-              <th>Task Unit</th>
-              <th>Task Status</th>
-              <th>Product/Color</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filteredData
+          <h2>Detailed Orders and Tasks</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Order Date</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Task Name</th>
+                <th>Task Unit</th>
+                <th>Task Status</th>
+                <th>Product/Color</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredData
                     .map((order) => {
                         const rowClass = order.isOverdue ? "overdue-row" : order.isUrgent ? "urgent-row" : ""
                         if (order.tasks.length > 0) {
                             return order.tasks
                                 .map(
                                     (task) => `
-                  <tr class="${rowClass}">
-                    <td>${order.customer_name}</td>
-                    <td>${new Date(order.order_date).toLocaleDateString()}</td>
-                    <td>${order.due_date ? new Date(order.due_date).toLocaleDateString() : "N/A"}</td>
-                    <td>
-                      ${order.isOverdue
+                    <tr class="${rowClass}">
+                      <td>${order.customer_name}</td>
+                      <td>${new Date(order.order_date).toLocaleDateString()}</td>
+                      <td>${order.due_date ? new Date(order.due_date).toLocaleDateString() : "N/A"}</td>
+                      <td>
+                        ${order.isOverdue
                                             ? '<span class="badge badge-danger">OVERDUE</span>'
                                             : order.daysUntilDue !== null
                                                 ? order.daysUntilDue > 0
@@ -1659,23 +1960,23 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                                     : "Due today"
                                                 : "N/A"
                                         }
-                    </td>
-                    <td>${task.name}</td>
-                    <td>${task.purchase_order_unit}</td>
-                    <td><span class="badge badge-${getTaskStatusVariant(task.status)}">${task.status}</span></td>
-                    <td>${task.product || ""}${task.color ? " - " + task.color : ""}</td>
-                  </tr>
-                `,
+                      </td>
+                      <td>${task.name}</td>
+                      <td>${task.purchase_order_unit}</td>
+                      <td><span class="badge badge-${getTaskStatusVariant(task.status)}">${task.status}</span></td>
+                      <td>${task.product || ""}${task.color ? " - " + task.color : ""}</td>
+                    </tr>
+                  `,
                                 )
                                 .join("")
                         } else {
                             return `
-                  <tr class="${rowClass}">
-                    <td>${order.customer_name}</td>
-                    <td>${new Date(order.order_date).toLocaleDateString()}</td>
-                    <td>${order.due_date ? new Date(order.due_date).toLocaleDateString() : "N/A"}</td>
-                    <td>
-                      ${order.isOverdue
+                    <tr class="${rowClass}">
+                      <td>${order.customer_name}</td>
+                      <td>${new Date(order.order_date).toLocaleDateString()}</td>
+                      <td>${order.due_date ? new Date(order.due_date).toLocaleDateString() : "N/A"}</td>
+                      <td>
+                        ${order.isOverdue
                                     ? '<span class="badge badge-danger">OVERDUE</span>'
                                     : order.daysUntilDue !== null
                                         ? order.daysUntilDue > 0
@@ -1683,18 +1984,18 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                             : "Due today"
                                         : "N/A"
                                 }
-                    </td>
-                    <td colspan="4" style="text-align: center; color: #6c757d;">No tasks available</td>
-                  </tr>
-                `
+                      </td>
+                      <td colspan="4" style="text-align: center; color: #6c757d;">No tasks available</td>
+                    </tr>
+                  `
                         }
                     })
                     .join("")}
-          </tbody>
-        </table>
-      </body>
-      </html>
-    `
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `
 
             printWindow.document.write(printContent)
             printWindow.document.close()
@@ -1712,7 +2013,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                             life: 3000,
                         })
                     }
-                }, 2000) // Increased timeout to ensure images load
+                }, 2000)
             }
         } catch (error) {
             console.error("Print Error:", error)
@@ -1727,32 +2028,6 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
         }
     }
 
-    // Render Loading State
-    if (loading) {
-        return (
-            <div className="d-flex justify-content-center align-items-center" style={{ height: "60vh" }}>
-                <div className="text-center">
-                    <Spinner animation="border" variant="primary" style={{ width: "3rem", height: "3rem" }} />
-                    <h4 className="mt-3 text-muted">Loading comprehensive data...</h4>
-                    <p className="text-muted">Please wait while we fetch all orders and tasks</p>
-                </div>
-            </div>
-        )
-    }
-
-    // Render Error State
-    if (error) {
-        return (
-            <Alert variant="danger" className="m-4">
-                <Alert.Heading>Error Loading Data</Alert.Heading>
-                <p>{error}</p>
-                <Button variant="outline-danger" onClick={() => window.location.reload()}>
-                    Retry
-                </Button>
-            </Alert>
-        )
-    }
-
     // Main Render
     return (
         <div className="p-3 p-md-4">
@@ -1761,7 +2036,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 <div>
                     <h1 className="h2 fw-bold mb-1 text-primary">
                         <FaChartBar className="me-2" />
-                        Enhanced Production Overview
+                        Overview & Analysis
                     </h1>
                     <p className="text-muted mb-0">Complete analysis with interactive charts and due date tracking</p>
                 </div>
@@ -1786,13 +2061,13 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                 <FaFileCsv className="me-2" />
                                 Export as CSV
                             </Dropdown.Item>
-                            <Dropdown.Item onClick={exportToPdf}>
+                            {/* <Dropdown.Item onClick={exportToPdf}>
                                 <FaFilePdf className="me-2" />
                                 Export as PDF (with Charts)
-                            </Dropdown.Item>
+                            </Dropdown.Item> */}
                             <Dropdown.Item onClick={handlePrint}>
                                 <FaPrint className="me-2" />
-                                Print Report (with Charts)
+                                Print
                             </Dropdown.Item>
                         </Dropdown.Menu>
                     </Dropdown>
@@ -1930,6 +2205,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                         <th>Due Date</th>
                                         <th>Status</th>
                                         <th>Types</th>
+                                        <th>Notes</th>
                                         <th className="text-center">Tasks</th>
                                         <th className="text-center">Progress</th>
                                     </tr>
@@ -1999,13 +2275,18 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                                                 <FaExclamationCircle className="me-1" />
                                                                 OVERDUE
                                                             </Badge>
+                                                        ) : areAllTasksCompleted(order.tasks) ? (
+                                                            <Badge bg="success">
+                                                                <FaCheckCircle className="me-1" />
+                                                                COMPLETED
+                                                            </Badge>
                                                         ) : order.daysUntilDue !== null && order.daysUntilDue <= 3 ? (
-                                                            <Badge bg="warning">
+                                                            <Badge bg="warning" text="dark">
                                                                 <FaClock className="me-1" />
                                                                 DUE SOON
                                                             </Badge>
                                                         ) : (
-                                                            <Badge bg="success">
+                                                            <Badge bg="info" text="white">
                                                                 <FaCheckCircle className="me-1" />
                                                                 ON TIME
                                                             </Badge>
@@ -2013,6 +2294,77 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                                     </td>
                                                     <td>
                                                         <span className="text-muted">{order.types || "N/A"}</span>
+                                                    </td>
+                                                    <td>
+                                                        {order.special_notes &&
+                                                            order.special_notes.trim() !== "" &&
+                                                            (() => {
+                                                                // Safely parse in case it's JSON or just plain text
+                                                                let notes = []
+                                                                try {
+                                                                    const parsed = JSON.parse(order.special_notes)
+                                                                    if (Array.isArray(parsed)) {
+                                                                        notes = parsed
+                                                                    } else if (typeof parsed === "object") {
+                                                                        notes = Object.entries(parsed).map(([key, value]) => `${key}: ${value}`)
+                                                                    } else {
+                                                                        notes = [String(parsed)]
+                                                                    }
+                                                                } catch {
+                                                                    // fallback: just treat as plain string
+                                                                    notes = [order.special_notes]
+                                                                }
+
+                                                                const popover = (
+                                                                    <Popover id="special-notes-popover">
+                                                                        <Popover.Header as="h3">Special Notes</Popover.Header>
+                                                                        <Popover.Body>
+                                                                            <div className="grid grid-cols-1 gap-2">
+                                                                                {notes.map((note, idx) => (
+                                                                                    <div key={idx} className="d-flex flex-column border-bottom pb-1 mb-1">
+                                                                                        <span>{note.trim() !== "" ? note : "No details"}</span>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </Popover.Body>
+                                                                    </Popover>
+                                                                )
+
+                                                                return (
+                                                                    <OverlayTrigger trigger="click" placement="bottom" overlay={popover} rootClose>
+                                                                        <Badge bg="info" className="me-1" style={{ cursor: "pointer" }}>
+                                                                            <i className="bi bi-journal-text"></i>
+                                                                        </Badge>
+                                                                    </OverlayTrigger>
+                                                                )
+                                                            })()}
+                                                        {order.purchase_unit_notes &&
+                                                            (() => {
+                                                                const notesObj = parseJsonSafe(order.purchase_unit_notes)
+                                                                const popover = (
+                                                                    <Popover id="unit-notes-popover">
+                                                                        <Popover.Header as="h3">Unit Notes</Popover.Header>
+                                                                        <Popover.Body>
+                                                                            <div className="grid grid-cols-2 gap-2">
+                                                                                {Object.entries(notesObj).map(([unit, note]) => (
+                                                                                    <div key={unit} className="d-flex flex-column border-bottom pb-1 mb-1">
+                                                                                        <strong>{unit}</strong>
+                                                                                        <span>{note && note.trim() !== "" ? note : "No notes"}</span>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </Popover.Body>
+                                                                    </Popover>
+                                                                )
+
+                                                                return (
+                                                                    <OverlayTrigger trigger="click" placement="bottom" overlay={popover}>
+                                                                        <Badge bg="secondary" className="me-1" style={{ cursor: "pointer" }}>
+                                                                            <i className="bi bi-card-text"></i>
+                                                                        </Badge>
+                                                                    </OverlayTrigger>
+                                                                )
+                                                            })()}
                                                     </td>
                                                     <td className="text-center">
                                                         <Badge bg="light" text="dark" className="fs-6">
@@ -2088,7 +2440,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                                                                         </Badge>
                                                                                     </td>
                                                                                     <td>
-                                                                                        <div>
+                                                                                        <div className="d-flex gap-1">
                                                                                             {task.product && <span className="fw-medium">{task.product}</span>}
                                                                                             {task.color && (
                                                                                                 <Badge bg="light" text="dark" className="ms-1">

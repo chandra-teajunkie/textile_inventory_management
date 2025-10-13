@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { Form, Button } from "react-bootstrap"
 import Select from "react-select"
+import { PurchaseOrderUnit } from "../../utils/constants"
+import { parseJsonSafe } from "../../utils/jsonUtils"
 
 // Mirror your backend enums
 const TASK_UNITS = [
@@ -23,7 +25,7 @@ const STATUS_OPTIONS = [
   { value: "BLOCKED", label: "Blocked" },
 ]
 
-function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUpdate, fetchOrders, fetchTasksForOrder }) {
+function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUpdate, fetchOrders, fetchTasksForOrder, orderPurchaseUnitNotes }) {
   const [taskName, setTaskName] = useState("")
   const [taskUnit, setTaskUnit] = useState("UNASSIGNED")
   const [status, setStatus] = useState("NOT STARTED")
@@ -32,6 +34,7 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
   const [dependencies, setDependencies] = useState([])
   const [taskUnitName, setTaskUnitName] = useState("")
   const [selectedCombinations, setSelectedCombinations] = useState([])
+  const [specialNotes, setSpecialNotes] = useState("")
 
   // Create product-color combinations
   const createProductColorCombinations = () => {
@@ -122,6 +125,7 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
           purchase_order_unit_name: taskUnitName,
           status,
           dependencies,
+          special_notes: specialNotes,
         }
 
         const resp = await fetch(process.env.REACT_APP_POST_ALL_TASKS, {
@@ -313,6 +317,32 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
               </option>
             ))}
           </Form.Select>
+        </Form.Group>
+
+        {/* Order-level Purchase Unit Notes (Read-Only) */}
+        {orderPurchaseUnitNotes && (
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-bold">Order Notes for this Unit ({taskUnit.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())})</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  value={(parseJsonSafe(orderPurchaseUnitNotes)[taskUnit] || 'No order-level notes for this unit.')}
+                  readOnly
+                  plaintext
+                />
+          </Form.Group>
+        )}
+
+        {/* Task-specific Special Notes (Editable) */}
+        <Form.Group className="mb-3">
+          <Form.Label className="fw-bold">Task Special Notes</Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={3}
+            value={specialNotes}
+            onChange={(e) => setSpecialNotes(e.target.value)}
+            placeholder="Add any specific notes for this task..."
+          />
         </Form.Group>
 
         <Form.Group className="mb-3">

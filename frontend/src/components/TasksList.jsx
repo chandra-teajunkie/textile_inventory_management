@@ -37,18 +37,21 @@ function TasksList({ tasks = [], toast }) {
             name: "Process Order #ORD-1234",
             status: "IN PROGRESS",
             dependencies: "[]",
+            special_notes: "This task requires special attention.",
           },
           {
             purchase_order_id: "TASK-2",
             name: "Quality Check for Order #ORD-1233",
             status: "NOT STARTED",
             dependencies: '["TASK-1"]',
+            special_notes: "This task is not yet started.",
           },
           {
             purchase_order_id: "TASK-3",
             name: "Restock Cotton Fabric",
             status: "COMPLETED",
             dependencies: "[]",
+            special_notes: "This task is completed.",
           },
         ]
 
@@ -67,6 +70,12 @@ function TasksList({ tasks = [], toast }) {
               </div>
               <Badge bg={getStatusColor(task.status)}>{task.status}</Badge>
             </div>
+            {task.special_notes && task.special_notes.trim() !== "" && (
+              <div className="mt-2 small text-muted">
+                <i className="bi bi-journal-text me-1"></i>
+                {task.special_notes}
+              </div>
+            )}
             <ProgressBar
               now={getProgressValue(task.status)}
               variant={getStatusColor(task.status)}

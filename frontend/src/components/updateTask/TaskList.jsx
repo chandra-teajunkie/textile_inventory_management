@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, Button, Badge, Form, Modal, Tab, Tabs } from "react-bootstrap"
 import { EditTaskModal } from "./EditTaskModal"
+import { parseJsonSafe } from "../../utils/jsonUtils"
 import TaskUnitVisualization from "./TaskUnitVisualization"
 import { GrClose } from "react-icons/gr"
 import { FaCut, FaPrint, FaEdit, FaBox, FaQuestion, FaChartBar } from "react-icons/fa"
@@ -285,8 +286,8 @@ export default function TaskList({ toast }) {
                                 </div>
                               </td>
                               <td>
-                                {t.dependencies && JSON.parse(t.dependencies).length > 0
-                                  ? JSON.parse(t.dependencies)
+                                {t.dependencies && parseJsonSafe(t.dependencies, []).length > 0
+                                  ? parseJsonSafe(t.dependencies, [])
                                     .map((id) => {
                                       const dep = tasks.find((x) => x.purchase_order_id === id)
                                       return dep ? dep.name : id
@@ -349,6 +350,7 @@ export default function TaskList({ toast }) {
                 task={editTask}
                 selectedOrder={orders.find((o) => o.order_id === selectedOrderId)}
                 allTasks={tasks}
+                orderPurchaseUnitNotes={orders.find((o) => o.order_id === selectedOrderId)?.purchase_unit_notes}
                 onClose={() => setShowEditModal(false)}
                 onUpdate={handleTaskUpdated}
                 toast={toast}

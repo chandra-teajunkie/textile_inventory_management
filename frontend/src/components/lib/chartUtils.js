@@ -34,8 +34,8 @@ export const normalizeCellForType = (v, t) => {
 
 // Generate initial columns
 export const generateInitialColumns = (dataTypeEditors, dataTypeFormatters, ActionCellRenderer) => [
-    { key: "Item", name: "Item", dataType: "string", editable: true, headerAlign: "center", resizable: true, sortable: true, renderEditCell: dataTypeEditors.string, renderCell: dataTypeFormatters.string },
-    { key: "Color", name: "Color", dataType: "string", editable: true, headerAlign: "center", resizable: true, sortable: true, renderEditCell: dataTypeEditors.string, renderCell: dataTypeFormatters.string },
+    { key: "Item", name: "Item", dataType: "string", editable: false, headerAlign: "center", resizable: true, sortable: true, renderEditCell: dataTypeEditors.string, renderCell: dataTypeFormatters.string },
+    { key: "Color", name: "Color", dataType: "string", editable: false, headerAlign: "center", resizable: true, sortable: true, renderEditCell: dataTypeEditors.string, renderCell: dataTypeFormatters.string },
     ...["24", "26", "28", "30", "32", "34", "36", "38", "40", "42", "44"].map((size) => ({
         key: size,
         name: size,

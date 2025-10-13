@@ -1,13 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, Button, Row, Col, Tabs, Tab } from "react-bootstrap"
-import { RecentOrders } from "./RecentOrders"
-import { TasksList } from "./TasksList"
-import ComprehensiveView from "./ConsolidatedView"
-import { ConsolidatedView } from "./Overview"
-import ConsolidatedOverviewVercel from "./Vercel"
-import OverviewUI from "./chart/ConsolidatedOverview"
 import EnhancedConsolidatedOverview from "./enhancedUI"
 
 function Dashboard({ setActiveTab, toast }) {
@@ -17,14 +10,13 @@ function Dashboard({ setActiveTab, toast }) {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch(process.env.REACT_APP_GET_ALL_ORDERS);
-      const data = await res.json();
-      const sortedOrders = data.sort((a, b) => new Date(b.order_date) - new Date(a.order_date));
-      setOrders(sortedOrders);
+      const res = await fetch(process.env.REACT_APP_GET_ALL_ORDERS)
+      const data = await res.json()
+      const sortedOrders = data.sort((a, b) => new Date(b.order_date) - new Date(a.order_date))
+      setOrders(sortedOrders)
       // console.log(sortedOrders)
-
     } catch (err) {
-      console.error('Failed to fetch orders', err);
+      console.error("Failed to fetch orders", err)
       toast.current.show({
         severity: "error",
         summary: "Error",
@@ -32,31 +24,29 @@ function Dashboard({ setActiveTab, toast }) {
         life: 3000,
       })
     }
-  };
-
-
+  }
 
   useEffect(() => {
     if (orders.length > 0) {
       const fetchTasksForOrders = async () => {
         try {
-          const oneWeekFromNow = new Date();
-          oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
-          const allTasks = [];
+          const oneWeekFromNow = new Date()
+          oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7)
+          const allTasks = []
 
           for (const order of orders) {
-            const res = await fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id}`);
-            const data = await res.json();
-            const orderDueDate = new Date(order.due_date);
+            const res = await fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id}`)
+            const data = await res.json()
+            const orderDueDate = new Date(order.due_date)
             if (orderDueDate <= oneWeekFromNow) {
-              allTasks.push(...data.map(task => ({ ...task, due_date: order.due_date })));
+              allTasks.push(...data.map((task) => ({ ...task, due_date: order.due_date })))
             }
           }
 
-          setTasks(allTasks);
+          setTasks(allTasks)
           // console.log(allTasks, orders)
         } catch (err) {
-          console.error('Failed to fetch tasks', err);
+          console.error("Failed to fetch tasks", err)
           toast.current.show({
             severity: "error",
             summary: "Error",
@@ -67,8 +57,7 @@ function Dashboard({ setActiveTab, toast }) {
       }
       fetchTasksForOrders()
     }
-  }, [orders]);
-
+  }, [orders])
 
   useEffect(() => {
     // Fetch dashboard data
@@ -86,7 +75,7 @@ function Dashboard({ setActiveTab, toast }) {
         //   setTasks(tasksData)
         // }
 
-        fetchOrders();
+        fetchOrders()
       } catch (error) {
         console.error("Error fetching dashboard data:", error)
         toast.current.show({
@@ -104,7 +93,7 @@ function Dashboard({ setActiveTab, toast }) {
   }, [toast])
 
   return (
-    <div className="dashboard p-4" >
+    <div className="dashboard p-4">
       {/* <ConsolidatedOverviewVercel /> */}
       <EnhancedConsolidatedOverview />
       {/* <OverviewUI /> */}
@@ -251,4 +240,3 @@ function Dashboard({ setActiveTab, toast }) {
 }
 
 export default Dashboard
-

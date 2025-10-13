@@ -1,0 +1,50 @@
+name: Friday
+version: 1.0.10
+schema: v1
+models:
+  - uses: relace/instant-apply
+    with:
+      RELACE_API_KEY: ${{ secrets.RELACE_API_KEY }}
+  - uses: anthropic/claude-sonnet-4-5
+    with:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    override:
+      roles:
+        - chat
+        - edit
+        - apply
+  - uses: inception/mercury-coder
+    with:
+      INCEPTION_API_KEY: ${{ secrets.INCEPTION_API_KEY }}
+    override:
+      roles:
+        - autocomplete
+  - uses: google/gemini-2.5-pro-exp
+    with:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  - uses: google/gemini-2.5-flash-preview
+    with:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  - uses: google/gemini-2.0-flash-exp
+    with:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  - uses: google/text-embedding-004
+    with:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  - uses: google/gemini-2.5-pro
+    with:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  - uses: google/gemini-2.0-flash-thinking
+    with:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  - uses: google/gemini-2.0-flash
+    with:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+context:
+  - uses: continuedev/diff-context
+  - uses: continuedev/terminal-context
+  - uses: continuedev/file-context
+mcpServers:
+  - uses: upstash/context7-mcp
+  - url: http://localhost:9222
+    name: chrome-devtools-mcp

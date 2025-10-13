@@ -1,97 +1,42 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, Button, Badge, Form, Dropdown, Modal, ProgressBar, Row, Col } from "react-bootstrap"
 import * as XLSX from "xlsx"
 import { saveAs } from "file-saver"
 
 function InventoryOverview({ toast }) {
-  const [inventory, setInventory] = useState([
-    {
-      id: "INV-001",
-      name: "Cotton Fabric - White",
-      category: "Fabric",
-      inStock: 120,
-      unit: "yards",
-      minStock: 50,
-      maxStock: 200,
-      reorderPoint: 75,
-      location: "Warehouse A, Shelf 1",
-      lastUpdated: "2023-04-20",
-    },
-    {
-      id: "INV-002",
-      name: "Silk Fabric - Blue",
-      category: "Fabric",
-      inStock: 45,
-      unit: "yards",
-      minStock: 30,
-      maxStock: 150,
-      reorderPoint: 50,
-      location: "Warehouse A, Shelf 2",
-      lastUpdated: "2023-04-19",
-    },
-    {
-      id: "INV-003",
-      name: "Polyester Blend - Black",
-      category: "Fabric",
-      inStock: 200,
-      unit: "yards",
-      minStock: 100,
-      maxStock: 300,
-      reorderPoint: 120,
-      location: "Warehouse B, Shelf 1",
-      lastUpdated: "2023-04-18",
-    },
-    {
-      id: "INV-004",
-      name: "Buttons - Assorted",
-      category: "Accessories",
-      inStock: 1500,
-      unit: "pcs",
-      minStock: 500,
-      maxStock: 2000,
-      reorderPoint: 750,
-      location: "Warehouse C, Bin 5",
-      lastUpdated: "2023-04-17",
-    },
-    {
-      id: "INV-005",
-      name: "Zippers - Black",
-      category: "Accessories",
-      inStock: 350,
-      unit: "pcs",
-      minStock: 200,
-      maxStock: 1000,
-      reorderPoint: 300,
-      location: "Warehouse C, Bin 6",
-      lastUpdated: "2023-04-16",
-    },
-    {
-      id: "INV-006",
-      name: "Thread - White",
-      category: "Accessories",
-      inStock: 85,
-      unit: "spools",
-      minStock: 50,
-      maxStock: 200,
-      reorderPoint: 75,
-      location: "Warehouse C, Bin 2",
-      lastUpdated: "2023-04-15",
-    },
-    {
-      id: "INV-007",
-      name: "Wool Fabric - Gray",
-      category: "Fabric",
-      inStock: 65,
-      unit: "yards",
-      minStock: 40,
-      maxStock: 150,
-      reorderPoint: 60,
-      location: "Warehouse B, Shelf 3",
-      lastUpdated: "2023-04-14",
-    },
-  ])
+  const [inventory, setInventory] = useState([])
+  const INVENTORY_API_BASE = process.env.REACT_APP_INVENTORY || "http://localhost:3002/inventory/"
+
+  // Load inventory from backend on mount
+  useEffect(() => {
+    const loadInventory = async () => {
+      try {
+        const res = await fetch(INVENTORY_API_BASE)
+        if (!res.ok) throw new Error(`Failed to load inventory: ${res.status}`)
+        const data = await res.json()
+        // Map backend fields (inventory_id) to id to keep the UI consistent
+        const mapped = data.map(item => ({
+          id: item.inventory_id || item.id,
+          name: item.name,
+          category: item.category,
+          inStock: item.in_stock ?? item.inStock ?? 0,
+          unit: item.unit || "pcs",
+          minStock: item.min_stock ?? item.minStock ?? 0,
+          maxStock: item.max_stock ?? item.maxStock ?? 100,
+          reorderPoint: item.reorder_point ?? item.reorderPoint ?? 0,
+          location: item.location || "",
+          lastUpdated: item.last_updated || item.lastUpdated || new Date().toISOString().split("T")[0],
+        }))
+        setInventory(mapped)
+      } catch (err) {
+        console.warn("Inventory load failed, using local sample data", err)
+        // leave inventory empty or you could fallback to sample data here
+      }
+    }
+    loadInventory()
+  }, [])
 
   const [filterCategory, setFilterCategory] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
@@ -141,60 +86,145 @@ function InventoryOverview({ toast }) {
       return
     }
 
-    // Generate new ID
-    const newId = `INV-${String(inventory.length + 1).padStart(3, "0")}`
+    const create = async () => {
+      const payload = {
+        name: newItem.name,
+        category: newItem.category,
+        in_stock: newItem.inStock,
+        unit: newItem.unit,
+        min_stock: newItem.minStock,
+        max_stock: newItem.maxStock,
+        reorder_point: newItem.reorderPoint,
+        location: newItem.location,
+      }
 
-    // Add new item
-    const itemToAdd = {
-      ...newItem,
-      id: newId,
-      lastUpdated: new Date().toISOString().split("T")[0],
+      try {
+        const res = await fetch(INVENTORY_API_BASE, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+
+        if (!res.ok) throw new Error(`Create failed: ${res.status}`)
+
+        const created = await res.json()
+        const mapped = {
+          id: created.inventory_id || created.id,
+          name: created.name,
+          category: created.category,
+          inStock: created.in_stock ?? created.inStock ?? newItem.inStock,
+          unit: created.unit || newItem.unit,
+          minStock: created.min_stock ?? created.minStock ?? newItem.minStock,
+          maxStock: created.max_stock ?? created.maxStock ?? newItem.maxStock,
+          reorderPoint: created.reorder_point ?? created.reorderPoint ?? newItem.reorderPoint,
+          location: created.location || newItem.location,
+          lastUpdated: created.last_updated || created.lastUpdated || new Date().toISOString().split("T")[0],
+        }
+
+        setInventory((prev) => [mapped, ...prev])
+      } catch (err) {
+        console.warn("Create inventory failed, creating locally", err)
+        const newId = `INV-${String(inventory.length + 1).padStart(3, "0")}`
+        const itemToAdd = {
+          ...newItem,
+          id: newId,
+          lastUpdated: new Date().toISOString().split("T")[0],
+        }
+        setInventory((prev) => [...prev, itemToAdd])
+      } finally {
+        setNewItem({
+          name: "",
+          category: "Fabric",
+          inStock: 0,
+          unit: "yards",
+          minStock: 0,
+          maxStock: 100,
+          reorderPoint: 25,
+          location: "",
+        })
+        setShowAddModal(false)
+        toast.current.show({
+          severity: "success",
+          summary: "Success",
+          detail: "Inventory item added successfully",
+          life: 3000,
+        })
+      }
     }
 
-    setInventory([...inventory, itemToAdd])
-    setNewItem({
-      name: "",
-      category: "Fabric",
-      inStock: 0,
-      unit: "yards",
-      minStock: 0,
-      maxStock: 100,
-      reorderPoint: 25,
-      location: "",
-    })
-    setShowAddModal(false)
-
-    toast.current.show({
-      severity: "success",
-      summary: "Success",
-      detail: "Inventory item added successfully",
-      life: 3000,
-    })
+    create()
   }
 
   const handleUpdateItem = () => {
     if (!selectedItem) return
 
-    setInventory(
-      inventory.map((item) =>
-        item.id === selectedItem.id
-          ? {
-              ...selectedItem,
-              lastUpdated: new Date().toISOString().split("T")[0],
-            }
-          : item,
-      ),
-    )
+    const update = async () => {
+      try {
+        const payload = {
+          name: selectedItem.name,
+          category: selectedItem.category,
+          in_stock: selectedItem.inStock,
+          unit: selectedItem.unit,
+          min_stock: selectedItem.minStock,
+          max_stock: selectedItem.maxStock,
+          reorder_point: selectedItem.reorderPoint,
+          location: selectedItem.location,
+        }
 
-    setShowUpdateModal(false)
-    setSelectedItem(null)
+        const res = await fetch(`${INVENTORY_API_BASE}${selectedItem.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
 
-    toast.current.show({
-      severity: "success",
-      summary: "Success",
-      detail: "Inventory item updated successfully",
-      life: 3000,
-    })
+        if (!res.ok) throw new Error(`Update failed: ${res.status}`)
+
+        const updated = await res.json()
+        const mapped = {
+          id: updated.inventory_id || updated.id || selectedItem.id,
+          name: updated.name || selectedItem.name,
+          category: updated.category || selectedItem.category,
+          inStock: updated.in_stock ?? updated.inStock ?? selectedItem.inStock,
+          unit: updated.unit || selectedItem.unit,
+          minStock: updated.min_stock ?? updated.minStock ?? selectedItem.minStock,
+          maxStock: updated.max_stock ?? updated.maxStock ?? selectedItem.maxStock,
+          reorderPoint: updated.reorder_point ?? updated.reorderPoint ?? selectedItem.reorderPoint,
+          location: updated.location || selectedItem.location,
+          lastUpdated: updated.last_updated || updated.lastUpdated || new Date().toISOString().split("T")[0],
+        }
+
+        setInventory((prev) => prev.map((i) => (i.id === selectedItem.id ? mapped : i)))
+      } catch (err) {
+        console.warn("Update failed, applying locally", err)
+        setInventory((prev) => prev.map((i) => (i.id === selectedItem.id ? { ...selectedItem, lastUpdated: new Date().toISOString().split("T")[0] } : i)))
+      } finally {
+        setShowUpdateModal(false)
+        setSelectedItem(null)
+        toast.current.show({
+          severity: "success",
+          summary: "Success",
+          detail: "Inventory item updated successfully",
+          life: 3000,
+        })
+      }
+    }
+
+    update()
+  }
+
+  const handleDeleteItem = (id) => {
+    const remove = async () => {
+      try {
+        const res = await fetch(`${INVENTORY_API_BASE}${id}`, { method: "DELETE" })
+        if (!res.ok) throw new Error(`Delete failed: ${res.status}`)
+        setInventory((prev) => prev.filter((i) => i.id !== id))
+      } catch (err) {
+        console.warn("Delete failed, removing locally", err)
+        setInventory((prev) => prev.filter((i) => i.id !== id))
+      }
+    }
+
+    remove()
   }
 
   const handleEditItem = (item) => {
@@ -272,6 +302,18 @@ function InventoryOverview({ toast }) {
               >
                 Accessories
               </Button>
+              <Button
+                variant={filterCategory === "Tools" ? "primary" : "outline-primary"}
+                onClick={() => setFilterCategory("Tools")}
+              >
+                Tools
+              </Button>
+              <Button
+                variant={filterCategory === "Other" ? "primary" : "outline-primary"}
+                onClick={() => setFilterCategory("Other")}
+              >
+                Other
+              </Button>
             </div>
             <div className="d-flex align-items-center">
               <div className="position-relative">
@@ -289,7 +331,9 @@ function InventoryOverview({ toast }) {
           </div>
         </Card.Header>
         <Card.Body>
-          <div className="table-responsive">
+          <div
+          // className="table-responsive"
+          >
             <table className="table table-hover align-middle">
               <thead>
                 <tr>
@@ -332,11 +376,15 @@ function InventoryOverview({ toast }) {
                             <i className="bi bi-three-dots"></i>
                           </Dropdown.Toggle>
                           <Dropdown.Menu>
-                            <Dropdown.Item onClick={() => handleEditItem(item)}>Update Stock</Dropdown.Item>
-                            <Dropdown.Item href="#">View Details</Dropdown.Item>
+                            <Dropdown.Item onClick={() => handleEditItem(item)}>Edit Item</Dropdown.Item>
+                            {/* <Dropdown.Item href="#">View Details</Dropdown.Item> */}
                             <Dropdown.Divider />
-                            <Dropdown.Item href="#">Reorder</Dropdown.Item>
-                            <Dropdown.Item href="#">Move Location</Dropdown.Item>
+                            {/* <Dropdown.Item href="#">Reorder</Dropdown.Item> */}
+                            <Dropdown.Item className="text-danger" onClick={() => {
+                              if (window.confirm('Are you sure you want to delete this item?')) {
+                                handleDeleteItem(item.id)
+                              }
+                            }}>Delete Item</Dropdown.Item>
                           </Dropdown.Menu>
                         </Dropdown>
                       </td>
@@ -357,20 +405,22 @@ function InventoryOverview({ toast }) {
         <Modal.Body>
           <Form>
             <Form.Group className="mb-3">
-              <Form.Label>Item Name</Form.Label>
+              <Form.Label>Item Name <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 type="text"
                 value={newItem.name}
                 onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                 placeholder="Enter item name"
+                required
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Category</Form.Label>
+              <Form.Label>Category <span className="text-danger">*</span></Form.Label>
               <Form.Select
                 value={newItem.category}
                 onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
+                required
               >
                 <option value="Fabric">Fabric</option>
                 <option value="Accessories">Accessories</option>
@@ -438,12 +488,13 @@ function InventoryOverview({ toast }) {
             </Row>
 
             <Form.Group className="mb-3">
-              <Form.Label>Location</Form.Label>
+              <Form.Label>Location <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 type="text"
                 value={newItem.location}
                 onChange={(e) => setNewItem({ ...newItem, location: e.target.value })}
                 placeholder="Warehouse A, Shelf 1"
+                required
               />
             </Form.Group>
           </Form>
@@ -481,21 +532,92 @@ function InventoryOverview({ toast }) {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label>Current Stock</Form.Label>
-                <Form.Control
-                  type="number"
-                  value={selectedItem.inStock}
-                  onChange={(e) => setSelectedItem({ ...selectedItem, inStock: Number.parseInt(e.target.value) || 0 })}
-                />
-                <Form.Text className="text-muted">Current unit: {selectedItem.unit}</Form.Text>
+                <Form.Label>Category <span className="text-danger">*</span></Form.Label>
+                <Form.Select
+                  value={selectedItem.category}
+                  onChange={(e) => setSelectedItem({ ...selectedItem, category: e.target.value })}
+                  required
+                >
+                  <option value="Fabric">Fabric</option>
+                  <option value="Accessories">Accessories</option>
+                  <option value="Tools">Tools</option>
+                  <option value="Other">Other</option>
+                </Form.Select>
               </Form.Group>
 
+              <Row className="mb-3">
+                <Col>
+                  <Form.Group>
+                    <Form.Label>Current Stock <span className="text-danger">*</span></Form.Label>
+                    <Form.Control
+                      type="number"
+                      value={selectedItem.inStock}
+                      onChange={(e) => setSelectedItem({ ...selectedItem, inStock: Number.parseInt(e.target.value) || 0 })}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col>
+                  <Form.Group>
+                    <Form.Label>Unit <span className="text-danger">*</span></Form.Label>
+                    <Form.Select
+                      value={selectedItem.unit}
+                      onChange={(e) => setSelectedItem({ ...selectedItem, unit: e.target.value })}
+                      required
+                    >
+                      <option value="yards">yards</option>
+                      <option value="meters">meters</option>
+                      <option value="pcs">pcs</option>
+                      <option value="spools">spools</option>
+                      <option value="kg">kg</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row className="mb-3">
+                <Col>
+                  <Form.Group>
+                    <Form.Label>Min Stock <span className="text-danger">*</span></Form.Label>
+                    <Form.Control
+                      type="number"
+                      value={selectedItem.minStock}
+                      onChange={(e) => setSelectedItem({ ...selectedItem, minStock: Number.parseInt(e.target.value) || 0 })}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col>
+                  <Form.Group>
+                    <Form.Label>Max Stock <span className="text-danger">*</span></Form.Label>
+                    <Form.Control
+                      type="number"
+                      value={selectedItem.maxStock}
+                      onChange={(e) => setSelectedItem({ ...selectedItem, maxStock: Number.parseInt(e.target.value) || 0 })}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col>
+                  <Form.Group>
+                    <Form.Label>Reorder Point <span className="text-danger">*</span></Form.Label>
+                    <Form.Control
+                      type="number"
+                      value={selectedItem.reorderPoint}
+                      onChange={(e) => setSelectedItem({ ...selectedItem, reorderPoint: Number.parseInt(e.target.value) || 0 })}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+
               <Form.Group className="mb-3">
-                <Form.Label>Location</Form.Label>
+                <Form.Label>Location <span className="text-danger">*</span></Form.Label>
                 <Form.Control
                   type="text"
                   value={selectedItem.location}
                   onChange={(e) => setSelectedItem({ ...selectedItem, location: e.target.value })}
+                  required
                 />
               </Form.Group>
             </Form>

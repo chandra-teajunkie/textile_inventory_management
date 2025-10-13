@@ -24,12 +24,21 @@ const OrderList = lazy(() => import("./components/task/OrderList"))
 const TaskList = lazy(() => import("./components/updateTask/TaskList"))
 const InventoryOverview = lazy(() => import("./components/InventoryOverview"))
 
+console.log = () => {};
+
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard")
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light')
   const toast = useRef(null)
 
+  // Effect to handle theme changes
+  React.useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('theme', theme)
+  }, [theme])
+
   return (
-    <div className="min-h-screen bg-light mainPage">
+    <div className="min-h-screen mainPage" data-theme={theme}>
       <Toast ref={toast} position="top-right" className="toastPopUp" />
 
       <header className="sticky-top d-flex align-items-center border-bottom bg-white px-4 py-3 shadow-sm">
@@ -48,6 +57,15 @@ function App() {
           />
           <span className="text-primary fw-bold" style={{ fontSize: "1.5rem" }}>SIDHU Textiles</span>
         </div>
+        {/* <div className="ms-auto me-3">
+          <button
+            className="btn btn-outline-secondary"
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            title="Toggle theme"
+          >
+            <i className={`bi bi-${theme === 'light' ? 'moon' : 'sun'}`}></i>
+          </button>
+        </div> */}
         {/* <div className="position-relative ms-auto flex-grow-0 me-3">
           <i className="bi bi-search position-absolute" style={{ left: "10px", top: "10px", fontSize: "0.9rem" }}></i>
           <input

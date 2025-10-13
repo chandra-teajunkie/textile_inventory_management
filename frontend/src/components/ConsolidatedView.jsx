@@ -5,6 +5,7 @@ import autoTable from 'jspdf-autotable';
 import { FaFileCsv, FaFilePdf, FaPrint, FaChevronDown, FaChevronRight, FaCut, FaEdit, FaBox, FaQuestion } from 'react-icons/fa';
 import { GiSewingMachine, GiHeavyCollar } from 'react-icons/gi';
 import { TbHttpGet } from 'react-icons/tb';
+import { parseJsonSafe } from "../utils/jsonUtils";
 
 // --- Helper Functions & Static Data ---
 
@@ -271,7 +272,7 @@ const ComprehensiveView = ({ toast }) => {
                         task.purchase_order_unit,
                         task.product || "",
                         task.color || "",
-                        `"${(JSON.parse(task.dependencies || '[]')).join(', ')}"`
+                        `"${(parseJsonSafe(task.dependencies || '[]')).join(', ')}"`
                     ].join(",");
                     csvContent += row + "\n";
                 });

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Form, Button } from "react-bootstrap"
 import Select from "react-select"
+import { parseJsonSafe } from "../../utils/jsonUtils"
 
 // Same enums as above
 const TASK_UNITS = [
@@ -36,7 +37,7 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
   useEffect(() => {
     if (task.dependencies) {
       try {
-        setDependencies(JSON.parse(task.dependencies))
+  setDependencies(parseJsonSafe(task.dependencies, []))
       } catch {
         setDependencies([])
       }
