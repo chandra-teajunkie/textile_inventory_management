@@ -491,7 +491,7 @@ function OrderForm({ toast }) {
 
                         <div style={{ marginBottom: "20px", overflow: "hidden" }}>
                             <EnhancedDataGrid onSubmit={handleTableSubmit} orderTypes={form.types} orderColors={form.colors}
-                                setForm={setForm} form={form} />
+                                setForm={setForm} form={form} sizeChartData={sizeChartData} />
                         </div>
 
                         <div className="d-flex justify-content-end mt-4">

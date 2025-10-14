@@ -7,7 +7,7 @@ import { saveAs } from "file-saver"
 
 function InventoryOverview({ toast }) {
   const [inventory, setInventory] = useState([])
-  const INVENTORY_API_BASE = process.env.REACT_APP_INVENTORY || "http://localhost:3002/inventory/"
+  const INVENTORY_API_BASE = process.env.REACT_APP_INVENTORY
 
   // Load inventory from backend on mount
   useEffect(() => {

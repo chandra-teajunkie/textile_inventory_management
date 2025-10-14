@@ -195,6 +195,22 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
       const values = sortedColumns.map(c => JSON.stringify(row[c.key] ?? ''));
       csvRows.push(values.join(','));
     });
+    // Add totals row for numeric columns
+    const totals = {};
+    sortedColumns.forEach(col => {
+      if (col.dataType === 'number') {
+        totals[col.key] = rows.reduce((s, r) => s + (Number(r[col.key]) || 0), 0);
+      }
+    });
+    if (Object.keys(totals).length > 0) {
+      const totalsValues = sortedColumns.map((c, i) => {
+        if (c.dataType === 'number') return totals[c.key];
+        // Put a label in the first non-numeric column (preferably first column)
+        if (i === 0) return 'TOTAL';
+        return '';
+      });
+      csvRows.push(totalsValues.join(','));
+    }
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -254,6 +270,21 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
     const sortedColumns = getSortedExportColumns();
     const headers = sortedColumns.map(c => `<th>${c.name}</th>`).join('');
     const body = rows.map(row => `<tr>${sortedColumns.map(c => `<td>${row[c.key] ?? ''}</td>`).join('')}</tr>`).join('');
+    // compute totals for numeric columns
+    const totals = {};
+    sortedColumns.forEach(col => {
+      if (col.dataType === 'number') {
+        totals[col.key] = rows.reduce((s, r) => s + (Number(r[col.key]) || 0), 0);
+      }
+    });
+    let totalsHtml = '';
+    if (Object.keys(totals).length > 0) {
+      totalsHtml = `<tr style="font-weight:bold;background:#f8f9fa">${sortedColumns.map((c, i) => {
+        if (c.dataType === 'number') return `<td>${totals[c.key]}</td>`;
+        if (i === 0) return `<td>TOTAL</td>`;
+        return `<td></td>`;
+      }).join('')}</tr>`;
+    }
     let notesHtml = '';
     const addNotesHtml = (title, notes) => {
       if (notes && notes.trim()) {
@@ -440,8 +471,8 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
             </div>
           </div>
     <h1>${chartType.toUpperCase()} Chart</h1>
-    <table><thead><tr>${headers}</tr></thead>
-    <tbody>${body}</tbody></table>${notesHtml}<script>window.onload = () => window.print();</script></body></html>`;
+  <table><thead><tr>${headers}</tr></thead>
+  <tbody>${body}${totalsHtml}</tbody></table>${notesHtml}<script>window.onload = () => window.print();</script></body></html>`;
     const printWindow = window.open('', '_blank');
     printWindow.document.write(content);
     printWindow.document.close();
@@ -653,7 +684,8 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
         </div>
         <div className="d-flex gap-2 flex-wrap">
           <Button onClick={handlePrint} variant="outline-secondary" size="sm"><FaPrint className="me-1" />Print</Button>
-          <Dropdown as={ButtonGroup}>
+          <Button onClick={exportToCSV} variant="outline-secondary" size="sm"><FaFileExport className="me-1" />CSV</Button>
+          {/* <Dropdown as={ButtonGroup}>
             <Button variant="outline-secondary" size="sm"><FaFileExport className="me-1" />Export</Button>
             <Dropdown.Toggle split variant="outline-secondary" size="sm" />
             <Dropdown.Menu>
@@ -661,7 +693,7 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
               <Dropdown.Item onClick={exportToExcel}>Excel</Dropdown.Item>
               <Dropdown.Item onClick={exportToPDF}>PDF</Dropdown.Item>
             </Dropdown.Menu>
-          </Dropdown>
+          </Dropdown> */}
         </div>
       </div>
 

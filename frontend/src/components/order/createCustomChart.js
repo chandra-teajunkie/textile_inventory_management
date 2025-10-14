@@ -17,7 +17,7 @@ import {
 // Helper to generate a simple unique ID
 const createKey = () => `id_${Date.now()}_${Math.random()}`;
 
-export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColors = [], setForm = () => { } }) {
+export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColors = [], setForm = () => { }, sizeChartData }) {
   const [columns, setColumns] = useState([]);
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState("Size Chart");
@@ -176,10 +176,10 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
   }, [initialColumns, generateInitialRowsWithKeys, orderTypes, orderColors]);
 
   useEffect(() => {
-    if (columns.length === 0 && rows.length === 0) {
+    if ((columns.length === 0 && rows.length === 0) || !sizeChartData) {
       resetToDefault();
     }
-  }, [columns.length, rows.length, resetToDefault]);
+  }, [columns.length, rows.length, resetToDefault, sizeChartData]);
 
   useEffect(() => {
     if (!hasCustomChart && (orderTypes.length > 0 || orderColors.length > 0)) {
