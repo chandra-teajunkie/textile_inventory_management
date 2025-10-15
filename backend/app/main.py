@@ -5,8 +5,8 @@ from sqlmodel import SQLModel
 from app.database.database import engine
 import uvicorn
 
-from app.routers.orders import router as orders_router
 from app.routers.purchase_orders import router as purchase_orders_router
+from app.routers.tasks import router as tasks_router
 from app.routers.inventory import router as inventory_router
 from app.utils.logger_setup import logger
 from app.utils.process_app_config import process_app_config
@@ -56,8 +56,8 @@ app.add_middleware(
 
 
 # Include the product router with the "/products" prefix
-app.include_router(orders_router, prefix="/orders")
 app.include_router(purchase_orders_router, prefix="/purchase-orders")
+app.include_router(tasks_router, prefix="/tasks")
 app.include_router(inventory_router, prefix="/inventory")
 
 if __name__ == "__main__":

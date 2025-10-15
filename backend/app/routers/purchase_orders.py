@@ -1,152 +1,104 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, Body, Form
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form
 from sqlmodel import Session, select
-from typing import List
+from typing import Optional, List
 from app.models.purchase_orders_models import (
     PurchaseOrder,
     PurchaseOrderCreate,
     PurchaseOrderUpdate,
-    PurchaseOrderStatus,
+    PurchaseOrderMetadata,
 )
-from app.models.orders_models import Order
+from app.models.tasks_models import Task
 from app.database.database import get_session
-from app.utils.utils import generate_unique_id
+from app.utils.utils import (
+    generate_unique_id,
+    process_size_chart,
+    update_purchase_order_metadata_if_new,
+    initialize_task_unit_notes,
+)
 import json
-from fastapi.responses import StreamingResponse
 import pandas as pd
-from io import StringIO
+from collections import defaultdict
 
 router = APIRouter()
 
 
-def process_dependencies(purchase_order_update: PurchaseOrderUpdate, session: Session):
-    """Validate that dependencies exist in the purchase_order update."""
-    if purchase_order_update.dependencies:
-        for dependency_id in purchase_order_update.dependencies:
-            if not dependency_id:  # Skips "", None, etc.
-                continue
-            dependency = session.exec(
-                select(PurchaseOrder).where(
-                    PurchaseOrder.purchase_order_id == dependency_id
-                )
-            ).first()
-            if not dependency:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Dependency purchase_order not found: {dependency_id}",
-                )
-
-
 @router.post("/", response_model=PurchaseOrder)
-def create_purchase_order(
-    purchase_order: PurchaseOrderCreate, session: Session = Depends(get_session)
+async def create_purchase_order(
+    purchase_order: str = Form(...),  # Accept as a string
+    size_chart_file: Optional[UploadFile] = File(None),
+    size_chart_json: Optional[str] = Form(None),
+    session: Session = Depends(get_session),
 ):
-    if not purchase_order.dependencies or all(
-        not d for d in purchase_order.dependencies
-    ):
-        purchase_order.dependencies = None
-
-    # Verify that the order exists
-    order = session.exec(
-        select(Order).where(Order.order_id == purchase_order.order_id)
-    ).first()
-    if not order:
-        raise HTTPException(status_code=400, detail="Order not found")
-
-    # Generate a unique purchase_order_id using the utility function
+    # Convert string JSON data to dictionary
+    purchase_order_data = json.loads(purchase_order)
+    purchase_order_create = PurchaseOrderCreate(**purchase_order_data)
+    # Generate a unique purchase_order_id
     unique_purchase_order_id = generate_unique_id(
         PurchaseOrder, session, "purchase_order_id"
     )
 
-    # If purchase_order has no dependencies, assign the order's size chart as the incoming chart
-    if not purchase_order.dependencies:
-        incoming_chart = order.size_chart  # Use the size chart from the order
-    else:
-        # Use the process_dependencies function to validate the dependencies
-        process_dependencies(purchase_order, session)
+    # Normalize notes (ensures all TaskUnit keys exist)
+    normalized_notes = initialize_task_unit_notes(
+        purchase_order_data.get("task_unit_notes")
+    )
 
-        # If there are dependencies, check their outgoing charts and assign them as incoming chart
-        for dep_id in purchase_order.dependencies:
-            dep_purchase_order = session.exec(
-                select(PurchaseOrder).where(PurchaseOrder.purchase_order_id == dep_id)
-            ).first()
-            if dep_purchase_order:
-                if (
-                    dep_purchase_order.outgoing_chart
-                ):  # If the dependency has an outgoing chart, use it
-                    incoming_chart = dep_purchase_order.outgoing_chart
-                else:
-                    incoming_chart = (
-                        None  # No outgoing chart, set incoming chart to None
-                    )
+    metadata_fields = ["types", "colors", "customer_name"]
 
-    # Create the purchase_order using unpacking for purchase_order_create fields
+    for field_name in metadata_fields:
+        raw_value = purchase_order_data.get(field_name)
+        if raw_value:
+            # If comma-separated (e.g., "Red, Blue"), split into individual values
+            values = (
+                [v.strip().lower() for v in raw_value.split(",")]
+                if isinstance(raw_value, str)
+                else [raw_value]
+            )
+            for val in values:
+                if val:  # Avoid empty strings
+                    update_purchase_order_metadata_if_new(field_name, val, session)
+
+    # Process chart:
+    size_chart_data = None
+
+    if size_chart_file:
+        size_chart_data = await process_size_chart(size_chart_file)
+    elif size_chart_json:
+        try:
+            # Validate JSON is parseable to a DataFrame
+            pd.read_json(size_chart_json)  # validation step
+            size_chart_data = size_chart_json
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid size_chart_json: {e}")
+
+    # Create the PurchaseOrder using unpacking for purchase_order_create fields
     db_purchase_order = PurchaseOrder(
-        purchase_order_id=unique_purchase_order_id,
-        dependencies=json.dumps(purchase_order.dependencies)
-        if purchase_order.dependencies
-        else None,
-        incoming_chart=incoming_chart,  # Set the determined incoming chart
-        outgoing_chart=None,  # Outgoing chart will be updated later, so set to None initially
-        **purchase_order.model_dump(
-            exclude={"dependencies", "incoming_chart", "outgoing_chart"}
-        ),  # Unpack other fields
+        purchase_order_id=unique_purchase_order_id,  # Assign the generated ID
+        size_chart=size_chart_data,  # Store the processed size chart data
+        task_unit_notes=normalized_notes,  # Store normalized notes
+        **purchase_order_create.model_dump(exclude={"task_unit_notes"}),
     )
 
     session.add(db_purchase_order)
     session.commit()
     session.refresh(db_purchase_order)
+
     return db_purchase_order
 
 
 @router.get("/", response_model=List[PurchaseOrder])
-def get_purchase_orders_for_order(
-    order_id: str, session: Session = Depends(get_session)
-):
-    order = session.exec(select(Order).where(Order.order_id == order_id)).first()
-    if not order:
-        raise HTTPException(status_code=400, detail="Order not found")
-    purchase_orders = session.exec(
-        select(PurchaseOrder).where(PurchaseOrder.order_id == order.order_id)
-    ).all()
+def get_all_purchase_orders(session: Session = Depends(get_session)):
+    purchase_orders = session.exec(select(PurchaseOrder)).all()
     return purchase_orders
 
 
-@router.get("/purchase-order-details/{purchase_order_id}")
-def get_purchase_order_details(
-    purchase_order_id: str, session: Session = Depends(get_session)
-):
-    purchase_order = session.exec(
-        select(PurchaseOrder).where(
-            PurchaseOrder.purchase_order_id == purchase_order_id
-        )
-    ).first()
-
-    if not purchase_order:
-        raise HTTPException(status_code=404, detail="PurchaseOrder not found")
-
-    return {
-        "purchase_order_id": purchase_order.purchase_order_id,
-        "order_id": purchase_order.order_id,
-        "name": purchase_order.name,
-        "product": purchase_order.product,
-        "color": purchase_order.color,
-        "status": purchase_order.status,
-        "purchase_order_unit": purchase_order.purchase_order_unit,
-        "dependencies": purchase_order.dependencies,
-        "incoming_chart": purchase_order.incoming_chart,
-        "outgoing_chart": purchase_order.outgoing_chart,
-    }
-
-
 @router.patch("/{purchase_order_id}", response_model=PurchaseOrder)
-def update_purchase_order(
-    purchase_order_id: str = Path(
-        ..., description="The purchase_order_id of the purchase_order to update"
-    ),
-    purchase_order_update: PurchaseOrderUpdate = Body(...),
+async def update_purchase_order(
+    purchase_order_id: str,
+    purchase_order_update: str = Form(...),  # JSON data as a string
+    size_chart_file: Optional[UploadFile] = File(None),
     session: Session = Depends(get_session),
 ):
-    # Get the purchase_order
+    # Retrieve the purchase_order from the database
     db_purchase_order = session.exec(
         select(PurchaseOrder).where(
             PurchaseOrder.purchase_order_id == purchase_order_id
@@ -155,127 +107,37 @@ def update_purchase_order(
     if not db_purchase_order:
         raise HTTPException(status_code=404, detail="PurchaseOrder not found")
 
-    # Track if status was updated
-    status_updated = "status" in purchase_order_update.model_dump(exclude_unset=True)
+    # Convert string JSON data to dictionary
+    update_data = json.loads(purchase_order_update)
 
-    # Validate dependencies exist
-    process_dependencies(purchase_order_update, session)
+    # Convert to Pydantic model (optional validation)
+    purchase_order_update_model = PurchaseOrderUpdate(**update_data)
 
-    # Apply updates using ** to unpack fields
-    purchase_order_data = purchase_order_update.model_dump(
-        exclude_unset=True
-    )  # Only fields that are set
-    for key, value in purchase_order_data.items():
+    # Apply updates dynamically using ** to unpack fields, excluding task_unit_notes
+    update_fields = purchase_order_update_model.dict(
+        exclude_unset=True, exclude={"task_unit_notes"}
+    )
+    for key, value in update_fields.items():
         setattr(db_purchase_order, key, value)
 
-    if purchase_order_update.dependencies is not None:
-        db_purchase_order.dependencies = json.dumps(purchase_order_update.dependencies)
+    # Normalize and assign task_unit_notes if provided
+    if "task_unit_notes" in update_data:
+        normalized_notes = initialize_task_unit_notes(update_data["task_unit_notes"])
+        db_purchase_order.task_unit_notes = (
+            normalized_notes  # This is a dict, safe for JSON column
+        )
+
+    # Handle the file upload for size_chart
+    if size_chart_file:
+        # Process the uploaded file
+        size_chart_data = await process_size_chart(size_chart_file)
+        db_purchase_order.size_chart = (
+            size_chart_data  # Update size_chart with new data
+        )
 
     session.add(db_purchase_order)
     session.commit()
     session.refresh(db_purchase_order)
-
-    # If status was updated, update dependencies in the same order
-    if status_updated:
-        purchase_orders_in_order = session.exec(
-            select(PurchaseOrder).where(
-                PurchaseOrder.order_id == db_purchase_order.order_id
-            )
-        ).all()
-
-        for purchase_order in purchase_orders_in_order:
-            if purchase_order.dependencies:
-                dependency_ids = json.loads(purchase_order.dependencies)
-                dependent_purchase_orders = session.exec(
-                    select(PurchaseOrder).where(
-                        PurchaseOrder.purchase_order_id.in_(dependency_ids)
-                    )
-                ).all()
-
-                # Check if all dependencies are COMPLETED
-                if all(
-                    dep.status == PurchaseOrderStatus.COMPLETED
-                    for dep in dependent_purchase_orders
-                ):
-                    if purchase_order.status == PurchaseOrderStatus.BLOCKED:
-                        purchase_order.status = PurchaseOrderStatus.NOT_STARTED
-                else:
-                    purchase_order.status = PurchaseOrderStatus.BLOCKED
-
-                session.add(purchase_order)
-
-        session.commit()
-
-    return db_purchase_order
-
-
-@router.patch(
-    "/outgoing-chart-upload/{purchase_order_id}", response_model=PurchaseOrder
-)
-async def upload_purchase_order_outgoing_chart(
-    purchase_order_id: str,
-    outgoing_chart_json: str = Form(
-        ..., description="JSON string containing outgoing chart"
-    ),
-    session: Session = Depends(get_session),
-):
-    # Get the purchase_order
-    db_purchase_order = session.exec(
-        select(PurchaseOrder).where(
-            PurchaseOrder.purchase_order_id == purchase_order_id
-        )
-    ).first()
-    if not db_purchase_order:
-        raise HTTPException(status_code=404, detail="PurchaseOrder not found")
-
-    # Save to outgoing_chart
-    db_purchase_order.outgoing_chart = outgoing_chart_json
-    session.add(db_purchase_order)
-    session.commit()
-    session.refresh(db_purchase_order)
-
-    # Propagate to dependent purchase_orders within the same order
-    dependent_purchase_orders = session.exec(
-        select(PurchaseOrder).where(
-            PurchaseOrder.order_id == db_purchase_order.order_id
-        )
-    ).all()
-
-    for purchase_order in dependent_purchase_orders:
-        if purchase_order.dependencies:
-            dependency_ids = json.loads(purchase_order.dependencies)
-            if purchase_order_id in dependency_ids:
-                purchase_order.incoming_chart = outgoing_chart_json
-                session.add(purchase_order)
-
-        session.commit()
-
-    return db_purchase_order
-
-
-@router.patch(
-    "/incoming-chart-upload/{purchase_order_id}", response_model=PurchaseOrder
-)
-async def upload_purchase_order_incoming_chart(
-    purchase_order_id: str,
-    incoming_chart_json: str = Form(
-        ..., description="JSON string containing incoming chart"
-    ),
-    session: Session = Depends(get_session),
-):
-    # Get the purchase_order
-    db_purchase_order = session.exec(
-        select(PurchaseOrder).where(
-            PurchaseOrder.purchase_order_id == purchase_order_id
-        )
-    ).first()
-    if not db_purchase_order:
-        raise HTTPException(status_code=404, detail="PurchaseOrder not found")
-
-    # Save the incoming chart to the purchase_order
-    db_purchase_order.incoming_chart = incoming_chart_json
-    session.add(db_purchase_order)
-    session.commit()
 
     return db_purchase_order
 
@@ -293,6 +155,15 @@ def delete_purchase_order(
     if not purchase_order:
         raise HTTPException(status_code=404, detail="PurchaseOrder not found")
 
+    # Find all tasks associated with the purchase_order
+    tasks = session.exec(
+        select(Task).where(Task.purchase_order_id == purchase_order_id)
+    ).all()
+
+    # Delete all tasks associated with this purchase_order
+    for task in tasks:
+        session.delete(task)
+
     # Delete the purchase_order
     session.delete(purchase_order)
     session.commit()
@@ -300,55 +171,29 @@ def delete_purchase_order(
     return purchase_order  # Returning the deleted purchase_order details
 
 
-@router.get("/download-chart/{purchase_order_id}", response_class=StreamingResponse)
-async def download_purchase_order_chart(
-    purchase_order_id: str,
-    chart_type: str = "incoming",  # Default is "incoming", can be "outgoing" as well
-    session: Session = Depends(get_session),
+@router.get("/metadata", response_model=dict)
+def get_all_metadata(session: Session = Depends(get_session)):
+    results = session.exec(select(PurchaseOrderMetadata)).all()
+
+    metadata = defaultdict(list)
+    for item in results:
+        metadata[item.category].append(item.value)
+
+    # Optionally, remove duplicates (if any)
+    metadata = {k: sorted(set(v)) for k, v in metadata.items()}
+
+    return metadata
+
+
+@router.get("/purchase-order-details/{purchase_order_id}", response_model=PurchaseOrder)
+def get_purchase_order_details(
+    purchase_order_id: str, session: Session = Depends(get_session)
 ):
-    # Get the purchase_order
-    db_purchase_order = session.exec(
+    purchase_order = session.exec(
         select(PurchaseOrder).where(
             PurchaseOrder.purchase_order_id == purchase_order_id
         )
     ).first()
-    if not db_purchase_order:
+    if not purchase_order:
         raise HTTPException(status_code=404, detail="PurchaseOrder not found")
-
-    # Determine which chart to download
-    if chart_type == "incoming":
-        chart_data = db_purchase_order.incoming_chart
-    elif chart_type == "outgoing":
-        chart_data = db_purchase_order.outgoing_chart
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid chart type. Choose 'incoming' or 'outgoing'.",
-        )
-
-    if not chart_data:
-        raise HTTPException(
-            status_code=404,
-            detail=f"{chart_type.capitalize()} chart not found for the purchase_order.",
-        )
-
-    # Convert the JSON chart data back to a DataFrame
-    try:
-        chart_json = json.loads(chart_data)
-        chart_df = pd.DataFrame.from_dict(chart_json)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing chart data: {e}")
-
-    # Convert the DataFrame to CSV format
-    csv_buffer = StringIO()
-    chart_df.to_csv(csv_buffer, index=False)
-    csv_buffer.seek(0)
-
-    # Return the CSV as a downloadable file
-    return StreamingResponse(
-        csv_buffer,
-        media_type="text/csv",
-        headers={
-            "Content-Disposition": f"attachment; filename=purchase_order_{purchase_order_id}_{chart_type}_chart.csv"
-        },
-    )
+    return purchase_order

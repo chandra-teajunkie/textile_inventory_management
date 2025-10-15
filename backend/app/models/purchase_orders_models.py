@@ -1,81 +1,61 @@
-# purchase_orders_models.py
 from typing import Optional, List
-from sqlmodel import Field, SQLModel, Relationship
-from enum import Enum
+from sqlmodel import Field, SQLModel, Relationship, UniqueConstraint
+from datetime import datetime
 from typing import TYPE_CHECKING
 import uuid
 
 if TYPE_CHECKING:
-    from app.models.orders_models import Order
-
-
-class PurchaseOrderStatus(str, Enum):
-    NOT_STARTED = "NOT STARTED"
-    IN_PROGRESS = "IN PROGRESS"
-    COMPLETED = "COMPLETED"
-    BLOCKED = "BLOCKED"
-
-
-class PurchaseOrderUnit(str, Enum):
-    PROCUREMENT = "PROCUREMENT"
-    CUTTING = "CUTTING"
-    COLLAR = "COLLAR"
-    PRINTING = "PRINTING"
-    EMBROIDERY = "EMBROIDERY"
-    STITCHING = "STITCHING"
-    PACKAGING = "PACKAGING"
-    UNASSIGNED = "UNASSIGNED"
+    from app.models.tasks_models import (
+        Task,
+    )  # Import Task model
 
 
 class PurchaseOrder(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    purchase_order_id: str = Field(
-        index=True, unique=True, default_factory=lambda: str(uuid.uuid4())
-    )
-    order_id: str = Field(foreign_key="order.order_id")
-    order: "Order" = Relationship(back_populates="purchase_orders")
-    name: str
-    product: str
-    color: str
-    status: PurchaseOrderStatus = Field(default=PurchaseOrderStatus.NOT_STARTED)
-    purchase_order_unit: PurchaseOrderUnit = Field(default=PurchaseOrderUnit.UNASSIGNED)
-    purchase_order_unit_name: Optional[str] = None
-    dependencies: Optional[str] = Field(default="[]")  # JSON list of purchase_order_ids
-    incoming_chart: Optional[str] = Field(
-        default=None
-    )  # JSON string of size chart data
-    outgoing_chart: Optional[str] = Field(
-        default=None
-    )  # JSON string of updated size chart data
-    special_notes: Optional[str] = Field(
-        default=None, description="Notes specific to this purchase order"
-    )
-    incoming_chart_notes: Optional[str] = Field(default=None)
-    outgoing_chart_notes: Optional[str] = Field(default=None)
+    purchase_order_id: str = Field(index=True, unique=True)
+    number_of_overall_pieces: int
+    types: str
+    colors: str
+    customer_name: str
+    purchase_order_date: datetime
+    start_date: datetime
+    due_date: datetime
+    special_notes: Optional[str] = None
+    tasks: List["Task"] = Relationship(
+        back_populates="purchase_order"
+    )  # Relationship to Task
+    size_chart: Optional[str] = Field(default=None)  # JSON string for size chart
+    task_unit_notes: Optional[str] = Field(default="{}")  # JSON string of notes
 
 
 class PurchaseOrderCreate(SQLModel):
-    order_id: str
-    name: str
-    product: str
-    color: str
-    purchase_order_unit: PurchaseOrderUnit = Field(default=PurchaseOrderUnit.UNASSIGNED)
-    purchase_order_unit_name: Optional[str] = None
-    status: PurchaseOrderStatus = Field(default=PurchaseOrderStatus.NOT_STARTED)
-    dependencies: List[str] = []  # List of purchase_order_ids
+    number_of_overall_pieces: int
+    types: str
+    colors: str
+    customer_name: str
+    purchase_order_date: datetime
+    start_date: datetime
+    due_date: datetime
     special_notes: Optional[str] = None
-    incoming_chart_notes: Optional[str] = None
-    outgoing_chart_notes: Optional[str] = None
+    task_unit_notes: Optional[dict] = None
 
 
 class PurchaseOrderUpdate(SQLModel):
-    name: Optional[str] = None
-    product: Optional[str] = None
-    color: Optional[str] = None
-    purchase_order_unit: Optional[PurchaseOrderUnit] = None
-    purchase_order_unit_name: Optional[str] = None
-    status: Optional[PurchaseOrderStatus] = None
-    dependencies: Optional[List[str]] = []  # List of purchase_order_ids
+    number_of_overall_pieces: Optional[int] = None
+    types: Optional[str] = None
+    colors: Optional[str] = None
+    customer_name: Optional[str] = None
+    purchase_order_date: Optional[datetime] = None
+    start_date: Optional[datetime] = None
+    due_date: Optional[datetime] = None
     special_notes: Optional[str] = None
-    incoming_chart_notes: Optional[str] = None
-    outgoing_chart_notes: Optional[str] = None
+    size_chart: Optional[str] = Field(default=None)
+    task_unit_notes: Optional[dict] = None
+
+
+class PurchaseOrderMetadata(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    category: str  # e.g., 'color', 'type', 'product'
+    value: str  # e.g., 'Red', 'Pant', etc.
+
+    __table_args__ = (UniqueConstraint("category", "value"),)

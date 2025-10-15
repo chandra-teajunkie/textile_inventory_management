@@ -5,19 +5,17 @@ import pandas as pd
 from io import StringIO
 from typing import Optional
 from sqlmodel import Session
-from app.models.orders_models import OrderMetadata
-from app.models.purchase_orders_models import PurchaseOrderUnit
+from app.models.purchase_orders_models import PurchaseOrderMetadata
+from app.models.tasks_models import TaskUnit
 import json
 
 
-def initialize_purchase_unit_notes(input_notes: Optional[dict] = None) -> str:
+def initialize_task_unit_notes(input_notes: Optional[dict] = None) -> str:
     """
-    Ensure notes exist for all PurchaseOrderUnit members.
+    Ensure notes exist for all TaskUnit members.
     """
     input_notes = input_notes or {}
-    notes_dict = {
-        unit.value: input_notes.get(unit.value, "") for unit in PurchaseOrderUnit
-    }
+    notes_dict = {unit.value: input_notes.get(unit.value, "") for unit in TaskUnit}
     return json.dumps(notes_dict)
 
 
@@ -45,16 +43,17 @@ async def process_size_chart(size_chart_file: Optional[UploadFile]) -> Optional[
     return None
 
 
-def update_order_metadata_if_new(category: str, value: str, session: Session):
+def update_purchase_order_metadata_if_new(category: str, value: str, session: Session):
     category = category.strip().lower()
     value = value.strip().lower()
 
     existing = session.exec(
-        select(OrderMetadata).where(
-            OrderMetadata.category == category, OrderMetadata.value == value
+        select(PurchaseOrderMetadata).where(
+            PurchaseOrderMetadata.category == category,
+            PurchaseOrderMetadata.value == value,
         )
     ).first()
     if not existing:
-        metadata = OrderMetadata(category=category, value=value)
+        metadata = PurchaseOrderMetadata(category=category, value=value)
         session.add(metadata)
         session.commit()
