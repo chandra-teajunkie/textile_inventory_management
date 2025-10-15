@@ -1,0 +1,43 @@
+# values.yaml
+replicaCount: 1
+
+image:
+  backend:
+    repository: textile-inventory-management-backend
+    tag: latest
+    pullPolicy: Never
+  frontend:
+    repository: textile-inventory-management-frontend
+    tag: latest
+    pullPolicy: Never
+
+service:
+  backend:
+    port: 3002
+  frontend:
+    port: 3000
+    type: ClusterIP
+
+postgres:
+  host: textile-cnpg-cluster-rw
+  port: 5432
+  database: sidhu_textiles_db
+  username: sidhu_textiles_user
+  password: sidhu_textiles_pass
+  secretName: textile-cnpg-db-user
+
+resources:
+  backend:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  frontend:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
