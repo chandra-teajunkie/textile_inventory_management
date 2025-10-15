@@ -359,7 +359,11 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
             options={allTasks.map((t) => ({ value: t.purchase_order_id, label: t.name }))}
             placeholder="Select Dependencies"
             menuPlacement="top"
+            isDisabled={selectedCombinations.length > 1}
           />
+          {selectedCombinations.length > 1 && (
+            <Form.Text className="text-muted">Dependencies are disabled when creating multiple product-color tasks to avoid incorrect cross-task links. Set dependencies after creating tasks if needed.</Form.Text>
+          )}
         </Form.Group>
 
         {/* Preview section */}

@@ -766,14 +766,14 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
             <FaFileCsv className="me-1" />
             CSV
           </Button>
-          <Button onClick={handleExportXLSX} variant="outline-secondary" size="sm">
+          {/* <Button onClick={handleExportXLSX} variant="outline-secondary" size="sm">
             <FaFileExcel className="me-1" />
             Excel
           </Button>
           <Button onClick={handlePrint} variant="outline-dark" size="sm">
             <FaPrint className="me-1" />
             Print
-          </Button>
+          </Button> */}
         </div>
       </div>
 
