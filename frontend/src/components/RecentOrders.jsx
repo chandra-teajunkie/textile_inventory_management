@@ -76,11 +76,16 @@ function RecentOrders({ orders = [], toast }) {
                     <i className="bi bi-journal-text"></i>
                   </Badge>
                 )}
-                {(order.purchase_unit_notes && parseJsonSafe(order.purchase_unit_notes).PROCUREMENT && parseJsonSafe(order.purchase_unit_notes).PROCUREMENT.trim() !== "") && (
-                  <Badge bg="secondary" title={`PROCUREMENT Notes: ${parseJsonSafe(order.purchase_unit_notes).PROCUREMENT}`}>
-                    <i className="bi bi-card-text"></i>
-                  </Badge>
-                )}
+                {order.purchase_unit_notes && (() => {
+                  const notes = parseJsonSafe(order.purchase_unit_notes, {})
+                  const hasAny = Object.values(notes).some(n => n && `${n}`.trim() !== "")
+                  if (!hasAny) return null
+                  return (
+                    <Badge bg="secondary" title={`Unit Notes`}>
+                      <i className="bi bi-card-text"></i>
+                    </Badge>
+                  )
+                })()}
               </td>
               <td className="text-end">
                 <Dropdown align="end">

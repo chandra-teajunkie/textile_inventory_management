@@ -38,19 +38,50 @@ function OrderList({ toast, setActiveTab }) {
       }
 
       const data = await response.json()
-      setOrders(data)
+
+      // Helper to coerce various date representations into an ISO string or null
+      const parseOrderDate = (val) => {
+        if (!val && val !== 0) return null
+        if (typeof val === "number") {
+          const d = new Date(val)
+          return isNaN(d.getTime()) ? null : d.toISOString()
+        }
+        if (typeof val === "string") {
+          const d = new Date(val)
+          return isNaN(d.getTime()) ? null : d.toISOString()
+        }
+        if (val instanceof Date) {
+          return isNaN(val.getTime()) ? null : val.toISOString()
+        }
+        return null
+      }
+
+      // Normalize order fields: backend may return `purchase_order_id` and `purchase_order_date`.
+      // Frontend expects `order_id` and `order_date`. Also consolidate unit-level notes field names.
+      const normalized = data.map((o) => {
+        const parsedDate = parseOrderDate(o.order_date) || parseOrderDate(o.purchase_order_date)
+        return {
+          ...o,
+          order_id: o.order_id || o.purchase_order_id,
+          order_date: parsedDate,
+          // backend may sometimes store unit notes as `purchase_unit_notes` or `task_unit_notes`
+          purchase_unit_notes: o.purchase_unit_notes || o.task_unit_notes || "{}",
+        }
+      })
+      setOrders(normalized)
 
       // NEW FEATURE: Automatically fetch tasks for all loaded orders
-      if (data.length > 0) {
-        const taskPromises = data.map(order =>
-          fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id}`)
-            .then(res => res.ok ? res.json() : []) // Gracefully handle if a task fetch fails
-            .then(tasks => ({ [order.order_id]: tasks }))
-        );
+      if (normalized.length > 0) {
+        const taskPromises = normalized.map((order) => {
+          const orderId = order.order_id || order.purchase_order_id || order.id
+          return fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${orderId}`)
+            .then((res) => (res.ok ? res.json() : []))
+            .then((tasks) => ({ [orderId]: tasks }))
+        })
 
-        const taskResults = await Promise.all(taskPromises);
-        const newTaskMap = Object.assign({}, ...taskResults); // Combine results into a single map
-        setTaskMap(newTaskMap);
+        const taskResults = await Promise.all(taskPromises)
+        const newTaskMap = Object.assign({}, ...taskResults) // Combine results into a single map
+        setTaskMap(newTaskMap)
       }
 
     } catch (err) {
@@ -91,7 +122,8 @@ function OrderList({ toast, setActiveTab }) {
 
   const fetchTasksForOrder = async (orderId) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${orderId}`)
+  const normalizedId = orderId || (orderId === 0 ? 0 : null)
+  const response = await fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${normalizedId}`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)
@@ -290,7 +322,7 @@ function OrderList({ toast, setActiveTab }) {
                           {/* <td className="fw-medium">{order.order_id}</td> */}
                           <td>{order.customer_name.toUpperCase()}</td>
                           <td>{order.types}</td>
-                          <td>{new Date(order.order_date).toLocaleDateString()}</td>
+                                    <td>{order.order_date ? new Date(order.order_date).toLocaleDateString() : "—"}</td>
                           <td>
                             <Badge bg={getStatusColor(order.status || "Processing")}>
                               {order.status || "Processing"}
@@ -356,7 +388,7 @@ function OrderList({ toast, setActiveTab }) {
                               );
 
                               return (
-                                <OverlayTrigger trigger="click" placement="bottom" overlay={popover}>
+                                <OverlayTrigger trigger="click" placement="bottom" overlay={popover} rootClose>
                                   <Badge bg="secondary" className="me-1" style={{ cursor: "pointer" }}>
                                     <i className="bi bi-card-text"></i>
                                   </Badge>
@@ -452,7 +484,7 @@ function OrderList({ toast, setActiveTab }) {
                                   <ul className="list-group">
                                     {taskMap[order.order_id].map((task) => (
                                       <li
-                                        key={task.purchase_order_id}
+                                        key={task.task_id}
                                         className="list-group-item d-flex justify-content-between align-items-center"
                                       >
                                         <div>
@@ -523,7 +555,7 @@ function OrderList({ toast, setActiveTab }) {
                   fetchTasksForOrder={fetchTasksForOrder}
                   onUpdate={() => {
                     // const updatedTasks = taskMap[expandedOrderId].map(t =>
-                    //   t.purchase_order_id === updatedTask.purchase_order_id ? updatedTask : t
+                    //   t.task_id === updatedTask.task_id ? updatedTask : t
                     // );
                     // setTaskMap(prev => ({ ...prev, [expandedOrderId]: updatedTasks }));
                     setShowEditModal(false);

@@ -16,18 +16,16 @@ function InventoryOverview({ toast }) {
         const res = await fetch(INVENTORY_API_BASE)
         if (!res.ok) throw new Error(`Failed to load inventory: ${res.status}`)
         const data = await res.json()
-        // Map backend fields (inventory_id) to id to keep the UI consistent
-        const mapped = data.map(item => ({
+        // Map backend Inventory model fields directly to UI state
+        const mapped = data.map((item) => ({
           id: item.inventory_id || item.id,
-          name: item.name,
-          category: item.category,
-          inStock: item.in_stock ?? item.inStock ?? 0,
-          unit: item.unit || "pcs",
-          minStock: item.min_stock ?? item.minStock ?? 0,
-          maxStock: item.max_stock ?? item.maxStock ?? 100,
-          reorderPoint: item.reorder_point ?? item.reorderPoint ?? 0,
-          location: item.location || "",
-          lastUpdated: item.last_updated || item.lastUpdated || new Date().toISOString().split("T")[0],
+          storage_location: item.storage_location || "",
+          material_type: item.material_type || "",
+          color: item.color || "",
+          quantity_weight: item.quantity_weight ?? 0,
+          quantity_bags: item.quantity_bags ?? null,
+          weight_per_bag: item.weight_per_bag ?? null,
+          material: item.material || "",
         }))
         setInventory(mapped)
       } catch (err) {
@@ -44,30 +42,29 @@ function InventoryOverview({ toast }) {
   const [showUpdateModal, setShowUpdateModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
   const [newItem, setNewItem] = useState({
-    name: "",
-    category: "Fabric",
-    inStock: 0,
-    unit: "yards",
-    minStock: 0,
-    maxStock: 100,
-    reorderPoint: 25,
-    location: "",
+    // Backend InventoryCreate fields
+    material: "",
+    material_type: "Fabric",
+    color: "",
+    quantity_weight: 0,
+    quantity_bags: null,
+    weight_per_bag: null,
+    storage_location: "",
   })
 
+  // Simple helper to format quantity
+  const formatQuantity = (q) => (q === null || typeof q === "undefined" ? "-" : q)
+
+  // Stock status helpers (fallback when no min/max data available)
   const getStockStatus = (item) => {
-    if (item.inStock <= item.minStock) {
-      return { status: "Low Stock", color: "danger" }
-    } else if (item.inStock <= item.reorderPoint) {
-      return { status: "Reorder Soon", color: "warning" }
-    } else if (item.inStock >= item.maxStock) {
-      return { status: "Overstocked", color: "info" }
-    } else {
-      return { status: "In Stock", color: "success" }
-    }
+    const q = Number(item.quantity_weight || 0)
+    if (q <= 0) return { status: "Out of Stock", color: "danger" }
+    return { status: "In Stock", color: "success" }
   }
 
   const getStockPercentage = (item) => {
-    return Math.min(Math.round((item.inStock / item.maxStock) * 100), 100)
+    const q = Number(item.quantity_weight || 0)
+    return q > 0 ? 100 : 0
   }
 
   const handleSearch = (e) => {
@@ -76,7 +73,7 @@ function InventoryOverview({ toast }) {
 
   const handleAddItem = () => {
     // Validate form
-    if (!newItem.name || !newItem.category || !newItem.location) {
+    if (!newItem.material || !newItem.material_type || !newItem.storage_location) {
       toast.current.show({
         severity: "warn",
         summary: "Warning",
@@ -87,15 +84,15 @@ function InventoryOverview({ toast }) {
     }
 
     const create = async () => {
+      // Map frontend form to backend InventoryCreate model
       const payload = {
-        name: newItem.name,
-        category: newItem.category,
-        in_stock: newItem.inStock,
-        unit: newItem.unit,
-        min_stock: newItem.minStock,
-        max_stock: newItem.maxStock,
-        reorder_point: newItem.reorderPoint,
-        location: newItem.location,
+        storage_location: newItem.storage_location || "",
+        material_type: newItem.material_type || "",
+        color: newItem.color || "",
+        quantity_weight: Number(newItem.quantity_weight || 0),
+        quantity_bags: newItem.quantity_bags ? Number(newItem.quantity_bags) : null,
+        weight_per_bag: newItem.weight_per_bag ? Number(newItem.weight_per_bag) : null,
+        material: newItem.material || "",
       }
 
       try {
@@ -108,17 +105,16 @@ function InventoryOverview({ toast }) {
         if (!res.ok) throw new Error(`Create failed: ${res.status}`)
 
         const created = await res.json()
+        // Map backend Inventory model to UI-friendly fields
         const mapped = {
           id: created.inventory_id || created.id,
-          name: created.name,
-          category: created.category,
-          inStock: created.in_stock ?? created.inStock ?? newItem.inStock,
-          unit: created.unit || newItem.unit,
-          minStock: created.min_stock ?? created.minStock ?? newItem.minStock,
-          maxStock: created.max_stock ?? created.maxStock ?? newItem.maxStock,
-          reorderPoint: created.reorder_point ?? created.reorderPoint ?? newItem.reorderPoint,
-          location: created.location || newItem.location,
-          lastUpdated: created.last_updated || created.lastUpdated || new Date().toISOString().split("T")[0],
+          storage_location: created.storage_location || "",
+          material_type: created.material_type || "",
+          color: created.color || "",
+          quantity_weight: created.quantity_weight ?? 0,
+          quantity_bags: created.quantity_bags ?? null,
+          weight_per_bag: created.weight_per_bag ?? null,
+          material: created.material || "",
         }
 
         setInventory((prev) => [mapped, ...prev])
@@ -131,16 +127,15 @@ function InventoryOverview({ toast }) {
           lastUpdated: new Date().toISOString().split("T")[0],
         }
         setInventory((prev) => [...prev, itemToAdd])
-      } finally {
+        } finally {
         setNewItem({
-          name: "",
-          category: "Fabric",
-          inStock: 0,
-          unit: "yards",
-          minStock: 0,
-          maxStock: 100,
-          reorderPoint: 25,
-          location: "",
+          material: "",
+          material_type: "Fabric",
+          color: "",
+          quantity_weight: 0,
+          quantity_bags: null,
+          weight_per_bag: null,
+          storage_location: "",
         })
         setShowAddModal(false)
         toast.current.show({
@@ -158,17 +153,17 @@ function InventoryOverview({ toast }) {
   const handleUpdateItem = () => {
     if (!selectedItem) return
 
-    const update = async () => {
+        const update = async () => {
       try {
+        // Patch payload uses backend InventoryUpdate fields
         const payload = {
-          name: selectedItem.name,
-          category: selectedItem.category,
-          in_stock: selectedItem.inStock,
-          unit: selectedItem.unit,
-          min_stock: selectedItem.minStock,
-          max_stock: selectedItem.maxStock,
-          reorder_point: selectedItem.reorderPoint,
-          location: selectedItem.location,
+          storage_location: selectedItem.storage_location || "",
+          material_type: selectedItem.material_type || "",
+          color: selectedItem.color || "",
+          quantity_weight: Number(selectedItem.quantity_weight ?? 0),
+          quantity_bags: selectedItem.quantity_bags ? Number(selectedItem.quantity_bags) : null,
+          weight_per_bag: selectedItem.weight_per_bag ? Number(selectedItem.weight_per_bag) : null,
+          material: selectedItem.material || "",
         }
 
         const res = await fetch(`${INVENTORY_API_BASE}${selectedItem.id}`, {
@@ -182,15 +177,13 @@ function InventoryOverview({ toast }) {
         const updated = await res.json()
         const mapped = {
           id: updated.inventory_id || updated.id || selectedItem.id,
-          name: updated.name || selectedItem.name,
-          category: updated.category || selectedItem.category,
-          inStock: updated.in_stock ?? updated.inStock ?? selectedItem.inStock,
-          unit: updated.unit || selectedItem.unit,
-          minStock: updated.min_stock ?? updated.minStock ?? selectedItem.minStock,
-          maxStock: updated.max_stock ?? updated.maxStock ?? selectedItem.maxStock,
-          reorderPoint: updated.reorder_point ?? updated.reorderPoint ?? selectedItem.reorderPoint,
-          location: updated.location || selectedItem.location,
-          lastUpdated: updated.last_updated || updated.lastUpdated || new Date().toISOString().split("T")[0],
+          storage_location: updated.storage_location || selectedItem.storage_location || "",
+          material_type: updated.material_type || selectedItem.material_type || "",
+          color: updated.color || selectedItem.color || "",
+          quantity_weight: updated.quantity_weight ?? selectedItem.quantity_weight ?? 0,
+          quantity_bags: typeof updated.quantity_bags !== "undefined" ? updated.quantity_bags : selectedItem.quantity_bags,
+          weight_per_bag: typeof updated.weight_per_bag !== "undefined" ? updated.weight_per_bag : selectedItem.weight_per_bag,
+          material: updated.material || selectedItem.material || "",
         }
 
         setInventory((prev) => prev.map((i) => (i.id === selectedItem.id ? mapped : i)))
@@ -256,13 +249,14 @@ function InventoryOverview({ toast }) {
   }
 
   const filteredInventory = inventory
-    .filter((item) => filterCategory === "all" || item.category === filterCategory)
-    .filter(
-      (item) =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
+    .filter((item) => filterCategory === "all" || item.material_type === filterCategory)
+    .filter((item) => {
+      const q = (searchTerm || "").toLowerCase()
+      const mat = (item.material || "").toLowerCase()
+      const mid = (item.id || "").toLowerCase()
+      const mtype = (item.material_type || "").toLowerCase()
+      return mat.includes(q) || mid.includes(q) || mtype.includes(q)
+    })
 
   return (
     <div className="p-4">
@@ -338,9 +332,9 @@ function InventoryOverview({ toast }) {
               <thead>
                 <tr>
                   <th>Item Code</th>
-                  <th>Name</th>
-                  <th>Category</th>
-                  <th>In Stock</th>
+            <th>Material</th>
+              <th>Type</th>
+              <th>Quantity (kg)</th>
                   <th>Status</th>
                   <th>Stock Level</th>
                   <th className="text-end">Actions</th>
@@ -354,11 +348,9 @@ function InventoryOverview({ toast }) {
                   return (
                     <tr key={item.id}>
                       <td className="fw-medium">{item.id}</td>
-                      <td>{item.name}</td>
-                      <td>{item.category}</td>
-                      <td>
-                        {item.inStock} {item.unit}
-                      </td>
+                      <td>{item.material}</td>
+                      <td>{item.material_type}</td>
+                      <td>{formatQuantity(item.quantity_weight)}</td>
                       <td>
                         <Badge bg={stockStatus.color}>{stockStatus.status}</Badge>
                       </td>
@@ -405,21 +397,21 @@ function InventoryOverview({ toast }) {
         <Modal.Body>
           <Form>
             <Form.Group className="mb-3">
-              <Form.Label>Item Name <span className="text-danger">*</span></Form.Label>
+              <Form.Label>Material <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 type="text"
-                value={newItem.name}
-                onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                placeholder="Enter item name"
+                value={newItem.material}
+                onChange={(e) => setNewItem({ ...newItem, material: e.target.value })}
+                placeholder="Yarn, Cotton, etc."
                 required
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Category <span className="text-danger">*</span></Form.Label>
+              <Form.Label>Type <span className="text-danger">*</span></Form.Label>
               <Form.Select
-                value={newItem.category}
-                onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
+                value={newItem.material_type}
+                onChange={(e) => setNewItem({ ...newItem, material_type: e.target.value })}
                 required
               >
                 <option value="Fabric">Fabric</option>
@@ -432,24 +424,19 @@ function InventoryOverview({ toast }) {
             <Row className="mb-3">
               <Col>
                 <Form.Group>
-                  <Form.Label>Initial Stock</Form.Label>
+                  <Form.Label>Quantity (kg)</Form.Label>
                   <Form.Control
                     type="number"
-                    value={newItem.inStock}
-                    onChange={(e) => setNewItem({ ...newItem, inStock: Number.parseInt(e.target.value) || 0 })}
+                    step="0.01"
+                    value={newItem.quantity_weight}
+                    onChange={(e) => setNewItem({ ...newItem, quantity_weight: parseFloat(e.target.value) || 0 })}
                   />
                 </Form.Group>
               </Col>
               <Col>
                 <Form.Group>
-                  <Form.Label>Unit</Form.Label>
-                  <Form.Select value={newItem.unit} onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}>
-                    <option value="yards">yards</option>
-                    <option value="meters">meters</option>
-                    <option value="pcs">pcs</option>
-                    <option value="spools">spools</option>
-                    <option value="kg">kg</option>
-                  </Form.Select>
+                  <Form.Label>Color</Form.Label>
+                  <Form.Control type="text" value={newItem.color} onChange={(e) => setNewItem({ ...newItem, color: e.target.value })} />
                 </Form.Group>
               </Col>
             </Row>
@@ -457,42 +444,33 @@ function InventoryOverview({ toast }) {
             <Row className="mb-3">
               <Col>
                 <Form.Group>
-                  <Form.Label>Min Stock</Form.Label>
+                  <Form.Label>Quantity (bags)</Form.Label>
                   <Form.Control
                     type="number"
-                    value={newItem.minStock}
-                    onChange={(e) => setNewItem({ ...newItem, minStock: Number.parseInt(e.target.value) || 0 })}
+                    value={newItem.quantity_bags ?? ""}
+                    onChange={(e) => setNewItem({ ...newItem, quantity_bags: e.target.value ? parseInt(e.target.value) : null })}
                   />
                 </Form.Group>
               </Col>
               <Col>
                 <Form.Group>
-                  <Form.Label>Max Stock</Form.Label>
+                  <Form.Label>Weight per bag</Form.Label>
                   <Form.Control
                     type="number"
-                    value={newItem.maxStock}
-                    onChange={(e) => setNewItem({ ...newItem, maxStock: Number.parseInt(e.target.value) || 0 })}
-                  />
-                </Form.Group>
-              </Col>
-              <Col>
-                <Form.Group>
-                  <Form.Label>Reorder Point</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={newItem.reorderPoint}
-                    onChange={(e) => setNewItem({ ...newItem, reorderPoint: Number.parseInt(e.target.value) || 0 })}
+                    step="0.01"
+                    value={newItem.weight_per_bag ?? ""}
+                    onChange={(e) => setNewItem({ ...newItem, weight_per_bag: e.target.value ? parseFloat(e.target.value) : null })}
                   />
                 </Form.Group>
               </Col>
             </Row>
 
             <Form.Group className="mb-3">
-              <Form.Label>Location <span className="text-danger">*</span></Form.Label>
+              <Form.Label>Storage Location <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 type="text"
-                value={newItem.location}
-                onChange={(e) => setNewItem({ ...newItem, location: e.target.value })}
+                value={newItem.storage_location}
+                onChange={(e) => setNewItem({ ...newItem, storage_location: e.target.value })}
                 placeholder="Warehouse A, Shelf 1"
                 required
               />
@@ -515,7 +493,7 @@ function InventoryOverview({ toast }) {
           <Modal.Title>Update Inventory Item</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {selectedItem && (
+              {selectedItem && (
             <Form>
               <Form.Group className="mb-3">
                 <Form.Label>Item ID</Form.Label>
@@ -523,19 +501,19 @@ function InventoryOverview({ toast }) {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label>Item Name</Form.Label>
+                <Form.Label>Material <span className="text-danger">*</span></Form.Label>
                 <Form.Control
                   type="text"
-                  value={selectedItem.name}
-                  onChange={(e) => setSelectedItem({ ...selectedItem, name: e.target.value })}
+                  value={selectedItem.material}
+                  onChange={(e) => setSelectedItem({ ...selectedItem, material: e.target.value })}
                 />
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label>Category <span className="text-danger">*</span></Form.Label>
+                <Form.Label>Type <span className="text-danger">*</span></Form.Label>
                 <Form.Select
-                  value={selectedItem.category}
-                  onChange={(e) => setSelectedItem({ ...selectedItem, category: e.target.value })}
+                  value={selectedItem.material_type}
+                  onChange={(e) => setSelectedItem({ ...selectedItem, material_type: e.target.value })}
                   required
                 >
                   <option value="Fabric">Fabric</option>
@@ -548,29 +526,20 @@ function InventoryOverview({ toast }) {
               <Row className="mb-3">
                 <Col>
                   <Form.Group>
-                    <Form.Label>Current Stock <span className="text-danger">*</span></Form.Label>
+                    <Form.Label>Quantity (kg) <span className="text-danger">*</span></Form.Label>
                     <Form.Control
                       type="number"
-                      value={selectedItem.inStock}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, inStock: Number.parseInt(e.target.value) || 0 })}
+                      step="0.01"
+                      value={selectedItem.quantity_weight}
+                      onChange={(e) => setSelectedItem({ ...selectedItem, quantity_weight: parseFloat(e.target.value) || 0 })}
                       required
                     />
                   </Form.Group>
                 </Col>
                 <Col>
                   <Form.Group>
-                    <Form.Label>Unit <span className="text-danger">*</span></Form.Label>
-                    <Form.Select
-                      value={selectedItem.unit}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, unit: e.target.value })}
-                      required
-                    >
-                      <option value="yards">yards</option>
-                      <option value="meters">meters</option>
-                      <option value="pcs">pcs</option>
-                      <option value="spools">spools</option>
-                      <option value="kg">kg</option>
-                    </Form.Select>
+                    <Form.Label>Color</Form.Label>
+                    <Form.Control type="text" value={selectedItem.color} onChange={(e) => setSelectedItem({ ...selectedItem, color: e.target.value })} />
                   </Form.Group>
                 </Col>
               </Row>
@@ -578,45 +547,33 @@ function InventoryOverview({ toast }) {
               <Row className="mb-3">
                 <Col>
                   <Form.Group>
-                    <Form.Label>Min Stock <span className="text-danger">*</span></Form.Label>
+                    <Form.Label>Quantity (bags)</Form.Label>
                     <Form.Control
                       type="number"
-                      value={selectedItem.minStock}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, minStock: Number.parseInt(e.target.value) || 0 })}
-                      required
+                      value={selectedItem.quantity_bags ?? ""}
+                      onChange={(e) => setSelectedItem({ ...selectedItem, quantity_bags: e.target.value ? parseInt(e.target.value) : null })}
                     />
                   </Form.Group>
                 </Col>
                 <Col>
                   <Form.Group>
-                    <Form.Label>Max Stock <span className="text-danger">*</span></Form.Label>
+                    <Form.Label>Weight per bag</Form.Label>
                     <Form.Control
                       type="number"
-                      value={selectedItem.maxStock}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, maxStock: Number.parseInt(e.target.value) || 0 })}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col>
-                  <Form.Group>
-                    <Form.Label>Reorder Point <span className="text-danger">*</span></Form.Label>
-                    <Form.Control
-                      type="number"
-                      value={selectedItem.reorderPoint}
-                      onChange={(e) => setSelectedItem({ ...selectedItem, reorderPoint: Number.parseInt(e.target.value) || 0 })}
-                      required
+                      step="0.01"
+                      value={selectedItem.weight_per_bag ?? ""}
+                      onChange={(e) => setSelectedItem({ ...selectedItem, weight_per_bag: e.target.value ? parseFloat(e.target.value) : null })}
                     />
                   </Form.Group>
                 </Col>
               </Row>
 
               <Form.Group className="mb-3">
-                <Form.Label>Location <span className="text-danger">*</span></Form.Label>
+                <Form.Label>Storage Location <span className="text-danger">*</span></Form.Label>
                 <Form.Control
                   type="text"
-                  value={selectedItem.location}
-                  onChange={(e) => setSelectedItem({ ...selectedItem, location: e.target.value })}
+                  value={selectedItem.storage_location}
+                  onChange={(e) => setSelectedItem({ ...selectedItem, storage_location: e.target.value })}
                   required
                 />
               </Form.Group>

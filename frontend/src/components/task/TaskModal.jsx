@@ -117,12 +117,12 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
     try {
       const taskPromises = selectedCombinations.map(async (combination) => {
         const payload = {
-          order_id: orderId,
+          purchase_order_id: orderId,
           name: `${taskName} - ${combination.label}`,
           product: combination.product,
           color: combination.color,
-          purchase_order_unit: taskUnit,
-          purchase_order_unit_name: taskUnitName,
+          task_unit: taskUnit,
+          task_unit_name: taskUnitName,
           status,
           dependencies,
           special_notes: specialNotes,
@@ -230,6 +230,7 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
       }}
     >
       <div style={{ maxHeight: "auto", overflow: "auto" }}>
+        {/* Create Task: order-level notes intentionally not shown here (create modal shows task selection notes elsewhere) */}
         <Form.Group className="mb-3">
           <Form.Label>Task Unit</Form.Label>
           <Form.Select value={taskUnit} onChange={(e) => setTaskUnit(e.target.value)}>
@@ -351,12 +352,12 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
             isMulti
             value={dependencies
               .map((dep) => {
-                const task = allTasks.find((t) => t.purchase_order_id === dep)
-                return task ? { value: task.purchase_order_id, label: task.name } : null
-              })
+                  const task = allTasks.find((t) => t.task_id === dep)
+                  return task ? { value: task.task_id, label: task.name } : null
+                })
               .filter(Boolean)}
-            onChange={(selectedOptions) => setDependencies(selectedOptions.map((opt) => opt.value))}
-            options={allTasks.map((t) => ({ value: t.purchase_order_id, label: t.name }))}
+              onChange={(selectedOptions) => setDependencies(selectedOptions.map((opt) => opt.value))}
+              options={allTasks.map((t) => ({ value: t.task_id, label: t.name }))}
             placeholder="Select Dependencies"
             menuPlacement="top"
             isDisabled={selectedCombinations.length > 1}

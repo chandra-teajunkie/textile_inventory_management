@@ -285,7 +285,7 @@ const QuickViewModal = ({ show, onHide, title, items, type }) => {
                                 <div>
                                     <div className="fw-bold">{item.name || item.customer_name}</div>
                                     <small className="text-muted">
-                                        {type === "task" ? `Unit: ${item.purchase_order_unit}` : `Order ID: ${item.order_id}`}
+                                        {type === "task" ? `Unit: ${item.task_unit}` : `Order ID: ${item.order_id}`}
                                     </small>
                                     {item.product && <small className="text-muted"> | Product: {item.product}</small>}
                                     {item.color && <small className="text-muted"> | Color: {item.color}</small>}
@@ -487,7 +487,7 @@ const TaskUnitBarChart = ({ tasks, onBarClick }) => {
     const data = useMemo(() => {
         const unitStats = {}
         TASK_UNITS.forEach((unit) => {
-            const unitTasks = tasks.filter((task) => task.purchase_order_unit === unit)
+            const unitTasks = tasks.filter((task) => task.task_unit === unit || task.purchase_order_unit === unit)
             const completed = unitTasks.filter((t) => t.status === "COMPLETED").length
             const inProgress = unitTasks.filter((t) => t.status === "IN PROGRESS").length
             const blocked = unitTasks.filter((t) => t.status === "BLOCKED").length
@@ -546,7 +546,7 @@ const TaskUnitBarChart = ({ tasks, onBarClick }) => {
 const ProductionProgressChart = ({ tasks, onSegmentClick }) => {
     const data = useMemo(() => {
         return TASK_UNITS.map((unit) => {
-            const unitTasks = tasks.filter((task) => task.purchase_order_unit === unit)
+            const unitTasks = tasks.filter((task) => task.task_unit === unit || task.purchase_order_unit === unit)
             const completed = unitTasks.filter((t) => t.status === "COMPLETED").length
             const total = unitTasks.length
             const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0
@@ -958,7 +958,7 @@ const TaskTimelineChart = ({ orders, dateRange, onDateRangeChange }) => {
                                                                         <div>
                                                                             <div className="fw-bold small">{t.name || t.task_name || `Task ${idx + 1}`}</div>
                                                                             <div className="small text-muted">
-                                                                                Unit: {t.purchase_order_unit || t.unit || "—"}
+                                                                                Unit: {t.task_unit || t.purchase_order_unit || t.unit || "—"}
                                                                             </div>
                                                                         </div>
                                                                         <div className="text-end">
@@ -1014,7 +1014,7 @@ const TaskUnitVisualization = ({ tasks }) => {
     const unitStats = useMemo(() => {
         const stats = {}
         TASK_UNITS.forEach((unit) => {
-            const unitTasks = tasks.filter((task) => task.purchase_order_unit === unit)
+            const unitTasks = tasks.filter((task) => task.task_unit === unit || task.purchase_order_unit === unit)
             const completed = unitTasks.filter((t) => t.status === "COMPLETED").length
             const inProgress = unitTasks.filter((t) => t.status === "IN PROGRESS").length
             const blocked = unitTasks.filter((task) => task.status === "BLOCKED").length
@@ -1244,11 +1244,19 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 const ordersRes = await fetch(process.env.REACT_APP_GET_ALL_ORDERS)
                 if (!ordersRes.ok) throw new Error("Failed to fetch orders")
                 let orders = await ordersRes.json()
+                // Normalize order fields to ensure consistent keys across UI
+                orders = (orders || []).map((o) => ({
+                    ...o,
+                    order_id: o.order_id || o.purchase_order_id || o.id,
+                    purchase_unit_notes: o.purchase_unit_notes || o.task_unit_notes || "{}",
+                    order_date: o.order_date || o.purchase_order_date || o.start_date || null,
+                    due_date: o.due_date || o.purchase_order_due_date || o.due_date || null,
+                }))
                 orders = orders.sort((a, b) => new Date(b.order_date) - new Date(a.order_date))
 
                 // Fetch tasks for each order
                 const tasksPromises = orders.map((order) =>
-                    fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id}`)
+                    fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id || order.purchase_order_id || order.id}`)
                         .then((res) => (res.ok ? res.json() : []))
                         .catch(() => []),
                 )
@@ -1298,7 +1306,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 // Filter tasks first
                 const tasks = order.tasks.filter((task) => {
                     const taskStatusMatch = filterTaskStatus === "all" || task.status === filterTaskStatus
-                    const taskUnitMatch = filterTaskUnit === "all" || task.purchase_order_unit === filterTaskUnit
+                    const taskUnitMatch = filterTaskUnit === "all" || task.task_unit === filterTaskUnit || task.purchase_order_unit === filterTaskUnit
                     return taskStatusMatch && taskUnitMatch
                 })
 
@@ -1412,10 +1420,10 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                             order.isOverdue ? "Yes" : "No",
                             order.isUrgent ? "Yes" : "No",
                             `"${order.types || ""}"`,
-                            task.purchase_order_id,
+                            task.task_id || task.purchase_order_id,
                             `"${task.name}"`,
                             task.status,
-                            task.purchase_order_unit,
+                            task.task_unit || task.purchase_order_unit,
                             task.product || "",
                             task.color || "",
                             `"${dependencies.join(", ")}"`,
@@ -1580,7 +1588,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                             order.due_date ? new Date(order.due_date).toLocaleDateString() : "N/A",
                             order.isOverdue ? "OVERDUE" : order.daysUntilDue > 0 ? `${order.daysUntilDue} days` : "Due",
                             task.name,
-                            task.purchase_order_unit,
+                            task.task_unit || task.purchase_order_unit,
                             task.status,
                         ])
                     })
@@ -1962,7 +1970,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                         }
                       </td>
                       <td>${task.name}</td>
-                      <td>${task.purchase_order_unit}</td>
+                      <td>${task.task_unit || task.purchase_order_unit}</td>
                       <td><span class="badge badge-${getTaskStatusVariant(task.status)}">${task.status}</span></td>
                       <td>${task.product || ""}${task.color ? " - " + task.color : ""}</td>
                     </tr>
@@ -2358,7 +2366,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                                                 )
 
                                                                 return (
-                                                                    <OverlayTrigger trigger="click" placement="bottom" overlay={popover}>
+                                                                    <OverlayTrigger trigger="click" placement="bottom" overlay={popover} rootClose>
                                                                         <Badge bg="secondary" className="me-1" style={{ cursor: "pointer" }}>
                                                                             <i className="bi bi-card-text"></i>
                                                                         </Badge>
@@ -2412,12 +2420,12 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                                                         <tbody>
                                                                             {order.tasks.map((task) => (
                                                                                 <tr
-                                                                                    key={task.purchase_order_id}
+                                                                                    key={task.task_id || task.purchase_order_id}
                                                                                     className={task.status === "BLOCKED" ? "table-danger" : ""}
                                                                                 >
                                                                                     <td>
                                                                                         <div className="fw-medium">{task.name}</div>
-                                                                                        <small className="text-muted">ID: {task.purchase_order_id}</small>
+                                                                                        <small className="text-muted">ID: {task.task_id || task.purchase_order_id}</small>
                                                                                         {task.status === "BLOCKED" && (
                                                                                             <div>
                                                                                                 <Badge bg="danger" className="small">
@@ -2428,9 +2436,9 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                                                                         )}
                                                                                     </td>
                                                                                     <td>
-                                                                                        <Badge bg={getTaskUnitVariant(task.purchase_order_unit)}>
-                                                                                            {getTaskUnitIcon(task.purchase_order_unit)}
-                                                                                            {task.purchase_order_unit}
+                                                                                        <Badge bg={getTaskUnitVariant(task.task_unit || task.purchase_order_unit)}>
+                                                                                            {getTaskUnitIcon(task.task_unit || task.purchase_order_unit)}
+                                                                                            {task.task_unit || task.purchase_order_unit}
                                                                                         </Badge>
                                                                                     </td>
                                                                                     <td>

@@ -183,16 +183,18 @@ function OrderForm({ toast }) {
             types: form.types.join(", "), // Join with commas
             colors: form.colors.join(", "), // Join with commas
             customer_name: form.customer_name,
-            order_date: form.orderDate.toISOString(),
+            purchase_order_date: form.orderDate.toISOString(),
             start_date: form.startDate.toISOString(),
             due_date: form.dueDate.toISOString(),
             special_notes: form.specialNotes,
-            purchase_unit_notes: form.purchase_unit_notes,
+            task_unit_notes: form.purchase_unit_notes,
         }
 
         try {
             const formData = new FormData()
-            formData.append("order", JSON.stringify(orderPayload))
+            // Backend expects a form field named 'purchase_order' containing a JSON string
+            formData.append("purchase_order", JSON.stringify(orderPayload))
+            // size_chart_json is accepted by backend as an optional form field
             formData.append("size_chart_json", JSON.stringify(sizeChartData))
 
             console.log("Order payload:", orderPayload)
@@ -206,7 +208,8 @@ function OrderForm({ toast }) {
 
             if (response.ok) {
                 const result = await response.json()
-                showToast("success", "Success", `Order created successfully with ID: ${result.order_id}`)
+                // Backend returns purchase_order_id
+                showToast("success", "Success", `Order created successfully with ID: ${result.purchase_order_id}`)
 
                 // Reset form
                 setForm({

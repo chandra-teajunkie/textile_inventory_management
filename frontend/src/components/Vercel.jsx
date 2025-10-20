@@ -246,7 +246,7 @@ const TaskUnitVisualization = ({ tasks = [] }) => {
     const unitStats = useMemo(() => {
         const stats = {}
         TASK_UNITS.forEach((unit) => {
-            const unitTasks = tasks.filter((task) => task.purchase_order_unit === unit)
+            const unitTasks = tasks.filter((task) => task.task_unit === unit)
             const completed = unitTasks.filter((task) => task.status === "COMPLETED").length
             const inProgress = unitTasks.filter((task) => task.status === "IN PROGRESS").length
             const blocked = unitTasks.filter((task) => task.status === "BLOCKED").length
@@ -382,7 +382,7 @@ const ConsolidatedOverview = ({ toast }) => {
 
                 // Fetch tasks for each order
                 const tasksPromises = orders.map((order) =>
-                    fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id}`)
+                    fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id || order.purchase_order_id || order.id}`)
                         .then((res) => (res.ok ? res.json() : []))
                         .catch(() => []),
                 )
@@ -422,7 +422,7 @@ const ConsolidatedOverview = ({ toast }) => {
                 // Filter tasks first
                 const tasks = order.tasks.filter((task) => {
                     const taskStatusMatch = filterTaskStatus === "all" || task.status === filterTaskStatus
-                    const taskUnitMatch = filterTaskUnit === "all" || task.purchase_order_unit === filterTaskUnit
+                    const taskUnitMatch = filterTaskUnit === "all" || task.task_unit === filterTaskUnit
                     return taskStatusMatch && taskUnitMatch
                 })
 
@@ -481,10 +481,10 @@ const ConsolidatedOverview = ({ toast }) => {
                             new Date(order.order_date).toLocaleDateString(),
                             order.status || "Processing",
                             `"${order.types || ""}"`,
-                            task.purchase_order_id,
+                            task.task_id || task.purchase_order_id,
                             `"${task.name}"`,
                             task.status,
-                            task.purchase_order_unit,
+                            task.task_unit || task.purchase_order_unit,
                             task.product || "",
                             task.color || "",
                             `"${dependencies.join(", ")}"`,
@@ -567,7 +567,7 @@ const ConsolidatedOverview = ({ toast }) => {
                             new Date(order.order_date).toLocaleDateString(),
                             order.status || "Processing",
                             task.name,
-                            task.purchase_order_unit,
+                            task.task_unit || task.purchase_order_unit,
                             task.status,
                         ])
                     })
@@ -723,7 +723,7 @@ const ConsolidatedOverview = ({ toast }) => {
                       <td>${new Date(order.order_date).toLocaleDateString()}</td>
                       <td><span class="badge badge-${getOrderStatusVariant(order.status || "Processing")}">${order.status || "Processing"}</span></td>
                       <td>${task.name}</td>
-                      <td>${task.purchase_order_unit}</td>
+                            <td>${task.task_unit || task.purchase_order_unit}</td>
                       <td><span class="badge badge-${getTaskStatusVariant(task.status)}">${task.status}</span></td>
                       <td>${task.product || ""}${task.color ? " - " + task.color : ""}</td>
                     </tr>
@@ -1069,18 +1069,18 @@ const ConsolidatedOverview = ({ toast }) => {
                                                                             </tr>
                                                                         </thead>
                                                                         <tbody>
-                                                                            {order.tasks.map((task) => (
-                                                                                <tr key={task.purchase_order_id}>
-                                                                                    <td>
-                                                                                        <div className="fw-medium">{task.name}</div>
-                                                                                        <small className="text-muted">ID: {task.purchase_order_id}</small>
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        <Badge bg={getTaskUnitVariant(task.purchase_order_unit)}>
-                                                                                            {getTaskUnitIcon(task.purchase_order_unit)}
-                                                                                            {task.purchase_order_unit}
-                                                                                        </Badge>
-                                                                                    </td>
+                                                                                                                                    {order.tasks.map((task) => (
+                                                                                                                                        <tr key={task.task_id || task.purchase_order_id}>
+                                                                                                                                            <td>
+                                                                                                                                                <div className="fw-medium">{task.name}</div>
+                                                                                                                                                <small className="text-muted">ID: {task.task_id || task.purchase_order_id}</small>
+                                                                                                                                            </td>
+                                                                                                                                            <td>
+                                                                                                                                                <Badge bg={getTaskUnitVariant(task.task_unit || task.purchase_order_unit)}>
+                                                                                                                                                    {getTaskUnitIcon(task.task_unit || task.purchase_order_unit)}
+                                                                                                                                                    {task.task_unit || task.purchase_order_unit}
+                                                                                                                                                </Badge>
+                                                                                                                                            </td>
                                                                                     <td>
                                                                                         <Badge bg={getTaskStatusVariant(task.status)}>
                                                                                             {getStatusIcon(task.status)}

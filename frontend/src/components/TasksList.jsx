@@ -33,21 +33,21 @@ function TasksList({ tasks = [], toast }) {
       ? tasks
       : [
           {
-            purchase_order_id: "TASK-1",
+            task_id: "TASK-1",
             name: "Process Order #ORD-1234",
             status: "IN PROGRESS",
             dependencies: "[]",
             special_notes: "This task requires special attention.",
           },
           {
-            purchase_order_id: "TASK-2",
+            task_id: "TASK-2",
             name: "Quality Check for Order #ORD-1233",
             status: "NOT STARTED",
             dependencies: '["TASK-1"]',
             special_notes: "This task is not yet started.",
           },
           {
-            purchase_order_id: "TASK-3",
+            task_id: "TASK-3",
             name: "Restock Cotton Fabric",
             status: "COMPLETED",
             dependencies: "[]",
@@ -58,7 +58,7 @@ function TasksList({ tasks = [], toast }) {
   return (
     <div className="task-list">
       {displayTasks.slice(0, 5).map((task) => (
-        <Card key={task.purchase_order_id} className="mb-3 border-0 shadow-sm">
+  <Card key={task.task_id} className="mb-3 border-0 shadow-sm">
           <Card.Body className="p-3">
             <div className="d-flex justify-content-between align-items-center mb-2">
               <div className="d-flex align-items-center">

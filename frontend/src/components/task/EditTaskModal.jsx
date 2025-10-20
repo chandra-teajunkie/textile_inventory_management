@@ -28,11 +28,12 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
   const [taskName, setTaskName] = useState(task.name)
   const [product, setProduct] = useState(task.product || "")
   const [color, setColor] = useState(task.color || "")
-  const [taskUnit, setTaskUnit] = useState(task.purchase_order_unit || "UNASSIGNED")
+  const [taskUnit, setTaskUnit] = useState(task.task_unit || "UNASSIGNED")
   const [status, setStatus] = useState(task.status)
   const [dependencies, setDependencies] = useState([])
   const [loading, setLoading] = useState(false)
-  const [taskUnitName, setTaskUnitName] = useState(task.purchase_order_unit_name || "")
+  const [taskUnitName, setTaskUnitName] = useState(task.task_unit_name || "")
+  const [specialNotes, setSpecialNotes] = useState(task.special_notes || "")
 
   useEffect(() => {
     if (task.dependencies) {
@@ -42,6 +43,14 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
         setDependencies([])
       }
     }
+    // sync other editable fields when the task prop changes
+    setTaskName(task.name)
+    setProduct(task.product || "")
+    setColor(task.color || "")
+    setTaskUnit(task.task_unit || "UNASSIGNED")
+    setStatus(task.status)
+    setTaskUnitName(task.task_unit_name || "")
+    setSpecialNotes(task.special_notes || "")
   }, [task])
 
   const handleDependencyChange = e => {
@@ -60,16 +69,17 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
       name: taskName,
       product,
       color,
-      purchase_order_unit: taskUnit,
-      purchase_order_unit_name: taskUnitName,
+      task_unit: taskUnit,
+      task_unit_name: taskUnitName,
       status,
-      dependencies
+      dependencies,
+      special_notes: specialNotes
     }
-    setLoading(true)
-    console.log(payload, `${process.env.REACT_APP_PATCH_ALL_TASKS}${task.purchase_order_id}`, task)
+  setLoading(true)
+  console.log(payload, `${process.env.REACT_APP_PATCH_ALL_TASKS}${task.task_id}`, task)
     try {
       const resp = await fetch(
-        `${process.env.REACT_APP_PATCH_ALL_TASKS}${task.purchase_order_id}`,
+        `${process.env.REACT_APP_PATCH_ALL_TASKS}${task.task_id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -92,7 +102,7 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
     }
   }
 
-  const availableDeps = allTasks.filter(t => t.purchase_order_id !== task.purchase_order_id)
+  const availableDeps = allTasks.filter(t => t.task_id !== task.task_id)
 
   return (
     <Form
@@ -114,6 +124,20 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
             ))}
           </Form.Select>
         </Form.Group>
+
+        {/* Display order-level note for this task's unit (read-only) */}
+        {selectedOrder?.purchase_unit_notes && (
+          (() => {
+            const notesObj = typeof selectedOrder.purchase_unit_notes === 'string' ? parseJsonSafe(selectedOrder.purchase_unit_notes, {}) : (selectedOrder.purchase_unit_notes || {})
+            const unitNote = notesObj[taskUnit] || notesObj[taskUnit.toLowerCase()] || ''
+            return (
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-bold">Order Note for {taskUnit.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</Form.Label>
+                <Form.Control as="textarea" rows={3} value={unitNote || 'No notes for this unit.'} readOnly plaintext />
+              </Form.Group>
+            )
+          })()
+        )}
 
         <Form.Group className="mb-3">
           <Form.Label>Task Name</Form.Label>
@@ -177,6 +201,17 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
         </Form.Group>
 
         <Form.Group className="mb-3">
+          <Form.Label>Special Notes</Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={3}
+            value={specialNotes}
+            onChange={e => setSpecialNotes(e.target.value)}
+            placeholder="Add or edit task special notes"
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3">
           <Form.Label>Status</Form.Label>
           <Form.Select value={status} onChange={e => setStatus(e.target.value)}>
             {STATUS_OPTIONS.map(opt => (
@@ -190,24 +225,15 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
           <Select
             isMulti
             value={dependencies.map(dep => {
-              const task = allTasks.find(t => t.purchase_order_id === dep)
-              return task ? { value: task.purchase_order_id, label: task.name } : null
+              const task = allTasks.find(t => t.task_id === dep)
+              return task ? { value: task.task_id, label: task.name } : null
             }).filter(Boolean)}
             onChange={selectedOptions => setDependencies(selectedOptions.map(opt => opt.value))}
-            options={availableDeps.map(t => ({ value: t.purchase_order_id, label: t.name }))}
+            options={availableDeps.map(t => ({ value: t.task_id, label: t.name }))}
             placeholder="Select dependencies"
             menuPlacement="top"
           />
-          {/* <Form.Select
-            multiple
-            value={dependencies}
-            onChange={handleDependencyChange}
-            style={{ height: 120 }}
-          >
-            {availableDeps.map(t => (
-              <option key={t.purchase_order_id} value={t.purchase_order_id}>{t.name}</option>
-            ))}
-          </Form.Select> */}
+          {/* legacy fallback select removed - dependencies now use task_id values */}
 
         </Form.Group>
       </div>

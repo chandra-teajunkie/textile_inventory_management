@@ -73,6 +73,7 @@ export function generatePrintableHtml(order, tasks = [], includeTasks = false) {
     const { headers, rows, columnTotals, grandTotal, hasData } = processSizeChartData(sizeChart);
     const specialNotes = order.special_notes || "No special notes";
     const unitNotes = parseJsonSafe(order.purchase_unit_notes);
+  const ref = `ORD-${new Date().getTime()}`;
 
     // Generate size chart HTML
     const sizeChartHtml = hasData ? `
@@ -124,7 +125,7 @@ export function generatePrintableHtml(order, tasks = [], includeTasks = false) {
               <td>${task.name}</td>
               <td>${task.product}</td>
               <td>${task.color}</td>
-              <td>${task.purchase_order_unit}</td>
+              <td>${task.task_unit}</td>
               <td>${task.status}</td>
             </tr>
           `).join("")}
@@ -138,6 +139,7 @@ export function generatePrintableHtml(order, tasks = [], includeTasks = false) {
       <head>
         <title></title>
         <style>
+          title{ display:none;, visibility:hidden; }
           body { font-family: sans-serif; }
           .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
           .customer-name { font-size: 1.5em; font-weight: bold; }

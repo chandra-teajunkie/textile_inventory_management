@@ -360,7 +360,7 @@ const TaskUnitBarChart = ({ tasks }) => {
     const data = useMemo(() => {
         const unitStats = {}
         TASK_UNITS.forEach((unit) => {
-            const unitTasks = tasks.filter((task) => task.purchase_order_unit === unit)
+            const unitTasks = tasks.filter((task) => task.task_unit === unit || task.purchase_order_unit === unit)
             unitStats[unit] = {
                 unit,
                 total: unitTasks.length,
@@ -403,7 +403,7 @@ const TaskUnitBarChart = ({ tasks }) => {
 const ProductionProgressChart = ({ tasks }) => {
     const data = useMemo(() => {
         return TASK_UNITS.map((unit) => {
-            const unitTasks = tasks.filter((task) => task.purchase_order_unit === unit)
+            const unitTasks = tasks.filter((task) => task.task_unit === unit || task.purchase_order_unit === unit)
             const completed = unitTasks.filter((t) => t.status === "COMPLETED").length
             const total = unitTasks.length
             const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0
@@ -511,8 +511,8 @@ const TaskUnitVisualization = ({ tasks }) => {
     const unitStats = useMemo(() => {
         const stats = {}
         TASK_UNITS.forEach((unit) => {
-            const unitTasks = tasks.filter((task) => task.purchase_order_unit === unit)
-            const completed = unitTasks.filter((task) => task.status === "COMPLETED").length
+            const unitTasks = tasks.filter((task) => task.task_unit === unit || task.purchase_order_unit === unit)
+                const completed = unitTasks.filter((t) => t.status === "COMPLETED" || t.task_unit === unit).length
             const inProgress = unitTasks.filter((task) => task.status === "IN PROGRESS").length
             const blocked = unitTasks.filter((task) => task.status === "BLOCKED").length
             const notStarted = unitTasks.filter((task) => task.status === "NOT STARTED").length
@@ -694,7 +694,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
 
                 // Fetch tasks for each order
                 const tasksPromises = orders.map((order) =>
-                    fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id}`)
+                    fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id || order.purchase_order_id || order.id}`)
                         .then((res) => (res.ok ? res.json() : []))
                         .catch(() => []),
                 )
@@ -737,7 +737,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 // Filter tasks first
                 const tasks = order.tasks.filter((task) => {
                     const taskStatusMatch = filterTaskStatus === "all" || task.status === filterTaskStatus
-                    const taskUnitMatch = filterTaskUnit === "all" || task.purchase_order_unit === filterTaskUnit
+                    const taskUnitMatch = filterTaskUnit === "all" || task.task_unit === filterTaskUnit || task.purchase_order_unit === filterTaskUnit
                     return taskStatusMatch && taskUnitMatch
                 })
 
@@ -802,10 +802,10 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                             order.isOverdue ? "Yes" : "No",
                             order.isUrgent ? "Yes" : "No",
                             `"${order.types || ""}"`,
-                            task.purchase_order_id,
+                            task.task_id || task.purchase_order_id,
                             `"${task.name}"`,
                             task.status,
-                            task.purchase_order_unit,
+                            task.task_unit || task.purchase_order_unit,
                             task.product || "",
                             task.color || "",
                             `"${dependencies.join(", ")}"`,
@@ -905,7 +905,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                             order.due_date ? new Date(order.due_date).toLocaleDateString() : "N/A",
                             order.isOverdue ? "OVERDUE" : order.daysUntilDue > 0 ? `${order.daysUntilDue} days` : "Due",
                             task.name,
-                            task.purchase_order_unit,
+                            task.task_unit || task.purchase_order_unit,
                             task.status,
                         ])
                     })
@@ -1093,7 +1093,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                         }
                       </td>
                       <td>${task.name}</td>
-                      <td>${task.purchase_order_unit}</td>
+                      <td>${task.task_unit || task.purchase_order_unit}</td>
                       <td><span class="badge badge-${getTaskStatusVariant(task.status)}">${task.status}</span></td>
                       <td>${task.product || ""}${task.color ? " - " + task.color : ""}</td>
                     </tr>
@@ -1492,12 +1492,12 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                                                         <tbody>
                                                                             {order.tasks.map((task) => (
                                                                                 <tr
-                                                                                    key={task.purchase_order_id}
+                                                                                    key={task.task_id || task.purchase_order_id}
                                                                                     className={task.status === "BLOCKED" ? "table-danger" : ""}
                                                                                 >
                                                                                     <td>
                                                                                         <div className="fw-medium">{task.name}</div>
-                                                                                        <small className="text-muted">ID: {task.purchase_order_id}</small>
+                                                                                        <small className="text-muted">ID: {task.task_id || task.purchase_order_id}</small>
                                                                                         {task.status === "BLOCKED" && (
                                                                                             <div>
                                                                                                 <Badge bg="danger" className="small">
@@ -1508,9 +1508,9 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                                                                         )}
                                                                                     </td>
                                                                                     <td>
-                                                                                        <Badge bg={getTaskUnitVariant(task.purchase_order_unit)}>
-                                                                                            {getTaskUnitIcon(task.purchase_order_unit)}
-                                                                                            {task.purchase_order_unit}
+                                                                                        <Badge bg={getTaskUnitVariant(task.task_unit || task.purchase_order_unit)}>
+                                                                                            {getTaskUnitIcon(task.task_unit || task.purchase_order_unit)}
+                                                                                            {task.task_unit || task.purchase_order_unit}
                                                                                         </Badge>
                                                                                     </td>
                                                                                     <td>

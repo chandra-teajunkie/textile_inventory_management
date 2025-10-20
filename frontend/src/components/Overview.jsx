@@ -34,7 +34,7 @@ export function ConsolidatedView({ orders, tasks, toast }) {
 
             filteredTasksResult = filteredTasksResult.filter(task =>
                 task.name.toLowerCase().includes(term) ||
-                task.purchase_order_id.toLowerCase().includes(term)
+                (task.task_id || "").toLowerCase().includes(term)
             );
 
             filteredOrdersResult = filteredOrdersResult.filter(order =>
@@ -123,7 +123,7 @@ export function ConsolidatedView({ orders, tasks, toast }) {
                 ]
             } else {
                 return [
-                    item.purchase_order_id,
+                    item.task_id,
                     item.name,
                     item.status,
                     item.dependencies && item.dependencies !== "[]" ? "Yes" : "No"
@@ -191,18 +191,18 @@ export function ConsolidatedView({ orders, tasks, toast }) {
               ${data.map(item => {
             return `
                   <tr>
-                    ${type === 'orders' ? `
-                      <td>${item.order_id}</td>
-                      <td>${item.customer_name}</td>
-                      <td>${item.types}</td>
-                      <td>${new Date(item.order_date).toLocaleDateString()}</td>
-                      <td><span class="badge badge-${getStatusColor(item.status).toLowerCase()}">${item.status}</span></td>
-                    ` : `
-                      <td>${item.purchase_order_id}</td>
-                      <td>${item.name}</td>
-                      <td><span class="badge badge-${getStatusColor(item.status).toLowerCase()}">${item.status}</span></td>
-                      <td>${item.dependencies && item.dependencies !== "[]" ? "Yes" : "No"}</td>
-                    `}
+                                            ${type === 'orders' ? `
+                                            <td>${item.order_id}</td>
+                                            <td>${item.customer_name}</td>
+                                            <td>${item.types}</td>
+                                            <td>${new Date(item.order_date).toLocaleDateString()}</td>
+                                            <td><span class="badge badge-${getStatusColor(item.status).toLowerCase()}">${item.status}</span></td>
+                                        ` : `
+                                            <td>${item.task_id}</td>
+                                            <td>${item.name}</td>
+                                            <td><span class="badge badge-${getStatusColor(item.status).toLowerCase()}">${item.status}</span></td>
+                                            <td>${item.dependencies && item.dependencies !== "[]" ? "Yes" : "No"}</td>
+                                        `}
                   </tr>
                 `
         }).join('')}
@@ -410,8 +410,8 @@ export function ConsolidatedView({ orders, tasks, toast }) {
                             </thead>
                             <tbody>
                                 {filteredTasks.map(task => (
-                                    <tr key={task.purchase_order_id}>
-                                        <td>{task.purchase_order_id}</td>
+                                    <tr key={task.task_id}>
+                                        <td>{task.task_id}</td>
                                         <td>{task.name}</td>
                                         <td>{task.order_id || 'N/A'}</td>
                                         <td>

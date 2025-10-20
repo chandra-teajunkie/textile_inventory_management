@@ -12,7 +12,15 @@ function Dashboard({ setActiveTab, toast }) {
     try {
       const res = await fetch(process.env.REACT_APP_GET_ALL_ORDERS)
       const data = await res.json()
-      const sortedOrders = data.sort((a, b) => new Date(b.order_date) - new Date(a.order_date))
+      // Normalize incoming orders to have `order_id` and safe date fields
+      const normalized = (data || []).map(o => ({
+        ...o,
+        order_id: o.order_id || o.purchase_order_id || o.id,
+        order_date: o.order_date || o.purchase_order_date || o.start_date || null,
+        due_date: o.due_date || o.purchase_order_due_date || o.due_date || null,
+      }))
+
+      const sortedOrders = normalized.sort((a, b) => new Date(b.order_date || 0) - new Date(a.order_date || 0))
       setOrders(sortedOrders)
       // console.log(sortedOrders)
     } catch (err) {

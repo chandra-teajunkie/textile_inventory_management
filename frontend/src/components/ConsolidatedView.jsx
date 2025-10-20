@@ -116,7 +116,7 @@ const TaskUnitVisualization = ({ tasks = [] }) => {
     const unitStats = useMemo(() => {
         const stats = {};
         TASK_UNITS.forEach((unit) => {
-            const unitTasks = tasks.filter((task) => task.purchase_order_unit === unit);
+            const unitTasks = tasks.filter((task) => task.task_unit === unit || task.purchase_order_unit === unit);
             const completed = unitTasks.filter((task) => task.status === "COMPLETED").length;
             stats[unit] = {
                 total: unitTasks.length,
@@ -189,7 +189,7 @@ const ComprehensiveView = ({ toast }) => {
 
                 // 2. Fetch tasks for each order
                 const tasksPromises = orders.map(order =>
-                    fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id}`)
+                    fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id || order.purchase_order_id || order.id}`)
                         .then(res => res.ok ? res.json() : [])
                 );
 
@@ -229,7 +229,7 @@ const ComprehensiveView = ({ toast }) => {
                 // Filter tasks first
                 const tasks = order.tasks.filter(task =>
                     (filterTaskStatus === 'all' || task.status === filterTaskStatus) &&
-                    (filterTaskUnit === 'all' || task.purchase_order_unit === filterTaskUnit)
+                    (filterTaskUnit === 'all' || task.task_unit === filterTaskUnit)
                 );
 
                 // Return the order with its filtered tasks
@@ -266,10 +266,10 @@ const ComprehensiveView = ({ toast }) => {
                         `"${order.customer_name}"`,
                         new Date(order.order_date).toLocaleDateString(),
                         order.status,
-                        task.purchase_order_id,
+                        task.task_id,
                         `"${task.name}"`,
                         task.status,
-                        task.purchase_order_unit,
+                        task.task_unit,
                         task.product || "",
                         task.color || "",
                         `"${(parseJsonSafe(task.dependencies || '[]')).join(', ')}"`
@@ -310,7 +310,7 @@ const ComprehensiveView = ({ toast }) => {
                     order.customer_name,
                     order.status,
                     task.name,
-                    task.purchase_order_unit,
+                    task.task_unit,
                     task.status
                 ]);
             });
@@ -451,9 +451,9 @@ const ComprehensiveView = ({ toast }) => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredData.map(order => (
-                                            <React.Fragment key={order.order_id}>
-                                                <tr style={{ cursor: 'pointer', borderLeft: `4px solid var(--bs-${getOrderStatusVariant(order.status)})` }} onClick={() => toggleOrderExpansion(order.order_id)}>
+                                        {filteredData.map(order => {
+                                            return [
+                                                <tr key={order.order_id} style={{ cursor: 'pointer', borderLeft: `4px solid var(--bs-${getOrderStatusVariant(order.status)})` }} onClick={() => toggleOrderExpansion(order.order_id)}>
                                                     <td>
                                                         {order.tasks.length > 0 && (
                                                             expandedOrders[order.order_id]
@@ -465,9 +465,9 @@ const ComprehensiveView = ({ toast }) => {
                                                     <td>{new Date(order.order_date).toLocaleDateString()}</td>
                                                     <td><Badge bg={getOrderStatusVariant(order.status)}>{order.status}</Badge></td>
                                                     <td className="text-center"><Badge bg="light" text="dark">{order.tasks.length}</Badge></td>
-                                                </tr>
-                                                {expandedOrders[order.order_id] && (
-                                                    <tr>
+                                                </tr>,
+                                                expandedOrders[order.order_id] && (
+                                                    <tr key={order.order_id + "-expanded"}>
                                                         <td colSpan="5" className="p-0">
                                                             <div className="p-3 bg-light">
                                                                 {order.tasks.length > 0 ? (
@@ -482,9 +482,9 @@ const ComprehensiveView = ({ toast }) => {
                                                                         </thead>
                                                                         <tbody>
                                                                             {order.tasks.map(task => (
-                                                                                <tr key={task.purchase_order_id}>
+                                                                                <tr key={task.task_id || task.purchase_order_id}>
                                                                                     <td>{task.name}</td>
-                                                                                    <td><Badge bg={getTaskUnitVariant(task.purchase_order_unit)}>{getTaskUnitIcon(task.purchase_order_unit)} {task.purchase_order_unit}</Badge></td>
+                                                                                    <td><Badge bg={getTaskUnitVariant(task.task_unit)}>{getTaskUnitIcon(task.task_unit)} {task.task_unit}</Badge></td>
                                                                                     <td><Badge bg={getTaskStatusVariant(task.status)}>{task.status}</Badge></td>
                                                                                     <td>{task.product}{task.color && ` - ${task.color}`}</td>
                                                                                 </tr>
@@ -497,9 +497,9 @@ const ComprehensiveView = ({ toast }) => {
                                                             </div>
                                                         </td>
                                                     </tr>
-                                                )}
-                                            </React.Fragment>
-                                        ))}
+                                                )
+                                            ];
+                                        })}
                                         {filteredData.length === 0 && (
                                             <tr>
                                                 <td colSpan="5" className="text-center p-4">

@@ -114,20 +114,6 @@ const getTaskUnitIcon = (unit) => {
     }
 };
 
-const getStatusIcon = (status) => {
-    switch (status) {
-        case "COMPLETED":
-            return <FaCheckCircle className="me-1" />;
-        case "IN PROGRESS":
-            return <FaPlay className="me-1" />;
-        case "BLOCKED":
-            return <FaExclamationTriangle className="me-1" />;
-        case "NOT STARTED":
-            return <FaClock className="me-1" />;
-        default:
-            return <FaClock className="me-1" />;
-    }
-};
 
 // --- KPI Cards ---
 const KpiCards = ({ orders, tasks }) => {
@@ -241,7 +227,7 @@ const TaskUnitVisualization = ({ tasks = [] }) => {
     const unitStats = useMemo(() => {
         const stats = {};
         TASK_UNITS.forEach((unit) => {
-            const unitTasks = tasks.filter((t) => (t?.purchase_order_unit || "UNASSIGNED") === unit);
+            const unitTasks = tasks.filter((t) => (t?.task_unit || "UNASSIGNED") === unit);
             const completed = unitTasks.filter((t) => t.status === "COMPLETED").length;
             const inProgress = unitTasks.filter((t) => t.status === "IN PROGRESS").length;
             const blocked = unitTasks.filter((t) => t.status === "BLOCKED").length;
@@ -361,10 +347,10 @@ const ConsolidatedOverview = () => {
                     { order_id: "ORD003", customer_name: "Fashion House", order_date: "2024-01-25", status: "Delivered", types: "Dresses" },
                 ];
                 const mockTasks = [
-                    { purchase_order_id: "TASK001", name: "Cut fabric for shirts", status: "COMPLETED", purchase_order_unit: "CUTTING", product: "Shirt", color: "Blue" },
-                    { purchase_order_id: "TASK002", name: "Stitch pants", status: "IN PROGRESS", purchase_order_unit: "STITCHING", product: "Pants", color: "Black" },
-                    { purchase_order_id: "TASK003", name: "Package uniforms", status: "BLOCKED", purchase_order_unit: "PACKAGING", product: "Uniform", color: "Navy" },
-                    { purchase_order_id: "TASK004", name: "Procure materials", status: "NOT STARTED", purchase_order_unit: "PROCUREMENT", product: "Dress", color: "Red" },
+                    { task_id: "TASK001", name: "Cut fabric for shirts", status: "COMPLETED", task_unit: "CUTTING", product: "Shirt", color: "Blue" },
+                    { task_id: "TASK002", name: "Stitch pants", status: "IN PROGRESS", task_unit: "STITCHING", product: "Pants", color: "Black" },
+                    { task_id: "TASK003", name: "Package uniforms", status: "BLOCKED", task_unit: "PACKAGING", product: "Uniform", color: "Navy" },
+                    { task_id: "TASK004", name: "Procure materials", status: "NOT STARTED", task_unit: "PROCUREMENT", product: "Dress", color: "Red" },
                 ];
                 const combined = mockOrders.map((order, i) => ({
                     ...order,
@@ -384,9 +370,9 @@ const ConsolidatedOverview = () => {
     const filteredData = useMemo(() => {
         return allData
             .map((order) => {
-                const tasks = (order.tasks || []).filter((t) => {
-                    const statusOk = filterTaskStatus === "all" || t.status === filterTaskStatus;
-                    const unitOk = filterTaskUnit === "all" || t.purchase_order_unit === filterTaskUnit;
+            const tasks = (order.tasks || []).filter((t) => {
+                const statusOk = filterTaskStatus === "all" || t.status === filterTaskStatus;
+                const unitOk = filterTaskUnit === "all" || (t.task_unit || "").toUpperCase() === filterTaskUnit;
                     return statusOk && unitOk;
                 });
                 return { ...order, tasks };
@@ -437,10 +423,10 @@ const ConsolidatedOverview = () => {
                             order.order_date ? new Date(order.order_date).toLocaleDateString() : "",
                             order.status || "Processing",
                             `"${order.types || ""}"`,
-                            task.purchase_order_id,
+                            task.task_id || task.purchase_order_id,
                             `"${task.name}"`,
                             task.status,
-                            task.purchase_order_unit,
+                            task.task_unit,
                             task.product || "",
                             task.color || "",
                         ].join(",");
@@ -768,15 +754,15 @@ const ConsolidatedOverview = () => {
                                                                         </thead>
                                                                         <tbody>
                                                                             {order.tasks.map((task) => (
-                                                                                <tr key={task.purchase_order_id}>
+                                                                                <tr key={task.task_id}>
                                                                                     <td>
                                                                                         <div className="fw-medium">{task.name}</div>
-                                                                                        <small className="text-muted">ID: {task.purchase_order_id}</small>
+                                                                                        <small className="text-muted">ID: {task.task_id || task.purchase_order_id}</small>
                                                                                     </td>
                                                                                     <td>
-                                                                                        <Badge bg={getTaskUnitVariant(task.purchase_order_unit)}>
-                                                                                            {getTaskUnitIcon(task.purchase_order_unit)}
-                                                                                            {task.purchase_order_unit}
+                                                                                        <Badge bg={getTaskUnitVariant(task.task_unit || task.purchase_order_unit)}>
+                                                                                            {getTaskUnitIcon(task.task_unit || task.purchase_order_unit)}
+                                                                                            {task.task_unit || task.purchase_order_unit}
                                                                                         </Badge>
                                                                                     </td>
                                                                                     <td>

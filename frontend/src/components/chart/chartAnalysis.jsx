@@ -108,7 +108,7 @@ const ChartAnalysis = ({ orders = [], tasks = [] }) => {
             }
             case "task-unit": {
                 data = tasks.reduce((acc, task) => {
-                    const unit = task?.purchase_order_unit || "UNASSIGNED";
+                    const unit = task?.task_unit || "UNASSIGNED";
                     acc[unit] = (acc[unit] || 0) + 1;
                     return acc;
                 }, {});
