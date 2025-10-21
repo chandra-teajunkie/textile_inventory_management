@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Spinner } from "react-bootstrap"
 import { Toast } from "primereact/toast"
 import { useRef, Suspense, lazy } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import "./App.css"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "bootstrap-icons/font/bootstrap-icons.css"
@@ -38,33 +39,93 @@ function App() {
   }, [theme])
 
   return (
-    <div className="min-h-screen mainPage" data-theme={theme}>
+    <motion.div 
+      className="min-h-screen mainPage" 
+      data-theme={theme}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
       <Toast ref={toast} position="top-right" className="toastPopUp" />
 
-      <header className="sticky-top d-flex align-items-center border-bottom px-4 py-3 shadow-sm header-enhanced" style={{ backgroundColor: 'var(--header-bg)', borderBottomColor: 'var(--border-color)' }}>
-        <div className="d-flex align-items-center gap-2 fw-semibold">
-          {/* <i className="bi bi-scissors text-primary fs-4"></i> */}
-          {/* <img src={TextileLogo}></img> */}
-          {/* <GiSewingMachine className="text-primary fs-4" style={{ height: "35px", width: "35px" }} /> */}
-          <img
+      <motion.header 
+        className="sticky-top d-flex align-items-center border-bottom px-4 py-3 header-premium" 
+        style={{ 
+          backgroundColor: 'var(--header-bg)', 
+          borderBottomColor: 'var(--border-color)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+          borderBottom: '1px solid var(--glass-border)'
+        }}
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        <motion.div 
+          className="d-flex align-items-center gap-3 fw-semibold"
+          whileHover={{ scale: 1.02 }}
+          transition={{ duration: 0.2 }}
+        >
+          <motion.img
             src={sewingMachineGif}
             alt="Sewing Machine"
             style={{
               height: "35px",
               width: "35px",
-              objectFit: 'contain'
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.15))'
             }}
+            whileHover={{ rotate: 8, scale: 1.1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 10 }}
           />
-          <span className="text-primary fw-bold" style={{ fontSize: "1.5rem" }}>SIDHU Textiles</span>
-        </div>
+          <motion.span 
+            className="text-primary fw-bold brand-text" 
+            style={{ 
+              fontSize: "1.5rem",
+              background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+            }}
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.2 }}
+          >
+            SIDHU Textiles
+          </motion.span>
+        </motion.div>
         <div className="ms-auto me-3">
-          <button
-            className="btn btn-outline-secondary theme-toggle-enhanced"
+          <motion.button
+            className="btn theme-toggle-premium"
             onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
             title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+            style={{
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '14px',
+              padding: '10px 14px',
+              color: 'var(--text-primary)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              backdropFilter: 'blur(10px)'
+            }}
+            whileHover={{ 
+              scale: 1.05,
+              boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+              backgroundColor: 'var(--nav-hover-bg)'
+            }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.2 }}
           >
-            <i className={`bi bi-${theme === 'light' ? 'moon' : 'sun'}`}></i>
-          </button>
+            <motion.i 
+              className={`bi bi-${theme === 'light' ? 'moon' : 'sun'}`}
+              style={{ fontSize: '1.1rem' }}
+              initial={false}
+              animate={{ rotate: theme === 'light' ? 0 : 180 }}
+              transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
+            />
+          </motion.button>
         </div>
         {/* <div className="position-relative ms-auto flex-grow-0 me-3">
           <i className="bi bi-search position-absolute" style={{ left: "10px", top: "10px", fontSize: "0.9rem" }}></i>
@@ -139,86 +200,138 @@ function App() {
             </li>
           </ul>
         </div> */}
-      </header>
+      </motion.header>
 
       <div className="d-flex pageBody">
-        <nav className="d-none d-md-block border-end sidebar-nav" style={{ width: "240px", backgroundColor: 'var(--nav-bg)', borderRightColor: 'var(--border-color)' }}>
+        <motion.nav 
+          className="d-none d-md-block border-end sidebar-nav-premium" 
+          style={{ 
+            width: "240px", 
+            backgroundColor: 'var(--nav-bg)', 
+            borderRightColor: 'var(--border-color)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            background: 'var(--glass-bg)',
+            borderRight: '1px solid var(--glass-border)'
+          }}
+          initial={{ x: -240, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+        >
           <div className="d-flex flex-column gap-2 p-3">
-            <button
-              className={`btn text-start ${activeTab === "dashboard" ? "btn-light fw-medium" : "btn-white"}`}
-              onClick={() => setActiveTab("dashboard")}
-            >
-              <i className="bi bi-house me-2"></i>
-              Dashboard
-            </button>
-            <button
-              className={`btn text-start ${activeTab === "create" ? "btn-light fw-medium" : "btn-white"}`}
-              onClick={() => setActiveTab("create")}
-            >
-              <i className="bi bi-plus-circle me-2"></i>
-              Create Order
-            </button>
-            <button
-              className={`btn text-start ${activeTab === "orders" ? "btn-light fw-medium" : "btn-white"}`}
-              onClick={() => setActiveTab("orders")}
-            >
-              <i className="bi bi-cart me-2"></i>
-              Orders
-            </button>
-            <button
-              className={`btn text-start ${activeTab === "tasks" ? "btn-light fw-medium" : "btn-white"}`}
-              onClick={() => setActiveTab("tasks")}
-            >
-              <i className="bi bi-clock me-2"></i>
-              Tasks
-            </button>
-            <button
-              className={`btn text-start ${activeTab === "inventory" ? "btn-light fw-medium" : "btn-white"}`}
-              onClick={() => setActiveTab("inventory")}
-            >
-              <i className="bi bi-box me-2"></i>
-              Inventory
-            </button>
-            {/* <button className="btn text-start btn-white">
-              <i className="bi bi-scissors me-2"></i>
-              Products
-            </button>
-            <button className="btn text-start btn-white">
-              <i className="bi bi-file-text me-2"></i>
-              Size Charts
-            </button>
-            <button className="btn text-start btn-white">
-              <i className="bi bi-people me-2"></i>
-              Customers
-            </button>
-            <button className="btn text-start btn-white">
-              <i className="bi bi-bar-chart me-2"></i>
-              Reports
-            </button>
-            <button className="btn text-start btn-white">
-              <i className="bi bi-gear me-2"></i>
-              Settings
-            </button> */}
+            {[
+              { key: "dashboard", icon: "house", label: "Dashboard" },
+              { key: "create", icon: "plus-circle", label: "Create Order" },
+              { key: "orders", icon: "cart", label: "Orders" },
+              { key: "tasks", icon: "clock", label: "Tasks" },
+              { key: "inventory", icon: "box", label: "Inventory" }
+            ].map((item, index) => (
+              <motion.button
+                key={item.key}
+                className={`btn text-start nav-item-premium ${activeTab === item.key ? "btn-light fw-medium" : "btn-white"}`}
+                onClick={() => setActiveTab(item.key)}
+                style={{
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  border: 'none',
+                  background: activeTab === item.key 
+                    ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover))' 
+                    : 'var(--glass-bg)',
+                  color: activeTab === item.key ? '#ffffff' : 'var(--text-primary)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  marginBottom: '4px',
+                  boxShadow: activeTab === item.key 
+                    ? '0 4px 12px rgba(0,123,255,0.3)' 
+                    : '0 2px 4px rgba(0,0,0,0.05)',
+                  backdropFilter: 'blur(8px)'
+                }}
+                whileHover={{ 
+                  scale: 1.02,
+                  x: 4,
+                  boxShadow: activeTab === item.key 
+                    ? '0 6px 20px rgba(0,123,255,0.4)' 
+                    : '0 4px 12px rgba(0,0,0,0.1)'
+                }}
+                whileTap={{ scale: 0.98 }}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ 
+                  duration: 0.3, 
+                  delay: 0.4 + (index * 0.1),
+                  type: "spring",
+                  stiffness: 100
+                }}
+              >
+                <motion.i 
+                  className={`bi bi-${item.icon} me-3`}
+                  style={{ fontSize: '1.1rem' }}
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ duration: 0.2 }}
+                />
+                {item.label}
+              </motion.button>
+            ))}
           </div>
-        </nav>
+        </motion.nav>
 
-        <main className="flex-grow-1" style={{ overflow: "auto" }}>
+        <motion.main 
+          className="flex-grow-1 main-content-premium" 
+          style={{ 
+            overflow: "auto",
+            background: 'linear-gradient(135deg, var(--bg-app) 0%, var(--bg-secondary) 100%)',
+            position: 'relative'
+          }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
           <Suspense
             fallback={
-              <div className="text-center p-5">
-                <Spinner animation="border" />
-              </div>
+              <motion.div 
+                className="text-center p-5"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <Spinner animation="border" style={{ color: 'var(--accent-primary)' }} />
+                </motion.div>
+                <motion.p 
+                  className="mt-3 text-muted"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  Loading...
+                </motion.p>
+              </motion.div>
             }
           >
-            {activeTab === "dashboard" && <Dashboard setActiveTab={setActiveTab} toast={toast} />}
-            {activeTab === "create" && <OrderForm toast={toast} setActiveTab={setActiveTab} />}
-            {activeTab === "orders" && <OrderList toast={toast} setActiveTab={setActiveTab} />}
-            {activeTab === "tasks" && <TaskList toast={toast} />}
-            {activeTab === "inventory" && <InventoryOverview toast={toast} />}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ 
+                  duration: 0.4,
+                  ease: "easeInOut"
+                }}
+              >
+                {activeTab === "dashboard" && <Dashboard setActiveTab={setActiveTab} toast={toast} />}
+                {activeTab === "create" && <OrderForm toast={toast} setActiveTab={setActiveTab} />}
+                {activeTab === "orders" && <OrderList toast={toast} setActiveTab={setActiveTab} />}
+                {activeTab === "tasks" && <TaskList toast={toast} />}
+                {activeTab === "inventory" && <InventoryOverview toast={toast} />}
+              </motion.div>
+            </AnimatePresence>
           </Suspense>
-        </main>
+        </motion.main>
       </div>
-    </div>
+    </motion.div>
   )
 }
 

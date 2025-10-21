@@ -35,6 +35,12 @@
   --overlay-bg: rgba(0, 0, 0, 0.3);
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(0, 0, 0, 0.1);
+  --primary-color: #007bff;
+  --secondary-color: #6c757d;
+  --button-bg: rgba(255, 255, 255, 0.8);
+  --button-hover-bg: rgba(255, 255, 255, 0.9);
+  --card-header-bg: rgba(248, 249, 250, 0.9);
+  --input-focus-shadow: rgba(0, 123, 255, 0.25);
 }
 
 :root[data-theme="dark"] {
@@ -73,6 +79,12 @@
   --overlay-bg: rgba(0, 0, 0, 0.5);
   --glass-bg: rgba(22, 27, 34, 0.7);
   --glass-border: rgba(255, 255, 255, 0.1);
+  --primary-color: #1f6feb;
+  --secondary-color: #8b949e;
+  --button-bg: rgba(22, 27, 34, 0.8);
+  --button-hover-bg: rgba(33, 38, 45, 0.9);
+  --card-header-bg: rgba(13, 17, 23, 0.9);
+  --input-focus-shadow: rgba(31, 111, 235, 0.25);
 }
 
 /* General Styles */

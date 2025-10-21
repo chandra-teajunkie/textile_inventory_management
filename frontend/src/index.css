@@ -1,11 +1,12 @@
-/* Global Styles with Theme Support */
+/* Global Styles with Premium Theme Support */
 html {
   display: flex;
   height: 100%;
   width: 100%;
   position: relative;
   background-color: var(--bg-app, #f0f2f5);
-  transition: background-color 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  scroll-behavior: smooth;
 }
 
 body {
@@ -19,10 +20,11 @@ body {
   height: 100%;
   width: -webkit-fill-available;
   position: relative;
-  background-color: var(--bg-app, #f0f2f5);
+  background: linear-gradient(135deg, var(--bg-app, #f0f2f5) 0%, var(--bg-secondary, #e9ecef) 100%);
   color: var(--text-primary, #212529);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   line-height: 1.6;
+  overflow-x: hidden;
 }
 
 
@@ -37,17 +39,42 @@ code {
   height: -webkit-fill-available;
   display: flex;
   width: -webkit-fill-available;
-  background-color: var(--bg-app, #f0f2f5);
+  background: linear-gradient(135deg, var(--bg-app, #f0f2f5) 0%, var(--bg-secondary, #e9ecef) 100%);
+  position: relative;
+}
+
+#root::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(0, 123, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(31, 111, 235, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(0, 123, 255, 0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.7;
+  transition: opacity 0.4s ease;
+}
+
+[data-theme="dark"] #root::before {
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(31, 111, 235, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(56, 139, 253, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(31, 111, 235, 0.06) 0%, transparent 50%);
 }
 
 .mainPage {
-  max-height: -webkit-fill-available;
-  width: -webkit-fill-available;
+  min-height: 100vh;
+  width: 100%;
   display: flex;
-  position: relative;
   flex-direction: column;
-  overflow: hidden;
-  background-color: var(--bg-app, #f0f2f5);
+  background: transparent;
+  position: relative;
+  overflow-x: hidden;
 }
 
 .pageBody {
@@ -57,10 +84,67 @@ code {
   overflow: auto;
 }
 
-nav {
-  height: -webkit-fill-available;
-  position: -webkit-sticky;
-  position: sticky;
+/* Premium Navigation Styling */
+.sidebar-nav-premium {
+  background: var(--glass-bg) !important;
+  border-right: 1px solid var(--glass-border) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-nav-premium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, 
+    rgba(255, 255, 255, 0.08) 0%, 
+    rgba(255, 255, 255, 0.02) 50%,
+    rgba(255, 255, 255, 0.08) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+[data-theme="dark"] .sidebar-nav-premium::before {
+  background: linear-gradient(180deg, 
+    rgba(255, 255, 255, 0.05) 0%, 
+    rgba(255, 255, 255, 0.01) 50%,
+    rgba(255, 255, 255, 0.05) 100%);
+}
+
+.nav-item-premium {
+  position: relative;
+  overflow: hidden;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.nav-item-premium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.nav-item-premium:hover::before {
+  opacity: 1;
+}
+
+/* Main Content Premium Styling */
+.main-content-premium {
+  position: relative;
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
 }
 
 
@@ -135,15 +219,58 @@ nav {
 .btn-light {
   background: var(--nav-active-bg, rgba(156, 209, 223, 0.445));
   border: 1px solid var(--border-color, transparent);
-  color: var(--text-primary, #212529);
+  color: var(--text-primary, #212529) !important;
   border-radius: 8px;
   transition: all 0.2s ease;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-light::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.2) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  opacity: 0.8;
+  z-index: 1;
+}
+
+.btn-light > * {
+  position: relative;
+  z-index: 2;
+  color: var(--text-primary, #212529) !important;
+  font-weight: 600 !important;
 }
 
 .btn-light:hover {
   background: var(--nav-hover-bg, rgba(156, 209, 223, 0.6));
   border-color: var(--border-hover, transparent);
   transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Dark theme overrides for better contrast */
+[data-theme="dark"] .btn-light {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: var(--text-primary, #ffffff) !important;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] .btn-light > * {
+  color: var(--text-primary, #ffffff) !important;
+}
+
+[data-theme="dark"] .btn-light:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .btn-group [type=button] {
@@ -158,4 +285,189 @@ nav {
 
 .btn-group [type=button]>svg {
   margin-right: 0.25em;
+}
+
+/* Performance Optimization - Will-change for animated elements */
+.nav-item-premium,
+.btn-light,
+.glass-card-enhanced,
+.theme-toggle-premium {
+  will-change: transform;
+}
+
+/* High Contrast Red for Better Readability */
+.badge.bg-danger,
+.btn-danger,
+.text-danger {
+  background-color: #c82333 !important;
+  border-color: #bd2130 !important;
+}
+
+.badge.bg-warning {
+  background-color: #e0a800 !important;
+  color: #000 !important;
+}
+
+/* Enhanced Dropdown Visibility */
+.dropdown-menu {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 1060 !important;
+  border-radius: 8px;
+}
+
+.dropdown-toggle::after {
+  margin-left: 0.5em !important;
+}
+
+/* Fix for print dropdown visibility */
+.dropdown.show .dropdown-menu {
+  display: block !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  visibility: visible !important;
+}
+
+/* Fix inventory actions dropdown flicker */
+.table .dropdown {
+  position: static !important;
+}
+
+.table .dropdown-menu {
+  position: absolute !important;
+  top: 100% !important;
+  right: 0 !important;
+  left: auto !important;
+  z-index: 1070 !important;
+  min-width: 150px;
+  margin-top: 2px;
+}
+
+.table .dropdown-toggle {
+  position: relative;
+  z-index: 1;
+}
+
+.table .dropdown.show .dropdown-menu {
+  animation: fadeInDropdown 0.15s ease-out;
+}
+
+@keyframes fadeInDropdown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced Task UI Colors for Better Theme Adaptation */
+.editTaskTabs .modal-content,
+.micrositeOuter {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: var(--text-primary) !important;
+}
+
+.editTaskTabs h5,
+.editTaskTabs .form-label,
+.micrositeOuter h5,
+.micrositeOuter .form-label {
+  color: var(--text-primary) !important;
+  font-weight: 600;
+}
+
+.editTaskTabs .form-control,
+.micrositeOuter .form-control {
+  background: var(--input-bg) !important;
+  border: 1px solid var(--input-border) !important;
+  color: var(--text-primary) !important;
+}
+
+.editTaskTabs .form-control:focus,
+.micrositeOuter .form-control:focus {
+  background: var(--input-bg) !important;
+  border-color: var(--input-focus-border) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 0 0 0.2rem var(--input-focus-shadow) !important;
+}
+
+/* Task name and status visibility improvements */
+.list-group-item {
+  background: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.fw-medium,
+.fw-bold {
+  color: var(--text-primary) !important;
+}
+
+/* Badge contrast improvements */
+.badge.bg-secondary {
+  background-color: #6c757d !important;
+  color: #ffffff !important;
+}
+
+.badge.bg-warning {
+  background-color: #e0a800 !important;
+  color: #000000 !important;
+}
+
+.badge.bg-success {
+  background-color: #198754 !important;
+  color: #ffffff !important;
+}
+
+/* Dashboard Active Tab Icon Visibility Fix */
+.btn-group .btn.btn-primary,
+.btn-group .btn.btn-primary:active,
+.btn-group .btn.btn-primary:focus {
+  color: #ffffff !important;
+}
+
+.btn-group .btn.btn-primary svg,
+.btn-group .btn.btn-primary:active svg,
+.btn-group .btn.btn-primary:focus svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+.btn-group .btn.btn-outline-primary svg {
+  color: var(--primary-color, #007bff) !important;
+}
+
+/* Tab navigation improvements */
+.nav-tabs .nav-link.active {
+  background-color: var(--primary-color, #007bff) !important;
+  border-color: var(--primary-color, #007bff) !important;
+  color: #ffffff !important;
+}
+
+.nav-tabs .nav-link.active svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+.nav-tabs .nav-link svg {
+  color: var(--text-secondary, #6c757d) !important;
+}
+
+/* Card header improvements for better contrast */
+.card-header.bg-light {
+  background: var(--card-header-bg) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.card-title {
+  color: var(--text-primary) !important;
 }
