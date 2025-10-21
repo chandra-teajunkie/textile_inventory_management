@@ -771,8 +771,10 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
             Excel
           </Button>
           <Button onClick={handlePrint} variant="outline-dark" size="sm">
-            <FaPrint className="me-1" />
-            Print
+      <span title="For best results, disable Headers/Footers and enable Background Graphics in the print dialog.">
+        <FaPrint className="me-1" />
+        Print
+      </span>
           </Button> */}
         </div>
       </div>

@@ -316,7 +316,7 @@ function OrderForm({ toast }) {
                 <h1 className="h3 fw-bold">Create Order</h1>
             </div>
 
-            <Card className="shadow-sm border-0">
+            <Card className="shadow-sm border-0 glass-card-enhanced">
                 <Card.Header className="bg-white">
                     <Card.Title>Order Details</Card.Title>
                     <Card.Subtitle className="text-muted">Enter order info and create size chart</Card.Subtitle>
@@ -498,7 +498,7 @@ function OrderForm({ toast }) {
                         </div>
 
                         <div className="d-flex justify-content-end mt-4">
-                            <Button variant="primary" type="submit" disabled={isSubmitting} className="px-4">
+                            <Button variant="primary" type="submit" disabled={isSubmitting} className="px-4 btn-enhanced-glow">
                                 {isSubmitting ? (
                                     <>
                                         <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>

@@ -158,7 +158,7 @@ const KpiCards = ({ orders, tasks }) => {
     return (
         <Row className="g-3 mb-4">
             <Col md={6} lg={3}>
-                <Card className="shadow-sm border-0 h-100">
+                <Card className="shadow-sm border-0 h-100 glass-card-enhanced">
                     <Card.Body className="d-flex align-items-center">
                         <div className="flex-grow-1">
                             <div className="text-muted small mb-1">
@@ -179,7 +179,7 @@ const KpiCards = ({ orders, tasks }) => {
             </Col>
 
             <Col md={6} lg={3}>
-                <Card className="shadow-sm border-0 h-100">
+                <Card className="shadow-sm border-0 h-100 glass-card-enhanced">
                     <Card.Body className="d-flex align-items-center">
                         <div className="flex-grow-1">
                             <div className="text-muted small mb-1">
@@ -200,7 +200,7 @@ const KpiCards = ({ orders, tasks }) => {
             </Col>
 
             <Col md={6} lg={3}>
-                <Card className="shadow-sm border-0 h-100">
+                <Card className="shadow-sm border-0 h-100 glass-card-enhanced">
                     <Card.Body className="d-flex align-items-center">
                         <div className="flex-grow-1">
                             <div className="text-muted small mb-1">
@@ -218,7 +218,7 @@ const KpiCards = ({ orders, tasks }) => {
             </Col>
 
             <Col md={6} lg={3}>
-                <Card className="shadow-sm border-0 h-100">
+                <Card className="shadow-sm border-0 h-100 glass-card-enhanced">
                     <Card.Body className="d-flex align-items-center">
                         <div className="flex-grow-1">
                             <div className="text-muted small mb-1">
@@ -266,7 +266,7 @@ const TaskUnitVisualization = ({ tasks = [] }) => {
     }, [tasks])
 
     return (
-        <Card className="shadow-sm border-0">
+        <Card className="shadow-sm border-0 glass-card-enhanced">
             <Card.Header className="bg-light">
                 <div className="d-flex align-items-center">
                     <FaChartBar className="me-2 text-primary" />
@@ -629,7 +629,6 @@ const ConsolidatedOverview = ({ toast }) => {
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Orders and Tasks Analysis Report</title>
           <style>
             body { 
               font-family: Arial, sans-serif; 
@@ -842,10 +841,12 @@ const ConsolidatedOverview = ({ toast }) => {
                                 <FaFilePdf className="me-2" />
                                 Export as PDF
                             </Dropdown.Item>
-                            <Dropdown.Item onClick={handlePrint}>
-                                <FaPrint className="me-2" />
-                                Print Report
-                            </Dropdown.Item>
+                                <Dropdown.Item onClick={handlePrint}>
+                                    <span title="For best results, disable Headers/Footers and enable Background Graphics in the print dialog.">
+                                        <FaPrint className="me-2" />
+                                        Print Report
+                                    </span>
+                                </Dropdown.Item>
                         </Dropdown.Menu>
                     </Dropdown>
                 </div>

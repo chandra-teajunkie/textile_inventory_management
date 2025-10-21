@@ -4,7 +4,16 @@ import React, { useEffect, useState } from "react"
 import { Card, Button, Badge, Dropdown, Modal, Form } from "react-bootstrap"
 import { TaskModal } from "./TaskModal"
 import { EditTaskModal } from "./EditTaskModal";
-import { FaTrash } from "react-icons/fa"
+import {
+  FaTrash, FaPrint,
+  FaChevronDown,
+  FaChevronRight,
+  FaCut,
+  FaEdit,
+  FaBox,
+  FaQuestion,
+  FaPrint as FaPrintIcon,
+} from "react-icons/fa"
 
 import { GrLanguage, GrClose } from "react-icons/gr";
 import './overlay.css'
@@ -122,8 +131,8 @@ function OrderList({ toast, setActiveTab }) {
 
   const fetchTasksForOrder = async (orderId) => {
     try {
-  const normalizedId = orderId || (orderId === 0 ? 0 : null)
-  const response = await fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${normalizedId}`)
+      const normalizedId = orderId || (orderId === 0 ? 0 : null)
+      const response = await fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${normalizedId}`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)
@@ -322,7 +331,7 @@ function OrderList({ toast, setActiveTab }) {
                           {/* <td className="fw-medium">{order.order_id}</td> */}
                           <td>{order.customer_name.toUpperCase()}</td>
                           <td>{order.types}</td>
-                                    <td>{order.order_date ? new Date(order.order_date).toLocaleDateString() : "—"}</td>
+                          <td>{order.order_date ? new Date(order.order_date).toLocaleDateString() : "—"}</td>
                           <td>
                             <Badge bg={getStatusColor(order.status || "Processing")}>
                               {order.status || "Processing"}
@@ -412,7 +421,10 @@ function OrderList({ toast, setActiveTab }) {
                               </Button>
                               <Dropdown>
                                 <Dropdown.Toggle variant="info" size="sm">
-                                  Print
+                                  <span title="For best results, disable Headers/Footers and enable Background Graphics in the print dialog.">
+                                    <FaPrint className="me-2" />
+                                    Print
+                                  </span>
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu>
                                   <Dropdown.Header>Order Only</Dropdown.Header>

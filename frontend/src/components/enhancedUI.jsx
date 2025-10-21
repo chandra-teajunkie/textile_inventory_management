@@ -1375,7 +1375,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                     await new Promise((resolve) => setTimeout(resolve, 500))
 
                     const canvas = await html2canvas(element, {
-                        backgroundColor: "#ffffff",
+                        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--card-bg').trim() || "#ffffff",
                         scale: 1.5,
                         logging: false,
                         useCORS: true,
@@ -2074,8 +2074,10 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                 Export as PDF (with Charts)
                             </Dropdown.Item> */}
                             <Dropdown.Item onClick={handlePrint}>
-                                <FaPrint className="me-2" />
-                                Print
+                                <span title="For best results, disable Headers/Footers and enable Background Graphics in the print dialog.">
+                                    <FaPrint className="me-2" />
+                                    Print
+                                </span>
                             </Dropdown.Item>
                         </Dropdown.Menu>
                     </Dropdown>

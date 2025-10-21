@@ -377,7 +377,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
         </Tab>
 
         <Tab eventKey="incoming" title="📥 Incoming Chart">
-          <Card className="border-0 shadow-sm mb-3">
+          <Card className="border-0 shadow-sm mb-3 glass-card-enhanced">
             <Card.Body>
               {incomingData ? (
                 <CustomChartComponent
@@ -395,7 +395,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
           </Card>
         </Tab>
         <Tab eventKey="outgoing" title="📤 Outgoing Chart">
-          <Card className="border-0 shadow-sm mb-3">
+          <Card className="border-0 shadow-sm mb-3 glass-card-enhanced">
             <Card.Body>
               {outgoingData ? (
                 <CustomChartComponent
@@ -423,7 +423,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
         }}
       >
         <div className="d-flex justify-content-end gap-2 mt-4">
-          <Button variant="primary" onClick={handleSubmit} disabled={loading}>
+          <Button variant="primary" onClick={handleSubmit} disabled={loading} className="btn-enhanced-glow">
             {loading ? "Saving..." : "Update Task"}
           </Button>
           <Button variant="secondary" onClick={onClose}>

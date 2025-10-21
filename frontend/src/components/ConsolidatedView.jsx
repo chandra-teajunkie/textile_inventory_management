@@ -383,7 +383,9 @@ const ComprehensiveView = ({ toast }) => {
                             </Dropdown.Menu>
                         </Dropdown>
                         <Button variant="outline-secondary" onClick={handlePrint}>
-                            <FaPrint className="me-2" />Print View
+                            <span title="For best results, disable Headers/Footers and enable Background Graphics in the print dialog.">
+                                <FaPrint className="me-2" />Print View
+                            </span>
                         </Button>
                     </div>
                 </div>

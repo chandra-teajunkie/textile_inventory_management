@@ -118,7 +118,7 @@ function Dashboard({ setActiveTab, toast }) {
 
       <Row className="g-4 mb-4">
         <Col md={3}>
-          <Card className="h-100 shadow-sm border-0">
+          <Card className="h-100 shadow-sm border-0 glass-card-enhanced">
             <Card.Body>
               <div className="d-flex justify-content-between mb-2">
                 <div className="text-muted small">Total Revenue</div>
@@ -132,7 +132,7 @@ function Dashboard({ setActiveTab, toast }) {
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="h-100 shadow-sm border-0">
+          <Card className="h-100 shadow-sm border-0 glass-card-enhanced">
             <Card.Body>
               <div className="d-flex justify-content-between mb-2">
                 <div className="text-muted small">Pending Orders</div>
@@ -146,7 +146,7 @@ function Dashboard({ setActiveTab, toast }) {
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="h-100 shadow-sm border-0">
+          <Card className="h-100 shadow-sm border-0 glass-card-enhanced">
             <Card.Body>
               <div className="d-flex justify-content-between mb-2">
                 <div className="text-muted small">Inventory Items</div>
@@ -160,7 +160,7 @@ function Dashboard({ setActiveTab, toast }) {
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="h-100 shadow-sm border-0">
+          <Card className="h-100 shadow-sm border-0 glass-card-enhanced">
             <Card.Body>
               <div className="d-flex justify-content-between mb-2">
                 <div className="text-muted small">Active Tasks</div>
@@ -175,7 +175,7 @@ function Dashboard({ setActiveTab, toast }) {
 
       <Row className="g-4 mb-4">
         <Col md={3}>
-          <Card className="h-100 shadow-sm border-0">
+          <Card className="h-100 shadow-sm border-0 glass-card-enhanced">
             <Card.Body>
               <div className="d-flex justify-content-between mb-2">
                 <div className="text-muted small">Total Orders</div>
@@ -189,7 +189,7 @@ function Dashboard({ setActiveTab, toast }) {
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="h-100 shadow-sm border-0">
+          <Card className="h-100 shadow-sm border-0 glass-card-enhanced">
             <Card.Body>
               <div className="d-flex justify-content-between mb-2">
                 <div className="text-muted small">Total Tasks</div>

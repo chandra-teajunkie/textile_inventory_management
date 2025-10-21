@@ -174,7 +174,7 @@ export default function TaskList({ toast }) {
           <h1 className="h3 fw-bold">Tasks Management</h1>
         </div>
 
-        <Card className="mb-4">
+        <Card className="mb-4 glass-card-enhanced">
           <Card.Body>
             <Form.Group>
               <Form.Label>Select Order</Form.Label>
@@ -193,7 +193,7 @@ export default function TaskList({ toast }) {
         {selectedOrderId && (
           <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
             <Tab eventKey="list" title="📋 Task List">
-              <Card className="mb-4">
+              <Card className="mb-4 glass-card-enhanced">
                 <Card.Header>
                   <div className="d-flex flex-wrap gap-2 align-items-center">
                     {/* Status Filters */}

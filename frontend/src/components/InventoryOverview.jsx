@@ -267,14 +267,14 @@ function InventoryOverview({ toast }) {
             <i className="bi bi-download me-2"></i>
             Export
           </Button>
-          <Button variant="primary" onClick={() => setShowAddModal(true)}>
+          <Button variant="primary" onClick={() => setShowAddModal(true)} className="btn-enhanced-glow">
             <i className="bi bi-plus me-2"></i>
             Add New Item
           </Button>
         </div>
       </div>
 
-      <Card className="shadow-sm border-0">
+      <Card className="shadow-sm border-0 glass-card-enhanced">
         <Card.Header className="bg-white">
           <div className="d-flex justify-content-between align-items-center">
             <div className="btn-group">
@@ -364,7 +364,7 @@ function InventoryOverview({ toast }) {
                       </td>
                       <td className="text-end">
                         <Dropdown align="end">
-                          <Dropdown.Toggle variant="light" size="sm" id={`dropdown-${item.id}`}>
+                          <Dropdown.Toggle variant="outline-primary" size="sm" id={`dropdown-${item.id}`} className="dropdown-toggle">
                             <i className="bi bi-three-dots"></i>
                           </Dropdown.Toggle>
                           <Dropdown.Menu>
@@ -481,7 +481,7 @@ function InventoryOverview({ toast }) {
           <Button variant="secondary" onClick={() => setShowAddModal(false)}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleAddItem}>
+          <Button variant="primary" onClick={handleAddItem} className="btn-enhanced-glow">
             Add Item
           </Button>
         </Modal.Footer>
@@ -584,7 +584,7 @@ function InventoryOverview({ toast }) {
           <Button variant="secondary" onClick={() => setShowUpdateModal(false)}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleUpdateItem}>
+          <Button variant="primary" onClick={handleUpdateItem} className="btn-enhanced-glow">
             Update Item
           </Button>
         </Modal.Footer>

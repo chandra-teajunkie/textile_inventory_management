@@ -9,6 +9,7 @@ import * as XLSX from "xlsx"
 import { jsPDF } from "jspdf"
 import autoTable from 'jspdf-autotable'
 import { detectDataType } from '../lib/chartUtils'
+import { getCurrentThemeVariables } from '../../utils/themeUtils'
 import '../order/order.css';
 
 const createKey = () => `id_${Date.now()}_${Math.random()}`;
@@ -84,7 +85,7 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
 
   const ActionCellRenderer = useCallback(({ row }) => (
     <div className="d-flex justify-content-center align-items-center h-100">
-      <Button variant="link" size="sm" onClick={() => deleteRow(row.key)} className="p-1 text-danger" style={{ border: "none", background: "none" }} title="Delete row">
+      <Button variant="link" size="sm" onClick={() => deleteRow(row.key)} className="p-1 text-danger" style={{ border: "none", background: "none", color: "var(--accent-danger)" }} title="Delete row">
         <FaTrash />
       </Button>
     </div>
@@ -267,6 +268,7 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
   };
 
   const handlePrint = () => {
+    const theme = getCurrentThemeVariables();
     const sortedColumns = getSortedExportColumns();
     const headers = sortedColumns.map(c => `<th>${c.name}</th>`).join('');
     const body = rows.map(row => `<tr>${sortedColumns.map(c => `<td>${row[c.key] ?? ''}</td>`).join('')}</tr>`).join('');
@@ -279,7 +281,7 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
     });
     let totalsHtml = '';
     if (Object.keys(totals).length > 0) {
-      totalsHtml = `<tr style="font-weight:bold;background:#f8f9fa">${sortedColumns.map((c, i) => {
+      totalsHtml = `<tr style="font-weight:bold;background:${theme.bgSecondary || '#f8f9fa'}">${sortedColumns.map((c, i) => {
         if (c.dataType === 'number') return `<td>${totals[c.key]}</td>`;
         if (i === 0) return `<td>TOTAL</td>`;
         return `<td></td>`;
@@ -294,23 +296,28 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
     addNotesHtml("Special Notes", specialNotes);
     addNotesHtml("Order Notes", orderNotes);
     addNotesHtml(`${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart Notes`, chartNotes);
-    const content = `<html><head><title></title>
-    <style>table, th, td { border: 1px solid black; border-collapse: collapse; padding: 5px; } th { background-color: #f2f2f2; } h2 { font-size: 14px; margin-top: 20px; } 
+    const content = `<html><head>
+    <style>
+    table, th, td { border: 1px solid var(--border-color, #ddd); border-collapse: collapse; padding: 5px; color: var(--text-primary, #000); } 
+    th { background-color: var(--accent-primary, #007bff); color: white; } 
+    h2 { font-size: 14px; margin-top: 20px; color: var(--text-primary, #000); } 
     p { font-size: 12px; }
     body { 
               font-family: Arial, sans-serif; 
               margin: 20px; 
               font-size: 11px;
+              background-color: ${theme.cardBg || '#ffffff'};
+              color: ${theme.textPrimary || '#000000'};
             }
             .letterhead {
-              border-bottom: 3px solid #007bff;
+              border-bottom: 3px solid ${theme.accentPrimary || '#007bff'};
               padding-bottom: 15px;
               margin-bottom: 20px;
             }
             .letterhead h1 {
               font-size: 24px;
               margin: 0 0 5px 0;
-              color: #007bff;
+              color: ${theme.accentPrimary || '#007bff'};
             }
             .letterhead .tagline {
               font-size: 11px;
@@ -566,7 +573,7 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
     const baseColumns = sortedBaseColumns.map(col => ({
       ...col,
       renderHeader: () => (
-        <div className="d-flex align-items-center justify-content-between w-100 h-100 px-2" style={{ minHeight: "35px", backgroundColor: "#343a40", color: "white" }}>
+        <div className="d-flex align-items-center justify-content-between w-100 h-100 px-2" style={{ minHeight: "35px", backgroundColor: "var(--bg-tertiary)", color: "var(--text-primary)" }}>
           {editingColumn === col.key ? (
             <Form.Control size="sm" value={editColumnName} onChange={e => setEditColumnName(e.target.value)} onBlur={() => handleEditColumn(col.key)} autoFocus />
           ) : (
@@ -683,7 +690,11 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
           )}
         </div>
         <div className="d-flex gap-2 flex-wrap">
-          <Button onClick={handlePrint} variant="outline-secondary" size="sm"><FaPrint className="me-1" />Print</Button>
+          <Button onClick={handlePrint} variant="outline-secondary" size="sm">
+            <span title="For best results, disable Headers/Footers and enable Background Graphics in the print dialog. This ensures the printout matches the on-screen view.">
+              <FaPrint className="me-1" />Print
+            </span>
+          </Button>
           <Button onClick={exportToCSV} variant="outline-secondary" size="sm"><FaFileExport className="me-1" />CSV</Button>
           {/* <Dropdown as={ButtonGroup}>
             <Button variant="outline-secondary" size="sm"><FaFileExport className="me-1" />Export</Button>
@@ -705,7 +716,7 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
           rowKeyGetter={(row) => row.key}
           bottomSummaryRows={summaryRows}
           className={"rdg-light " + (chartType === "incoming" ? " rdg-no-actions" : "")}
-          style={{ height: "300px", "--rdg-header-background-color": "#e9ecef", "--rdg-border-color": "#dee2e6", fontSize: "14px" }}
+          style={{ height: "300px", "--rdg-header-background-color": "var(--bg-tertiary)", "--rdg-border-color": "var(--border-color)", fontSize: "14px" }}
         />
       )}
 

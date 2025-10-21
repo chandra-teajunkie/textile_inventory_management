@@ -516,7 +516,11 @@ const ConsolidatedOverview = () => {
                             <FaDownload className="me-1" />
                             Export Data
                         </Dropdown.Toggle>
-                        <Dropdown.Menu>
+                            <Dropdown.Menu>
+                                {/* // If you have a Print button, wrap it with:
+                                // <span title="For best results, disable Headers/Footers and enable Background Graphics in the print dialog.">
+                                //   <FaPrint className="me-1" /> Print
+                                // </span> */}
                             <Dropdown.Item onClick={exportToCsv}>
                                 <FaFileCsv className="me-2" />
                                 Export as CSV
@@ -767,7 +771,7 @@ const ConsolidatedOverview = () => {
                                                                                     </td>
                                                                                     <td>
                                                                                         <Badge bg={getTaskStatusVariant(task.status)}>
-                                                                                            {getStatusIcon(task.status)}
+                                                                                            {/* {getStatusIcon(task.status)} */}
                                                                                             {task.status}
                                                                                         </Badge>
                                                                                     </td>

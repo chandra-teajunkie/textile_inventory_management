@@ -41,7 +41,7 @@ function App() {
     <div className="min-h-screen mainPage" data-theme={theme}>
       <Toast ref={toast} position="top-right" className="toastPopUp" />
 
-      <header className="sticky-top d-flex align-items-center border-bottom bg-white px-4 py-3 shadow-sm">
+      <header className="sticky-top d-flex align-items-center border-bottom px-4 py-3 shadow-sm header-enhanced" style={{ backgroundColor: 'var(--header-bg)', borderBottomColor: 'var(--border-color)' }}>
         <div className="d-flex align-items-center gap-2 fw-semibold">
           {/* <i className="bi bi-scissors text-primary fs-4"></i> */}
           {/* <img src={TextileLogo}></img> */}
@@ -57,15 +57,15 @@ function App() {
           />
           <span className="text-primary fw-bold" style={{ fontSize: "1.5rem" }}>SIDHU Textiles</span>
         </div>
-        {/* <div className="ms-auto me-3">
+        <div className="ms-auto me-3">
           <button
-            className="btn btn-outline-secondary"
+            className="btn btn-outline-secondary theme-toggle-enhanced"
             onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-            title="Toggle theme"
+            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
           >
             <i className={`bi bi-${theme === 'light' ? 'moon' : 'sun'}`}></i>
           </button>
-        </div> */}
+        </div>
         {/* <div className="position-relative ms-auto flex-grow-0 me-3">
           <i className="bi bi-search position-absolute" style={{ left: "10px", top: "10px", fontSize: "0.9rem" }}></i>
           <input
@@ -142,7 +142,7 @@ function App() {
       </header>
 
       <div className="d-flex pageBody">
-        <nav className="d-none d-md-block border-end bg-white" style={{ width: "240px" }}>
+        <nav className="d-none d-md-block border-end sidebar-nav" style={{ width: "240px", backgroundColor: 'var(--nav-bg)', borderRightColor: 'var(--border-color)' }}>
           <div className="d-flex flex-column gap-2 p-3">
             <button
               className={`btn text-start ${activeTab === "dashboard" ? "btn-light fw-medium" : "btn-white"}`}
