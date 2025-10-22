@@ -15,6 +15,8 @@ import {
     ProgressBar,
     Modal,
     ListGroup,
+    OverlayTrigger,
+    Popover
 } from "react-bootstrap"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -39,7 +41,6 @@ import {
 } from "recharts"
 import {
     FaFileCsv,
-    FaFilePdf,
     FaPrint,
     FaChevronDown,
     FaChevronRight,
@@ -71,7 +72,6 @@ import {
 import { GiSewingMachine, GiHeavyCollar } from "react-icons/gi"
 import { TbHttpGet } from "react-icons/tb"
 import { parseJsonSafe } from "../utils/jsonUtils"
-import { OverlayTrigger, Popover } from "react-bootstrap"
 
 // --- Constants and Helper Functions ---
 const TASK_UNITS = [
@@ -143,11 +143,12 @@ const getDateRange = (preset) => {
         case "thisMonth":
             start.setDate(1)
             return { start, end: today }
-        case "lastMonth":
+        case "lastMonth": {
             start.setMonth(today.getMonth() - 1)
             start.setDate(1)
             const lastDayOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
             return { start, end: lastDayOfLastMonth }
+        }
         default:
             start.setDate(today.getDate() - 30)
             return { start, end: today }
@@ -235,38 +236,6 @@ const getStatusIcon = (status) => {
     }
 }
 
-const CustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, unit }) => {
-    const RADIAN = Math.PI / 180
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5
-
-    // Add safety checks for NaN values
-    if (isNaN(cx) || isNaN(cy) || isNaN(midAngle) || isNaN(radius) || isNaN(percent)) {
-        return null
-    }
-
-    const x = cx + radius * Math.cos(-midAngle * RADIAN)
-    const y = cy + radius * Math.sin(-midAngle * RADIAN)
-
-    // Additional safety check for calculated positions
-    if (isNaN(x) || isNaN(y)) {
-        return null
-    }
-
-    return (
-        <text
-            x={x}
-            y={y}
-            fill="white"
-            textAnchor={x > cx ? "start" : "end"}
-            dominantBaseline="central"
-            fontSize="12"
-            fontWeight="bold"
-        >
-            {`${(percent * 100).toFixed(0)}%`}
-        </text>
-    )
-}
-
 // --- Quick View Modal Component ---
 const QuickViewModal = ({ show, onHide, title, items, type }) => {
     return (
@@ -345,12 +314,12 @@ const KpiCards = ({ orders, tasks }) => {
                 <Card className="shadow-sm border-0 h-100">
                     <Card.Body className="d-flex align-items-center">
                         <div className="flex-grow-1">
-                            <div className="text-muted small mb-1">
+                            <div className="text-muted small mb-1 d-flex align-items-center">
                                 <FaClipboardList className="me-1" />
                                 Total Orders
                             </div>
                             <div className="h3 fw-bold text-primary mb-0">{orders.length}</div>
-                            <div className="small text-muted">
+                            <div className="small text-muted d-flex align-items-center">
                                 <FaCalendarAlt className="me-1" />
                                 {overdueOrders} overdue
                             </div>
@@ -366,12 +335,12 @@ const KpiCards = ({ orders, tasks }) => {
                 <Card className="shadow-sm border-0 h-100">
                     <Card.Body className="d-flex align-items-center">
                         <div className="flex-grow-1">
-                            <div className="text-muted small mb-1">
+                            <div className="text-muted small mb-1 d-flex align-items-center">
                                 <FaTasks className="me-1" />
                                 Total Tasks
                             </div>
                             <div className="h3 fw-bold text-info mb-0">{tasks.length}</div>
-                            <div className="small text-warning">
+                            <div className="small text-warning d-flex align-items-center">
                                 <FaPlay className="me-1" />
                                 {taskStatusCounts["IN PROGRESS"] || 0} active
                             </div>
@@ -387,7 +356,7 @@ const KpiCards = ({ orders, tasks }) => {
                 <Card className="shadow-sm border-0 h-100">
                     <Card.Body className="d-flex align-items-center">
                         <div className="flex-grow-1">
-                            <div className="text-muted small mb-1">
+                            <div className="text-muted small mb-1 d-flex align-items-center">
                                 <FaChartBar className="me-1" />
                                 Completion Rate
                             </div>
@@ -405,12 +374,12 @@ const KpiCards = ({ orders, tasks }) => {
                 <Card className="shadow-sm border-0 h-100">
                     <Card.Body className="d-flex align-items-center">
                         <div className="flex-grow-1">
-                            <div className="text-muted small mb-1">
+                            <div className="text-muted small mb-1 d-flex align-items-center">
                                 <FaFire className="me-1" />
                                 Urgent Items
                             </div>
                             <div className="h3 fw-bold text-danger mb-0">{urgentItems}</div>
-                            <div className="small text-danger">
+                            <div className="small text-danger d-flex align-items-center">
                                 <FaExclamationTriangle className="me-1" />
                                 {taskStatusCounts.BLOCKED || 0} blocked tasks
                             </div>
@@ -569,130 +538,6 @@ const ProductionProgressChart = ({ tasks, onSegmentClick }) => {
         }
     }
 
-    const TaskTimelineChart = ({ orders, dateRange, onDateRangeChange }) => {
-        const [timelineRange, setTimelineRange] = useState("last30")
-
-        const data = useMemo(() => {
-            const { start, end } = getDateRange(timelineRange)
-            const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
-
-            const timelineData = Array.from({ length: days }, (_, i) => {
-                const date = new Date(start)
-                date.setDate(date.getDate() + i)
-                return {
-                    date: date.toISOString().split("T")[0],
-                    displayDate: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-                    orders: 0,
-                    overdue: 0,
-                    ordersList: [],
-                }
-            })
-
-            orders.forEach((order) => {
-                const orderDate = new Date(order.order_date).toISOString().split("T")[0]
-                const dayData = timelineData.find((d) => d.date === orderDate)
-                if (dayData) {
-                    dayData.orders += 1
-                    dayData.ordersList.push(order)
-                    if (isOverdue(order.due_date)) {
-                        dayData.overdue += 1
-                    }
-                }
-            })
-
-            return timelineData
-        }, [orders, timelineRange])
-
-        const handlePresetChange = (preset) => {
-            setTimelineRange(preset)
-            if (onDateRangeChange) {
-                const range = getDateRange(preset)
-                onDateRangeChange(range)
-            }
-        }
-
-        return (
-            <div>
-                <Card className="shadow-sm border-0 mb-3">
-                    <Card.Header className="bg-light">
-                        <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div className="d-flex align-items-center">
-                                <FaCalendarAlt className="me-2 text-primary" />
-                                <Card.Title as="h5" className="mb-0">
-                                    Orders Timeline Analysis
-                                </Card.Title>
-                            </div>
-                            <div className="btn-group">
-                                {Object.entries(DATE_PRESETS).map(([key, preset]) => (
-                                    <Button
-                                        key={key}
-                                        variant={timelineRange === key ? "primary" : "outline-primary"}
-                                        size="sm"
-                                        onClick={() => handlePresetChange(key)}
-                                    >
-                                        {preset.label}
-                                    </Button>
-                                ))}
-                            </div>
-                        </div>
-                    </Card.Header>
-                </Card>
-
-                <Card className="shadow-sm border-0 h-100" id="timeline-chart">
-                    <Card.Body>
-                        <ResponsiveContainer width="100%" height={400}>
-                            <ComposedChart data={data}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="displayDate" angle={-45} textAnchor="end" height={80} />
-                                <YAxis />
-                                <RechartsTooltip
-                                    labelFormatter={(value, payload) => {
-                                        if (payload && payload[0]) {
-                                            const data = payload[0].payload
-                                            return `${value} - ${data.orders} orders${data.overdue > 0 ? `, ${data.overdue} overdue` : ""}`
-                                        }
-                                        return value
-                                    }}
-                                    formatter={(value, name) => [value, name === "orders" ? "Total Orders" : "Overdue Orders"]}
-                                />
-                                <Legend />
-                                <Area type="monotone" dataKey="orders" fill="#0088FE" stroke="#0088FE" name="Orders" />
-                                <Line type="monotone" dataKey="overdue" stroke="#FF8042" strokeWidth={3} name="Overdue" />
-                            </ComposedChart>
-                        </ResponsiveContainer>
-                    </Card.Body>
-                </Card>
-            </div>
-        )
-    }
-
-    const CustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, unit }) => {
-        const RADIAN = Math.PI / 180
-        const radius = innerRadius + (outerRadius - innerRadius) * 0.5
-
-        // Add safety checks for NaN values
-        if (isNaN(cx) || isNaN(cy) || isNaN(midAngle) || isNaN(radius) || isNaN(percent)) {
-            return null
-        }
-
-        const x = cx + radius * Math.cos(-midAngle * RADIAN)
-        const y = cy + radius * Math.sin(-midAngle * RADIAN)
-
-        return (
-            <text
-                x={x}
-                y={y}
-                fill="white"
-                textAnchor={x > cx ? "start" : "end"}
-                dominantBaseline="central"
-                fontSize="12"
-                fontWeight="bold"
-            >
-                {`${(percent * 100).toFixed(0)}%`}
-            </text>
-        )
-    }
-
     return (
         <Card className="shadow-sm border-0 h-100" id="production-progress-chart">
             <Card.Header className="bg-light">
@@ -734,6 +579,34 @@ const ProductionProgressChart = ({ tasks, onSegmentClick }) => {
                 </ResponsiveContainer>
             </Card.Body>
         </Card>
+    )
+}
+
+// CustomizedLabel component for RadialBarChart
+const CustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, unit }) => {
+    const RADIAN = Math.PI / 180
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5
+
+    // Add safety checks for NaN values
+    if (isNaN(cx) || isNaN(cy) || isNaN(midAngle) || isNaN(radius) || isNaN(percent)) {
+        return null
+    }
+
+    const x = cx + radius * Math.cos(-midAngle * RADIAN)
+    const y = cy + radius * Math.sin(-midAngle * RADIAN)
+
+    return (
+        <text
+            x={x}
+            y={y}
+            fill="white"
+            textAnchor={x > cx ? "start" : "end"}
+            dominantBaseline="central"
+            fontSize="12"
+            fontWeight="bold"
+        >
+            {`${(percent * 100).toFixed(0)}%`}
+        </text>
     )
 }
 
@@ -954,7 +827,7 @@ const TaskTimelineChart = ({ orders, dateRange, onDateRangeChange }) => {
                                                         {tasks.map((t, idx) => (
                                                             <div key={idx} className="col-12 col-md-6 mb-2">
                                                                 <Card className="p-2">
-                                                                    <div className="d-flex justify-content-between">
+                                                                    <div className="d-flex justify-content-between align-items-center">
                                                                         <div>
                                                                             <div className="fw-bold small">{t.name || t.task_name || `Task ${idx + 1}`}</div>
                                                                             <div className="small text-muted">
@@ -1222,28 +1095,91 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
-    // Filtering state (commented out order status)
+    // Filtering state with debouncing for performance
     const [filterTaskStatus, setFilterTaskStatus] = useState("all")
     const [filterTaskUnit, setFilterTaskUnit] = useState("all")
     const [filterCustomer, setFilterCustomer] = useState("")
+    const [debouncedFilterCustomer, setDebouncedFilterCustomer] = useState("")
     const [dateRange, setDateRange] = useState({ start: "", end: "" })
     const [showOverdueOnly, setShowOverdueOnly] = useState(false)
 
-    // UI State
+    // Debounce customer filter to improve performance
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            setDebouncedFilterCustomer(filterCustomer)
+        }, 300) // 300ms debounce
+
+        return () => clearTimeout(timeoutId)
+    }, [filterCustomer])
+
+    // UI State with navigation persistence
     const [expandedOrders, setExpandedOrders] = useState({})
-    const [activeTab, setActiveTab] = useState("overview")
+    
+    // Initialize active tab from localStorage or URL hash, fallback to "overview"
+    const getInitialTab = () => {
+        // Check URL hash first
+        const hash = window.location.hash.replace('#', '')
+        if (hash && ['overview', 'analysis', 'timeline'].includes(hash)) {
+            return hash
+        }
+        // Check localStorage second
+        const savedTab = localStorage.getItem('enhancedUI_activeTab')
+        if (savedTab && ['overview', 'analysis', 'timeline'].includes(savedTab)) {
+            return savedTab
+        }
+        return "overview"
+    }
+    
+    const [activeTab, setActiveTab] = useState(getInitialTab)
     const [showFilters, setShowFilters] = useState(false)
 
-    // Data Fetching
+    // Persist tab changes to localStorage and URL
+    const handleTabChange = (newTab) => {
+        setActiveTab(newTab)
+        localStorage.setItem('enhancedUI_activeTab', newTab)
+        window.history.replaceState(null, null, `#${newTab}`)
+    }
+
+    // Listen for browser back/forward navigation
     useEffect(() => {
+        const handleHashChange = () => {
+            const hash = window.location.hash.replace('#', '')
+            if (hash && ['overview', 'analysis', 'timeline'].includes(hash)) {
+                setActiveTab(hash)
+                localStorage.setItem('enhancedUI_activeTab', hash)
+            }
+        }
+
+        window.addEventListener('hashchange', handleHashChange)
+        return () => window.removeEventListener('hashchange', handleHashChange)
+    }, [])
+
+    // Data Fetching with improved error handling and performance
+    useEffect(() => {
+        let isCancelled = false
+        
         const fetchAllData = async () => {
+            if (isCancelled) return
+            
             setLoading(true)
             setError(null)
+            
             try {
-                // Fetch all orders
-                const ordersRes = await fetch(process.env.REACT_APP_GET_ALL_ORDERS)
-                if (!ordersRes.ok) throw new Error("Failed to fetch orders")
+                // Add timeout to prevent hanging requests
+                const timeoutController = new AbortController()
+                const timeoutId = setTimeout(() => timeoutController.abort(), 30000) // 30 second timeout
+                
+                // Fetch all orders with timeout
+                const ordersRes = await fetch(process.env.REACT_APP_GET_ALL_ORDERS, {
+                    signal: timeoutController.signal
+                })
+                clearTimeout(timeoutId)
+                
+                if (!ordersRes.ok) throw new Error(`Failed to fetch orders: ${ordersRes.status}`)
                 let orders = await ordersRes.json()
+                
+                if (isCancelled) return
+                
                 // Normalize order fields to ensure consistent keys across UI
                 orders = (orders || []).map((o) => ({
                     ...o,
@@ -1254,18 +1190,33 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 }))
                 orders = orders.sort((a, b) => new Date(b.order_date) - new Date(a.order_date))
 
-                // Fetch tasks for each order
-                const tasksPromises = orders.map((order) =>
-                    fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id || order.purchase_order_id || order.id}`)
-                        .then((res) => (res.ok ? res.json() : []))
-                        .catch(() => []),
-                )
+                // Fetch tasks for each order with improved error handling
+                const tasksPromises = orders.map(async (order) => {
+                    try {
+                        const taskController = new AbortController()
+                        const taskTimeoutId = setTimeout(() => taskController.abort(), 10000) // 10 second timeout per task
+                        
+                        const res = await fetch(
+                            `${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id || order.purchase_order_id || order.id}`,
+                            { signal: taskController.signal }
+                        )
+                        clearTimeout(taskTimeoutId)
+                        
+                        return res.ok ? await res.json() : []
+                    } catch (taskError) {
+                        console.warn(`Failed to fetch tasks for order ${order.order_id}:`, taskError)
+                        return []
+                    }
+                })
 
-                const tasksResults = await Promise.all(tasksPromises)
+                const tasksResults = await Promise.allSettled(tasksPromises)
+                
+                if (isCancelled) return
 
                 // Combine orders and tasks
                 const combinedData = orders.map((order, index) => {
-                    const tasks = tasksResults[index] || []
+                    const tasksResult = tasksResults[index]
+                    const tasks = tasksResult.status === 'fulfilled' ? (tasksResult.value || []) : []
                     const allTasksCompleted = tasks.length > 0 && tasks.every((t) => t.status === "COMPLETED")
                     const overdueByDate = isOverdue(order.due_date)
 
@@ -1279,27 +1230,41 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                     }
                 })
 
-                setAllData(combinedData)
+                if (!isCancelled) {
+                    setAllData(combinedData)
+                }
             } catch (err) {
-                setError(err.message)
-                console.error(err)
-                if (toast?.current) {
-                    toast.current.show({
-                        severity: "error",
-                        summary: "Error",
-                        detail: "Failed to load data.",
-                        life: 3000,
-                    })
+                if (!isCancelled) {
+                    const errorMessage = err.name === 'AbortError' 
+                        ? 'Request timed out. Please check your connection and try again.'
+                        : err.message
+                    setError(errorMessage)
+                    console.error(err)
+                    if (toast?.current) {
+                        toast.current.show({
+                            severity: "error",
+                            summary: "Error",
+                            detail: "Failed to load data: " + errorMessage,
+                            life: 5000,
+                        })
+                    }
                 }
             } finally {
-                setLoading(false)
+                if (!isCancelled) {
+                    setLoading(false)
+                }
             }
         }
 
         fetchAllData()
+        
+        // Cleanup function to cancel requests if component unmounts or effect re-runs
+        return () => {
+            isCancelled = true
+        }
     }, [toast])
 
-    // Filtering Logic
+    // Optimized Filtering Logic with debouncing
     const filteredData = useMemo(() => {
         return allData
             .map((order) => {
@@ -1313,9 +1278,9 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 return { ...order, tasks }
             })
             .filter((order) => {
-                // Filter orders
+                // Filter orders using debounced customer filter
                 const customerMatch =
-                    !filterCustomer || order.customer_name.toLowerCase().includes(filterCustomer.toLowerCase())
+                    !debouncedFilterCustomer || order.customer_name.toLowerCase().includes(debouncedFilterCustomer.toLowerCase())
 
                 // Date filtering
                 let dateMatch = true
@@ -1334,7 +1299,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
 
                 return customerMatch && dateMatch && overdueMatch
             })
-    }, [allData, filterTaskStatus, filterTaskUnit, filterCustomer, dateRange, showOverdueOnly])
+    }, [allData, filterTaskStatus, filterTaskUnit, debouncedFilterCustomer, dateRange, showOverdueOnly])
 
     const allTasks = useMemo(() => filteredData.flatMap((order) => order.tasks), [filteredData])
 
@@ -1353,6 +1318,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
         setFilterTaskStatus("all")
         setFilterTaskUnit("all")
         setFilterCustomer("")
+        setDebouncedFilterCustomer("")
         setDateRange({ start: "", end: "" })
         setShowOverdueOnly(false)
     }
@@ -1731,12 +1697,70 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
         <!DOCTYPE html>
         <html>
         <head>
-          
+          <meta charset="UTF-8">
+          <title>Orders and Tasks Analysis Report</title>
           <style>
+            /* FORCE LIGHT THEME FOR PRINT - OVERRIDE ALL THEME VARIABLES */
+            * {
+              color-scheme: light !important;
+            }
+            
+            /* Reset all theme variables to light values */
+            :root {
+              --primary-color: #007bff !important;
+              --secondary-color: #6c757d !important;
+              --success-color: #28a745 !important;
+              --danger-color: #dc3545 !important;
+              --warning-color: #ffc107 !important;
+              --info-color: #17a2b8 !important;
+              --light-color: #f8f9fa !important;
+              --dark-color: #343a40 !important;
+              
+              --text-primary: #212529 !important;
+              --text-secondary: #6c757d !important;
+              --text-muted: #6c757d !important;
+              
+              --bg-primary: #ffffff !important;
+              --bg-secondary: #f8f9fa !important;
+              
+              --border-color: #dee2e6 !important;
+              --border-light: #e9ecef !important;
+              
+              --card-bg: #ffffff !important;
+              --card-header-bg: #f8f9fa !important;
+              
+              --table-bg: #ffffff !important;
+              --table-striped-bg: #f8f9fa !important;
+              --table-hover-bg: #f5f5f5 !important;
+              
+              --input-bg: #ffffff !important;
+              --input-border: #ced4da !important;
+              
+              --glass-bg: #ffffff !important;
+              --glass-border: #dee2e6 !important;
+            }
+            
+            /* Force light theme on all elements */
+            *, 
+            *::before, 
+            *::after,
+            [data-theme="dark"] *,
+            [data-theme="light"] * {
+              background-color: white !important;
+              color: #212529 !important;
+              border-color: #dee2e6 !important;
+              box-shadow: none !important;
+              text-shadow: none !important;
+              backdrop-filter: none !important;
+              -webkit-backdrop-filter: none !important;
+            }
+            
             body { 
-              font-family: Arial, sans-serif; 
-              margin: 20px; 
-              font-size: 11px;
+              font-family: Arial, sans-serif !important; 
+              margin: 20px !important; 
+              font-size: 11px !important;
+              background: white !important;
+              color: #212529 !important;
             }
             .letterhead {
               border-bottom: 3px solid #007bff;
@@ -2036,6 +2060,254 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
         }
     }
 
+    // Enhanced Template Placeholder Components for Better Loading UX
+    const TableRowPlaceholder = () => (
+        <tr className="placeholder-glow">
+            <td><div className="placeholder" style={{width: '30px', height: '20px'}}></div></td>
+            <td><div className="placeholder" style={{width: '120px', height: '20px'}}></div></td>
+            <td><div className="placeholder" style={{width: '80px', height: '20px'}}></div></td>
+            <td><div className="placeholder" style={{width: '80px', height: '20px'}}></div></td>
+            <td><div className="placeholder" style={{width: '70px', height: '20px'}}></div></td>
+            <td><div className="placeholder" style={{width: '60px', height: '20px'}}></div></td>
+            <td><div className="placeholder" style={{width: '100px', height: '20px'}}></div></td>
+            <td><div className="placeholder" style={{width: '50px', height: '20px'}}></div></td>
+            <td><div className="placeholder" style={{width: '80px', height: '20px'}}></div></td>
+        </tr>
+    )
+
+    const CardPlaceholder = ({ height = '200px', title = true }) => (
+        <Card className="shadow-sm border-0 placeholder-glow">
+            <Card.Body>
+                {title && <div className="placeholder" style={{width: '60%', height: '24px', marginBottom: '16px'}}></div>}
+                <div className="placeholder" style={{width: '100%', height: height}}></div>
+            </Card.Body>
+        </Card>
+    )
+
+    const KpiCardPlaceholder = () => (
+        <Card className="shadow-sm border-0 placeholder-glow">
+            <Card.Body className="text-center">
+                <div className="placeholder" style={{width: '40px', height: '40px', borderRadius: '50%', margin: '0 auto 12px'}}></div>
+                <div className="placeholder" style={{width: '80px', height: '32px', margin: '0 auto 8px'}}></div>
+                <div className="placeholder" style={{width: '60px', height: '16px', margin: '0 auto'}}></div>
+            </Card.Body>
+        </Card>
+    )
+
+    const ChartGridPlaceholder = () => (
+        <Row className="g-4">
+            <Col md={6}>
+                <CardPlaceholder height="300px" />
+            </Col>
+            <Col md={6}>
+                <CardPlaceholder height="300px" />
+            </Col>
+            <Col md={4}>
+                <CardPlaceholder height="250px" />
+            </Col>
+            <Col md={4}>
+                <CardPlaceholder height="250px" />
+            </Col>
+            <Col md={4}>
+                <CardPlaceholder height="250px" />
+            </Col>
+        </Row>
+    )
+
+    const AnalysisTabPlaceholder = () => (
+        <div className="placeholder-glow">
+            {/* Analysis Tab Header */}
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <div className="placeholder" style={{width: '250px', height: '28px'}}></div>
+                <div className="d-flex gap-2">
+                    <div className="placeholder" style={{width: '100px', height: '36px'}}></div>
+                    <div className="placeholder" style={{width: '100px', height: '36px'}}></div>
+                </div>
+            </div>
+            
+            {/* Production Analysis Charts */}
+            <Row className="g-4 mb-4">
+                <Col lg={6}>
+                    <Card className="shadow-sm border-0">
+                        <Card.Header className="placeholder-glow">
+                            <div className="placeholder" style={{width: '180px', height: '20px'}}></div>
+                        </Card.Header>
+                        <Card.Body>
+                            <div className="placeholder" style={{width: '100%', height: '350px'}}></div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+                <Col lg={6}>
+                    <Card className="shadow-sm border-0">
+                        <Card.Header className="placeholder-glow">
+                            <div className="placeholder" style={{width: '160px', height: '20px'}}></div>
+                        </Card.Header>
+                        <Card.Body>
+                            <div className="placeholder" style={{width: '100%', height: '350px'}}></div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
+
+            {/* Status Distribution */}
+            <Row className="g-4">
+                <Col md={4}>
+                    <CardPlaceholder height="280px" />
+                </Col>
+                <Col md={4}>
+                    <CardPlaceholder height="280px" />
+                </Col>
+                <Col md={4}>
+                    <CardPlaceholder height="280px" />
+                </Col>
+            </Row>
+        </div>
+    )
+
+    const TimelineTabPlaceholder = () => (
+        <div className="placeholder-glow">
+            {/* Timeline Header */}
+            <Card className="shadow-sm border-0 mb-4">
+                <Card.Header>
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div className="placeholder" style={{width: '200px', height: '24px'}}></div>
+                        <div className="d-flex gap-2">
+                            {[1,2,3,4].map(i => (
+                                <div key={i} className="placeholder" style={{width: '80px', height: '32px'}}></div>
+                            ))}
+                        </div>
+                    </div>
+                </Card.Header>
+                <Card.Body>
+                    <div className="placeholder" style={{width: '100%', height: '400px'}}></div>
+                </Card.Body>
+            </Card>
+
+            {/* Timeline Details */}
+            <Row className="g-4">
+                <Col md={8}>
+                    <Card className="shadow-sm border-0">
+                        <Card.Header className="placeholder-glow">
+                            <div className="placeholder" style={{width: '150px', height: '20px'}}></div>
+                        </Card.Header>
+                        <Card.Body>
+                            {[1,2,3,4,5].map(i => (
+                                <div key={i} className="d-flex align-items-center p-3 border-bottom">
+                                    <div className="placeholder" style={{width: '40px', height: '40px', borderRadius: '50%', marginRight: '12px'}}></div>
+                                    <div className="flex-grow-1">
+                                        <div className="placeholder mb-2" style={{width: '70%', height: '16px'}}></div>
+                                        <div className="placeholder" style={{width: '50%', height: '14px'}}></div>
+                                    </div>
+                                    <div className="placeholder" style={{width: '80px', height: '24px'}}></div>
+                                </div>
+                            ))}
+                        </Card.Body>
+                    </Card>
+                </Col>
+                <Col md={4}>
+                    <CardPlaceholder height="320px" />
+                </Col>
+            </Row>
+        </div>
+    )
+
+    const TabContentPlaceholder = ({ activeTab }) => {
+        switch(activeTab) {
+            case 'analysis':
+                return <AnalysisTabPlaceholder />
+            case 'timeline':
+                return <TimelineTabPlaceholder />
+            default: // overview
+                return (
+                    <>
+                        {/* Table Placeholder */}
+                        <Card className="shadow-sm border-0">
+                            <Card.Body className="p-0">
+                                <Table responsive className="align-middle mb-0">
+                                    <thead className="table-dark">
+                                        <tr>
+                                            <th style={{ width: "40px" }}></th>
+                                            <th>Customer</th>
+                                            <th>Order Date</th>
+                                            <th>Due Date</th>
+                                            <th>Status</th>
+                                            <th>Types</th>
+                                            <th>Notes</th>
+                                            <th className="text-center">Tasks</th>
+                                            <th className="text-center">Progress</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {[1,2,3,4,5,6,7,8].map(i => <TableRowPlaceholder key={i} />)}
+                                    </tbody>
+                                </Table>
+                            </Card.Body>
+                        </Card>
+                    </>
+                )
+        }
+    }
+
+    // Main Render with improved loading states
+    if (loading) {
+        return (
+            <div className="p-3 p-md-4">
+                {/* Header Placeholder */}
+                <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3 placeholder-glow">
+                    <div>
+                        <div className="placeholder" style={{width: '300px', height: '32px', marginBottom: '8px'}}></div>
+                        <div className="placeholder" style={{width: '400px', height: '16px'}}></div>
+                    </div>
+                    <div className="d-flex gap-2">
+                        <div className="placeholder" style={{width: '120px', height: '38px'}}></div>
+                        <div className="placeholder" style={{width: '120px', height: '38px'}}></div>
+                    </div>
+                </div>
+
+                {/* KPI Cards Placeholder */}
+                <Row className="g-3 mb-4">
+                    {[1,2,3,4,5,6].map(i => (
+                        <Col key={i} xs={6} sm={4} lg={2}>
+                            <KpiCardPlaceholder />
+                        </Col>
+                    ))}
+                </Row>
+
+                {/* Tabs Placeholder */}
+                <div className="placeholder-glow mb-3">
+                    <div className="d-flex gap-3 border-bottom pb-2">
+                        <div className="placeholder" style={{width: '150px', height: '24px'}}></div>
+                        <div className="placeholder" style={{width: '120px', height: '24px'}}></div>
+                        <div className="placeholder" style={{width: '100px', height: '24px'}}></div>
+                    </div>
+                </div>
+
+                {/* Tab Content Placeholder */}
+                <TabContentPlaceholder activeTab={activeTab} />
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="p-3 p-md-4">
+                <Card className="shadow-sm border-0 border-start border-danger border-4">
+                    <Card.Body className="text-center py-5">
+                        <FaExclamationTriangle className="text-danger mb-3" size={48} />
+                        <h4 className="text-danger mb-2">Failed to Load Data</h4>
+                        <p className="text-muted mb-3">{error}</p>
+                        <Button 
+                            variant="outline-danger" 
+                            onClick={() => window.location.reload()}
+                        >
+                            Retry
+                        </Button>
+                    </Card.Body>
+                </Card>
+            </div>
+        )
+    }
+
     // Main Render
     return (
         <div className="p-3 p-md-4">
@@ -2061,7 +2333,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
 
                     <Dropdown>
                         <Dropdown.Toggle variant="primary" id="dropdown-export">
-                            {/* <FaFileCsv className="me-1" /> */}
+                            <FaChartBar className="me-1" />
                             Export Analysis
                         </Dropdown.Toggle>
                         <Dropdown.Menu>
@@ -2194,7 +2466,16 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
             )}
 
             {/* Main Content Tabs */}
-            <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
+            <Tabs 
+                activeKey={activeTab} 
+                onSelect={(k) => {
+                    // Prevent tab switching during loading to avoid getting stuck
+                    if (!loading && k) {
+                        handleTabChange(k)
+                    }
+                }} 
+                className="mb-3"
+            >
                 <Tab
                     eventKey="overview"
                     title={

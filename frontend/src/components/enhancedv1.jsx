@@ -1270,7 +1270,24 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                             <Col md={6} lg={3}>
                                 <Form.Group>
                                     <Form.Label className="fw-bold">Task Status</Form.Label>
-                                    <Form.Select value={filterTaskStatus} onChange={(e) => setFilterTaskStatus(e.target.value)}>
+                                    <Form.Select 
+                                        value={filterTaskStatus} 
+                                        onChange={(e) => setFilterTaskStatus(e.target.value)}
+                                        className="glass-dropdown-enhanced"
+                                        style={{
+                                            background: 'var(--glass-bg)',
+                                            border: '1px solid var(--glass-border)',
+                                            backdropFilter: 'blur(12px)',
+                                            WebkitBackdropFilter: 'blur(12px)',
+                                            borderRadius: '12px',
+                                            padding: '12px 16px',
+                                            fontSize: '14px',
+                                            fontWeight: '500',
+                                            color: 'var(--text-primary)',
+                                            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                                        }}
+                                    >
                                         <option value="all">All Tasks</option>
                                         {TASK_STATUSES.map((s) => (
                                             <option key={s} value={s}>
@@ -1284,7 +1301,24 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                             <Col md={6} lg={3}>
                                 <Form.Group>
                                     <Form.Label className="fw-bold">Task Unit</Form.Label>
-                                    <Form.Select value={filterTaskUnit} onChange={(e) => setFilterTaskUnit(e.target.value)}>
+                                    <Form.Select 
+                                        value={filterTaskUnit} 
+                                        onChange={(e) => setFilterTaskUnit(e.target.value)}
+                                        className="glass-dropdown-enhanced"
+                                        style={{
+                                            background: 'var(--glass-bg)',
+                                            border: '1px solid var(--glass-border)',
+                                            backdropFilter: 'blur(12px)',
+                                            WebkitBackdropFilter: 'blur(12px)',
+                                            borderRadius: '12px',
+                                            padding: '12px 16px',
+                                            fontSize: '14px',
+                                            fontWeight: '500',
+                                            color: 'var(--text-primary)',
+                                            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                                        }}
+                                    >
                                         <option value="all">All Units</option>
                                         {TASK_UNITS.map((u) => (
                                             <option key={u} value={u}>

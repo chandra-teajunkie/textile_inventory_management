@@ -38,7 +38,7 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
   useEffect(() => {
     if (task.dependencies) {
       try {
-  setDependencies(parseJsonSafe(task.dependencies, []))
+        setDependencies(parseJsonSafe(task.dependencies, []))
       } catch {
         setDependencies([])
       }
@@ -75,8 +75,8 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
       dependencies,
       special_notes: specialNotes
     }
-  setLoading(true)
-  console.log(payload, `${process.env.REACT_APP_PATCH_ALL_TASKS}${task.task_id}`, task)
+    setLoading(true)
+    console.log(payload, `${process.env.REACT_APP_PATCH_ALL_TASKS}${task.task_id}`, task)
     try {
       const resp = await fetch(
         `${process.env.REACT_APP_PATCH_ALL_TASKS}${task.task_id}`,
@@ -110,15 +110,33 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
         display: "grid",
         // justifyContent: space-between;
         width: "-webkit-fill-available",
+        height: "-webkit-fill-available",
         // overflow: "auto"
       }}
 
     >
-      <div style={{ maxHeight: "auto", overflow: "auto" }}>
+      <div style={{ maxHeight: "auto", overflow: "auto", paddingRight: "1rem", }}>
 
         <Form.Group className="mb-3">
           <Form.Label>Task Unit</Form.Label>
-          <Form.Select value={taskUnit} onChange={e => setTaskUnit(e.target.value)}>
+          <Form.Select 
+            value={taskUnit} 
+            onChange={e => setTaskUnit(e.target.value)}
+            className="glass-dropdown-enhanced"
+            style={{
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: 'var(--text-primary)',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+          >
             {TASK_UNITS.map(unit => (
               <option key={unit} value={unit}>{unit}</option>
             ))}
@@ -156,6 +174,8 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
             options={(selectedOrder?.types?.split(",") || []).map(p => ({ label: p.trim(), value: p.trim() }))}
             placeholder="Select a product"
             isClearable
+            className="glass-react-select"
+            classNamePrefix="react-select"
           />
         </Form.Group>
 
@@ -167,6 +187,8 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
             options={(selectedOrder?.colors?.split(",") || []).map(c => ({ label: c.trim(), value: c.trim() }))}
             placeholder="Select a color"
             isClearable
+            className="glass-react-select"
+            classNamePrefix="react-select"
           />
         </Form.Group>
 
@@ -213,7 +235,24 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
 
         <Form.Group className="mb-3">
           <Form.Label>Status</Form.Label>
-          <Form.Select value={status} onChange={e => setStatus(e.target.value)}>
+          <Form.Select 
+            value={status} 
+            onChange={e => setStatus(e.target.value)}
+            className="glass-dropdown-enhanced"
+            style={{
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: 'var(--text-primary)',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+          >
             {STATUS_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
@@ -232,6 +271,8 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
             options={availableDeps.map(t => ({ value: t.task_id, label: t.name }))}
             placeholder="Select dependencies"
             menuPlacement="top"
+            className="glass-react-select"
+            classNamePrefix="react-select"
           />
           {/* legacy fallback select removed - dependencies now use task_id values */}
 
@@ -244,7 +285,7 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
           alignItems: "center",
           bottom: "0",
           position: "sticky",
-          background: "white",
+          // background: "white",
           // maxHeight: "20%"
         }}
       >

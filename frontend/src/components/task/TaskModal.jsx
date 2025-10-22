@@ -229,11 +229,15 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
         width: "-webkit-fill-available",
       }}
     >
-      <div style={{ maxHeight: "auto", overflow: "auto" }}>
+      <div style={{ maxHeight: "auto", overflow: "auto", paddingRight: "1rem", }}>
         {/* Create Task: order-level notes intentionally not shown here (create modal shows task selection notes elsewhere) */}
         <Form.Group className="mb-3">
-          <Form.Label>Task Unit</Form.Label>
-          <Form.Select value={taskUnit} onChange={(e) => setTaskUnit(e.target.value)}>
+          <Form.Label className="fw-bold">Task Unit</Form.Label>
+          <Form.Select 
+            value={taskUnit} 
+            onChange={(e) => setTaskUnit(e.target.value)}
+            className="glass-dropdown-enhanced"
+          >
             {TASK_UNITS.map((unit) => (
               <option key={unit} value={unit}>
                 {unit}
@@ -243,12 +247,13 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>Task Name</Form.Label>
+          <Form.Label className="fw-bold">Task Name</Form.Label>
           <Form.Control
             type="text"
             value={taskName}
             onChange={(e) => setTaskName(e.target.value)}
             placeholder="Enter task name (will be combined with product-color)"
+            className="glass-input-enhanced"
           />
           <Form.Text className="text-muted">
             Each task will be named: "{taskName} - {"Product - Color"}"
@@ -257,10 +262,10 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
 
         <Form.Group className="mb-3">
           <div className="d-flex justify-content-between align-items-center mb-2">
-            <Form.Label className="mb-0">Product-Color Combinations</Form.Label>
-            <div>
+            <Form.Label className="mb-0 fw-bold">Product-Color Combinations</Form.Label>
+            <div className="d-flex justify-content-between align-items-center mb-2">
               <Button
-                variant="outline-primary"
+                variant="outline-secondary"
                 size="sm"
                 onClick={handleSelectAll}
                 className="me-2"
@@ -291,6 +296,8 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
             controlShouldRenderValue={true}
             menuPlacement="auto"
             maxMenuHeight={200}
+            className="glass-react-select"
+            classNamePrefix="react-select"
           />
 
           <Form.Text className="text-muted">
@@ -300,18 +307,23 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>Task Unit Name</Form.Label>
+          <Form.Label className="fw-bold">Task Unit Name</Form.Label>
           <Form.Control
             type="text"
             value={taskUnitName}
             onChange={(e) => setTaskUnitName(e.target.value)}
             placeholder="e.g. A / B"
+            className="glass-input-enhanced"
           />
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>Status</Form.Label>
-          <Form.Select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <Form.Label className="fw-bold">Status</Form.Label>
+          <Form.Select 
+            value={status} 
+            onChange={(e) => setStatus(e.target.value)} 
+            className="glass-dropdown-enhanced"
+          >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -324,13 +336,13 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
         {orderPurchaseUnitNotes && (
           <Form.Group className="mb-3">
             <Form.Label className="fw-bold">Order Notes for this Unit ({taskUnit.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())})</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  value={(parseJsonSafe(orderPurchaseUnitNotes)[taskUnit] || 'No order-level notes for this unit.')}
-                  readOnly
-                  plaintext
-                />
+            <Form.Control
+              as="textarea"
+              rows={3}
+              value={(parseJsonSafe(orderPurchaseUnitNotes)[taskUnit] || 'No order-level notes for this unit.')}
+              readOnly
+              plaintext
+            />
           </Form.Group>
         )}
 
@@ -343,24 +355,27 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
             value={specialNotes}
             onChange={(e) => setSpecialNotes(e.target.value)}
             placeholder="Add any specific notes for this task..."
+            className="glass-input-enhanced"
           />
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>Dependencies</Form.Label>
+          <Form.Label className="fw-bold">Dependencies</Form.Label>
           <Select
             isMulti
             value={dependencies
               .map((dep) => {
-                  const task = allTasks.find((t) => t.task_id === dep)
-                  return task ? { value: task.task_id, label: task.name } : null
-                })
+                const task = allTasks.find((t) => t.task_id === dep)
+                return task ? { value: task.task_id, label: task.name } : null
+              })
               .filter(Boolean)}
-              onChange={(selectedOptions) => setDependencies(selectedOptions.map((opt) => opt.value))}
-              options={allTasks.map((t) => ({ value: t.task_id, label: t.name }))}
+            onChange={(selectedOptions) => setDependencies(selectedOptions.map((opt) => opt.value))}
+            options={allTasks.map((t) => ({ value: t.task_id, label: t.name }))}
             placeholder="Select Dependencies"
             menuPlacement="top"
             isDisabled={selectedCombinations.length > 1}
+            className="glass-react-select"
+            classNamePrefix="react-select"
           />
           {selectedCombinations.length > 1 && (
             <Form.Text className="text-muted">Dependencies are disabled when creating multiple product-color tasks to avoid incorrect cross-task links. Set dependencies after creating tasks if needed.</Form.Text>
@@ -392,7 +407,7 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
           alignItems: "center",
           bottom: "0",
           position: "sticky",
-          background: "white",
+          // background: "white",
         }}
       >
         <div className="d-flex justify-content-end gap-2 mt-4">

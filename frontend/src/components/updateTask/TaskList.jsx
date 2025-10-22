@@ -78,6 +78,7 @@ export default function TaskList({ toast }) {
   const [selectedOrderId, setSelectedOrderId] = useState("")
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [editTask, setEditTask] = useState(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [filterStatus, setFilterStatus] = useState("all")
@@ -87,6 +88,7 @@ export default function TaskList({ toast }) {
 
   // Fetch orders once
   useEffect(() => {
+    setIsInitialLoading(true)
     fetch(process.env.REACT_APP_GET_ALL_ORDERS)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((data) => {
@@ -101,6 +103,9 @@ export default function TaskList({ toast }) {
       .catch((err) => {
         console.error(err)
         toast.current.show({ severity: "error", summary: "Error", detail: "Could not load orders" })
+      })
+      .finally(() => {
+        setTimeout(() => setIsInitialLoading(false), 300)
       })
   }, [])
 
@@ -170,6 +175,62 @@ export default function TaskList({ toast }) {
   return (
     <>
       <div className="p-4">
+        {isInitialLoading ? (
+          // Loading placeholder for TaskList
+          <div className="animate-pulse">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <div className="h3 bg-light rounded" style={{width: '180px', height: '32px'}}></div>
+            </div>
+
+            <Card className="mb-4 glass-card-enhanced">
+              <Card.Body>
+                <div className="mb-3">
+                  <div className="bg-light rounded mb-2" style={{width: '100px', height: '16px'}}></div>
+                  <div className="bg-light rounded" style={{width: '100%', height: '38px'}}></div>
+                </div>
+              </Card.Body>
+            </Card>
+
+            <div className="mb-3">
+              {[1, 2].map(i => (
+                <div key={i} className="bg-light rounded me-2 d-inline-block" style={{width: '120px', height: '42px'}}></div>
+              ))}
+            </div>
+
+            <Card className="mb-4 glass-card-enhanced">
+              <Card.Header>
+                <div className="d-flex gap-2 align-items-center">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="bg-light rounded" style={{width: '80px', height: '32px'}}></div>
+                  ))}
+                </div>
+              </Card.Header>
+              <Card.Body>
+                {[1, 2, 3, 4].map(i => (
+                  <Card key={i} className="mb-3 border-1">
+                    <Card.Body>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex align-items-center gap-3">
+                          <div className="bg-light rounded-circle" style={{width: '40px', height: '40px'}}></div>
+                          <div>
+                            <div className="bg-light rounded mb-1" style={{width: '120px', height: '16px'}}></div>
+                            <div className="bg-light rounded" style={{width: '80px', height: '14px'}}></div>
+                          </div>
+                        </div>
+                        <div className="d-flex gap-2">
+                          <div className="bg-light rounded" style={{width: '60px', height: '24px'}}></div>
+                          <div className="bg-light rounded" style={{width: '60px', height: '32px'}}></div>
+                        </div>
+                      </div>
+                    </Card.Body>
+                  </Card>
+                ))}
+              </Card.Body>
+            </Card>
+          </div>
+        ) : (
+          // Actual content
+          <>
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h1 className="h3 fw-bold">Tasks Management</h1>
         </div>
@@ -177,8 +238,25 @@ export default function TaskList({ toast }) {
         <Card className="mb-4 glass-card-enhanced">
           <Card.Body>
             <Form.Group>
-              <Form.Label>Select Order</Form.Label>
-              <Form.Select value={selectedOrderId} onChange={handleOrderChange}>
+              <Form.Label className="fw-bold text-primary">Select Order</Form.Label>
+              <Form.Select 
+                value={selectedOrderId} 
+                onChange={handleOrderChange}
+                className="glass-dropdown-enhanced"
+                style={{
+                  background: 'var(--glass-bg)',
+                  border: '1px solid var(--glass-border)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--text-primary)',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              >
                 <option value="">— pick one —</option>
                 {orders.map((o) => (
                   <option key={o.order_id} value={o.order_id}>
@@ -261,12 +339,12 @@ export default function TaskList({ toast }) {
                               <td>
                                 <Badge bg={getStatusColor(t.status)}>{t.status}</Badge>
                               </td>
-                              <td>
+                              <td className="">
                                 <Badge bg={getTaskUnitColor(t.task_unit)}>
                                   {getTaskUnitIcon(t.task_unit)} {t.task_unit}
                                 </Badge>
                               </td>
-                              <td>
+                              <td className="d-flex align-items-center gap-1">
                                 <span className="text-muted">{t.product}</span>
                                 {t.color && (
                                   <Badge bg="light" text="dark" className="ms-1">
@@ -275,7 +353,7 @@ export default function TaskList({ toast }) {
                                 )}
                               </td>
                               <td>
-                                <div className="d-flex gap-1">
+                                <div className="d-flex align-items-center gap-1">
                                   {t.incoming_chart && (
                                     <Badge bg="primary" title="Has incoming chart">
                                       📥 In
@@ -303,7 +381,7 @@ export default function TaskList({ toast }) {
                                     .join(", ")
                                   : "—"}
                               </td>
-                              <td className="text-end">
+                              <td className="text-end d-flex align-items-center gap-1">
                                 <Button size="sm" onClick={() => handleEditTask(t)} className="me-2">
                                   Edit
                                 </Button>
@@ -326,6 +404,9 @@ export default function TaskList({ toast }) {
             </Tab>
           </Tabs>
         )}
+          </>
+        )}
+
         <Modal show={!!taskToDelete} onHide={() => setTaskToDelete(null)} centered>
           <Modal.Header closeButton>
             <Modal.Title>Confirm Delete</Modal.Title>
@@ -340,10 +421,9 @@ export default function TaskList({ toast }) {
             </Button>
           </Modal.Footer>
         </Modal>
-      </div>
 
-      {/* Edit Modal */}
-      {showEditModal && editTask && (
+        {/* Edit Modal */}
+        {showEditModal && editTask && (
         <div className="micrositeOverlay">
           <div className="micrositeOuter minimize">
             <button className="micrositeClose overlayCloseButton" onClick={() => setShowEditModal(false)}>
@@ -367,7 +447,7 @@ export default function TaskList({ toast }) {
           </div>
         </div>
       )}
+      </div> {/* Main container div */}
     </>
-
   )
 }

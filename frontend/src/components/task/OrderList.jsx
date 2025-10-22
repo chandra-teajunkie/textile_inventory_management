@@ -247,6 +247,56 @@ function OrderList({ toast, setActiveTab }) {
   return (
     <>
       <div className="p-4">
+        {loading ? (
+          // Loading placeholder for OrderList
+          <div className="animate-pulse">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <div className="h3 bg-light rounded" style={{width: '100px', height: '32px'}}></div>
+              <div className="d-flex gap-2">
+                <div className="bg-light rounded" style={{width: '80px', height: '38px'}}></div>
+                <div className="bg-primary rounded" style={{width: '100px', height: '38px', opacity: 0.3}}></div>
+              </div>
+            </div>
+            
+            <Card className="shadow-sm border-0">
+              <Card.Header className="bg-white">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div className="btn-group">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="bg-light rounded me-2" style={{width: '100px', height: '38px'}}></div>
+                    ))}
+                  </div>
+                  <div className="bg-light rounded" style={{width: '120px', height: '16px'}}></div>
+                </div>
+              </Card.Header>
+              <Card.Body>
+                {[1, 2, 3, 4].map(i => (
+                  <Card key={i} className="mb-3 border-1">
+                    <Card.Body>
+                      <div className="d-flex justify-content-between align-items-start">
+                        <div className="flex-grow-1">
+                          <div className="bg-light rounded mb-2" style={{width: '150px', height: '20px'}}></div>
+                          <div className="d-flex gap-3 mb-2">
+                            <div className="bg-light rounded" style={{width: '100px', height: '16px'}}></div>
+                            <div className="bg-light rounded" style={{width: '80px', height: '16px'}}></div>
+                            <div className="bg-light rounded" style={{width: '120px', height: '16px'}}></div>
+                          </div>
+                          <div className="bg-light rounded" style={{width: '200px', height: '16px'}}></div>
+                        </div>
+                        <div className="d-flex gap-2">
+                          <div className="bg-light rounded" style={{width: '60px', height: '32px'}}></div>
+                          <div className="bg-light rounded" style={{width: '60px', height: '32px'}}></div>
+                        </div>
+                      </div>
+                    </Card.Body>
+                  </Card>
+                ))}
+              </Card.Body>
+            </Card>
+          </div>
+        ) : (
+          // Actual content
+          <>
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h1 className="h3 fw-bold">Orders</h1>
           <div className="d-flex gap-2">
@@ -499,7 +549,7 @@ function OrderList({ toast, setActiveTab }) {
                                         key={task.task_id}
                                         className="list-group-item d-flex justify-content-between align-items-center"
                                       >
-                                        <div>
+                                        <div className="d-flex align-items-center">
                                           <span className="fw-medium">{task.name}</span>
                                           <Badge
                                             bg={
@@ -543,7 +593,10 @@ function OrderList({ toast, setActiveTab }) {
             )}
           </Card.Body>
         </Card>
+          </>
+        )}
       </div>
+
       {showTaskModal && <div className="micrositeOverlay">
         <div className={`micrositeOuter minimize`}>
           <button type="button" className={"micrositeClose overlayCloseButton"} onClick={() => setShowTaskModal(false)} title={"Close"}>
@@ -635,7 +688,6 @@ function OrderList({ toast, setActiveTab }) {
           </Button>
         </Modal.Footer>
       </Modal>
-
     </>
   )
 }

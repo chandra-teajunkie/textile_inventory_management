@@ -9,6 +9,7 @@ import EnhancedDataGrid from "./createCustomChart"
 import { PurchaseOrderUnit } from "../../utils/constants"
 
 function OrderForm({ toast }) {
+    const [isLoading, setIsLoading] = useState(true)
     const [form, setForm] = useState({
         overallPieces: "",
         types: [], // Changed to array for multi-select
@@ -32,13 +33,24 @@ function OrderForm({ toast }) {
     // State for active notes tab and refs for textareas
     const [activeNoteTab, setActiveNoteTab] = useState(Object.values(PurchaseOrderUnit)[0]);
     const noteTextareaRefs = useRef(new Map());
+    
+    // Ref for the types dropdown to enable autofocus
+    const typesSelectRef = useRef(null);
 
     // Track toast to prevent duplicates
     const lastToastTimeRef = useRef(0)
 
     // Fetch dropdown options on component mount
     useEffect(() => {
-        fetchDropdownOptions()
+        const loadData = async () => {
+            setIsLoading(true)
+            await fetchDropdownOptions()
+            // Small delay to ensure smooth loading
+            setTimeout(() => {
+                setIsLoading(false)
+            }, 300)
+        }
+        loadData()
     }, [])
 
     // Effect to focus textarea when activeNoteTab changes
@@ -47,6 +59,13 @@ function OrderForm({ toast }) {
             noteTextareaRefs.current.get(activeNoteTab).focus();
         }
     }, [activeNoteTab]);
+
+    // Effect to autofocus the types dropdown when component mounts
+    useEffect(() => {
+        if (typesSelectRef.current) {
+            typesSelectRef.current.focus();
+        }
+    }, [dropdownOptions.types]); // Focus when dropdown options are loaded
 
     const fetchDropdownOptions = async () => {
         try {
@@ -312,6 +331,49 @@ function OrderForm({ toast }) {
 
     return (
         <div className="p-4">
+            {isLoading ? (
+                // Loading placeholder for OrderForm
+                <div className="animate-pulse">
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                        <div className="h3 bg-light rounded" style={{width: '200px', height: '32px'}}></div>
+                    </div>
+                    
+                    <Card className="shadow-sm border-0 glass-card-enhanced">
+                        <Card.Header className="bg-white">
+                            <div className="d-flex flex-column">
+                                <div className="bg-light rounded mb-2" style={{width: '150px', height: '24px'}}></div>
+                                <div className="bg-light rounded" style={{width: '250px', height: '16px'}}></div>
+                            </div>
+                        </Card.Header>
+                        <Card.Body>
+                            <Row>
+                                <Col md={6}>
+                                    {[1, 2, 3, 4].map(i => (
+                                        <div key={i} className="mb-3">
+                                            <div className="bg-light rounded mb-2" style={{width: '120px', height: '16px'}}></div>
+                                            <div className="bg-light rounded" style={{width: '100%', height: '38px'}}></div>
+                                        </div>
+                                    ))}
+                                </Col>
+                                <Col md={6}>
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className="mb-3">
+                                            <div className="bg-light rounded mb-2" style={{width: '100px', height: '16px'}}></div>
+                                            <div className="bg-light rounded" style={{width: '100%', height: '38px'}}></div>
+                                        </div>
+                                    ))}
+                                </Col>
+                            </Row>
+                            <div className="d-flex justify-content-between mt-4">
+                                <div className="bg-light rounded" style={{width: '120px', height: '38px'}}></div>
+                                <div className="bg-primary rounded" style={{width: '100px', height: '38px', opacity: 0.3}}></div>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </div>
+            ) : (
+                // Actual form content
+                <>
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h1 className="h3 fw-bold">Create Order</h1>
             </div>
@@ -339,13 +401,17 @@ function OrderForm({ toast }) {
                                 <Form.Group className="mb-3">
                                     <Form.Label>Types * (Multi-select)</Form.Label>
                                     <CreatableSelect
+                                        ref={typesSelectRef}
                                         isMulti
                                         isClearable
+                                        autoFocus
                                         placeholder="Select or enter types"
                                         value={formatValuesForSelect(form.types)}
                                         onChange={(selectedOptions) => handleMultiSelectChange("types", selectedOptions)}
                                         onCreateOption={(inputValue) => handleCreateOption(inputValue, "types")}
                                         options={formatOptionsForSelect(dropdownOptions.types)}
+                                        className="glass-react-select"
+                                        classNamePrefix="react-select"
                                     />
                                     {form.types.length > 0 && (
                                         <div className="mt-2">
@@ -369,6 +435,8 @@ function OrderForm({ toast }) {
                                         onChange={(selectedOptions) => handleMultiSelectChange("colors", selectedOptions)}
                                         onCreateOption={(inputValue) => handleCreateOption(inputValue, "colors")}
                                         options={formatOptionsForSelect(dropdownOptions.colors)}
+                                        className="glass-react-select"
+                                        classNamePrefix="react-select"
                                     />
                                     {form.colors.length > 0 && (
                                         <div className="mt-2">
@@ -391,6 +459,8 @@ function OrderForm({ toast }) {
                                         onChange={(selectedOption) => handleSingleSelectChange("customer_name", selectedOption)}
                                         onCreateOption={(inputValue) => handleCreateOption(inputValue, "customer_name")}
                                         options={formatOptionsForSelect(dropdownOptions.customer_name)}
+                                        className="glass-react-select"
+                                        classNamePrefix="react-select"
                                     />
                                 </Form.Group>
                             </Col>
@@ -512,6 +582,8 @@ function OrderForm({ toast }) {
                     </Form>
                 </Card.Body>
             </Card>
+                </>
+            )}
         </div>
     )
 }

@@ -12,7 +12,9 @@
     align-items: center;
     z-index: 1000;
     background: #7d879773;
+    -webkit-backdrop-filter: blur(15px);
     backdrop-filter: blur(15px);
+    
 }
 
 .micrositeOuter {
@@ -87,6 +89,6 @@
     color: gray !important;
 }
 
-[role="columnheader"] {
+/* [role="columnheader"] {
     color: var(--bs-dark) !important;
-}
+} */

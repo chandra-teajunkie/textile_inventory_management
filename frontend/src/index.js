@@ -1,9 +1,35 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
 // import reportWebVitals from './reportWebVitals';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import App from './App';
 import './index.css';
+
+// Suppress ResizeObserver loop completed error
+window.addEventListener('error', e => {
+  if (e.message === 'ResizeObserver loop completed with undelivered notifications.') {
+    const resizeObserverErrDiv = document.getElementById('webpack-dev-server-client-overlay-div');
+    const resizeObserverErr = document.getElementById('webpack-dev-server-client-overlay');
+    if (resizeObserverErr) {
+      resizeObserverErr.setAttribute('style', 'display: none');
+    }
+    if (resizeObserverErrDiv) {
+      resizeObserverErrDiv.setAttribute('style', 'display: none');
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+});
+
+// Global error handler for unhandled promise rejections
+window.addEventListener('unhandledrejection', event => {
+  if (event.reason && event.reason.message && 
+      event.reason.message.includes('ResizeObserver loop completed')) {
+    event.preventDefault();
+    return false;
+  }
+});
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

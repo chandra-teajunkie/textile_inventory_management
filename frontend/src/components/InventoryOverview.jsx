@@ -7,11 +7,13 @@ import { saveAs } from "file-saver"
 
 function InventoryOverview({ toast }) {
   const [inventory, setInventory] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const INVENTORY_API_BASE = process.env.REACT_APP_INVENTORY
 
   // Load inventory from backend on mount
   useEffect(() => {
     const loadInventory = async () => {
+      setIsLoading(true)
       try {
         const res = await fetch(INVENTORY_API_BASE)
         if (!res.ok) throw new Error(`Failed to load inventory: ${res.status}`)
@@ -31,6 +33,8 @@ function InventoryOverview({ toast }) {
       } catch (err) {
         console.warn("Inventory load failed, using local sample data", err)
         // leave inventory empty or you could fallback to sample data here
+      } finally {
+        setTimeout(() => setIsLoading(false), 300)
       }
     }
     loadInventory()
@@ -260,6 +264,61 @@ function InventoryOverview({ toast }) {
 
   return (
     <div className="p-4">
+      {isLoading ? (
+        // Loading placeholder for InventoryOverview
+        <div className="animate-pulse">
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="h3 bg-light rounded" style={{width: '200px', height: '32px'}}></div>
+            <div className="d-flex gap-2">
+              <div className="bg-light rounded" style={{width: '80px', height: '38px'}}></div>
+              <div className="bg-primary rounded" style={{width: '120px', height: '38px', opacity: 0.3}}></div>
+            </div>
+          </div>
+
+          <Card className="shadow-sm border-0 glass-card-enhanced">
+            <Card.Header className="bg-white">
+              <div className="d-flex justify-content-between align-items-center">
+                <div className="btn-group">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="bg-light rounded me-2" style={{width: '100px', height: '38px'}}></div>
+                  ))}
+                </div>
+                <div className="bg-light rounded" style={{width: '200px', height: '38px'}}></div>
+              </div>
+            </Card.Header>
+            <Card.Body>
+              <Row>
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <Col key={i} xl={4} lg={6} md={6} className="mb-3">
+                    <Card className="h-100 border-1">
+                      <Card.Body>
+                        <div className="d-flex justify-content-between align-items-start mb-2">
+                          <div className="bg-light rounded" style={{width: '120px', height: '20px'}}></div>
+                          <div className="bg-light rounded" style={{width: '60px', height: '24px'}}></div>
+                        </div>
+                        <div className="mb-2">
+                          <div className="bg-light rounded mb-1" style={{width: '80px', height: '16px'}}></div>
+                          <div className="bg-light rounded mb-1" style={{width: '100px', height: '16px'}}></div>
+                          <div className="bg-light rounded" style={{width: '90px', height: '16px'}}></div>
+                        </div>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div className="bg-light rounded" style={{width: '60px', height: '16px'}}></div>
+                          <div className="d-flex gap-1">
+                            <div className="bg-light rounded" style={{width: '30px', height: '30px'}}></div>
+                            <div className="bg-light rounded" style={{width: '30px', height: '30px'}}></div>
+                          </div>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            </Card.Body>
+          </Card>
+        </div>
+      ) : (
+        // Actual content
+        <>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="h3 fw-bold">Inventory Management</h1>
         <div className="d-flex gap-2">
@@ -413,6 +472,20 @@ function InventoryOverview({ toast }) {
                 value={newItem.material_type}
                 onChange={(e) => setNewItem({ ...newItem, material_type: e.target.value })}
                 required
+                className="glass-dropdown-enhanced"
+                style={{
+                  background: 'var(--glass-bg)',
+                  border: '1px solid var(--glass-border)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--text-primary)',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
               >
                 <option value="Fabric">Fabric</option>
                 <option value="Accessories">Accessories</option>
@@ -515,6 +588,20 @@ function InventoryOverview({ toast }) {
                   value={selectedItem.material_type}
                   onChange={(e) => setSelectedItem({ ...selectedItem, material_type: e.target.value })}
                   required
+                  className="glass-dropdown-enhanced"
+                  style={{
+                    background: 'var(--glass-bg)',
+                    border: '1px solid var(--glass-border)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: 'var(--text-primary)',
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}
                 >
                   <option value="Fabric">Fabric</option>
                   <option value="Accessories">Accessories</option>
@@ -589,6 +676,8 @@ function InventoryOverview({ toast }) {
           </Button>
         </Modal.Footer>
       </Modal>
+        </>
+      )}
     </div>
   )
 }

@@ -234,7 +234,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
       <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
         <Tab eventKey="details" title="Task Details">
           <Form onSubmit={handleSubmit}>
-            <div style={{ maxHeight: "auto", overflow: "auto" }}>
+            <div style={{ maxHeight: "auto", overflow: "auto", paddingRight: "1rem", }}>
               {/* Basic Info */}
               <div className="row">
                 <div className="col-md-6">
@@ -259,7 +259,24 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
                 <div className="col-md-6">
                   <Form.Group className="mb-3">
                     <Form.Label className="fw-bold">Status</Form.Label>
-                    <Form.Select value={status} onChange={(e) => setStatus(e.target.value)}>
+                    <Form.Select 
+                      value={status} 
+                      onChange={(e) => setStatus(e.target.value)}
+                      className="glass-dropdown-enhanced"
+                      style={{
+                        background: 'var(--glass-bg)',
+                        border: '1px solid var(--glass-border)',
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                        borderRadius: '12px',
+                        padding: '12px 16px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: 'var(--text-primary)',
+                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                    >
                       {STATUS_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>
                           {o.label}
@@ -274,7 +291,24 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
                 <div className="col-md-6">
                   <Form.Group className="mb-3">
                     <Form.Label className="fw-bold">Task Unit</Form.Label>
-                    <Form.Select value={taskUnit} onChange={(e) => setTaskUnit(e.target.value)}>
+                    <Form.Select 
+                      value={taskUnit} 
+                      onChange={(e) => setTaskUnit(e.target.value)}
+                      className="glass-dropdown-enhanced"
+                      style={{
+                        background: 'var(--glass-bg)',
+                        border: '1px solid var(--glass-border)',
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                        borderRadius: '12px',
+                        padding: '12px 16px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: 'var(--text-primary)',
+                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                    >
                       {TASK_UNITS.map((unit) => (
                         <option key={unit.value} value={unit.value}>
                           {unit.label}
@@ -295,6 +329,8 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
                       }))}
                       placeholder="Select a product"
                       isClearable
+                      className="glass-react-select"
+                      classNamePrefix="react-select"
                     />
                   </Form.Group>
                 </div>
@@ -313,6 +349,8 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
                       }))}
                       placeholder="Select a color"
                       isClearable
+                      className="glass-react-select"
+                      classNamePrefix="react-select"
                     />
                   </Form.Group>
                 </div>
@@ -370,6 +408,8 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
                   options={available.map((t) => ({ value: t.task_id, label: t.name }))}
                   placeholder="Select dependencies"
                   menuPlacement="top"
+                  className="glass-react-select"
+                  classNamePrefix="react-select"
                 />
               </Form.Group>
             </div>
@@ -419,7 +459,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
           alignItems: "center",
           bottom: "0",
           position: "sticky",
-          background: "white",
+          // background: "white",
         }}
       >
         <div className="d-flex justify-content-end gap-2 mt-4">
