@@ -44,7 +44,9 @@ function InventoryOverview({ toast }) {
   const [searchTerm, setSearchTerm] = useState("")
   const [showAddModal, setShowAddModal] = useState(false)
   const [showUpdateModal, setShowUpdateModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
+  const [itemToDelete, setItemToDelete] = useState(null)
   const [newItem, setNewItem] = useState({
     // Backend InventoryCreate fields
     material: "",
@@ -215,13 +217,32 @@ function InventoryOverview({ toast }) {
         const res = await fetch(`${INVENTORY_API_BASE}${id}`, { method: "DELETE" })
         if (!res.ok) throw new Error(`Delete failed: ${res.status}`)
         setInventory((prev) => prev.filter((i) => i.id !== id))
+        toast.current.show({ 
+          severity: "success", 
+          summary: "Success", 
+          detail: "Item deleted successfully",
+          life: 3000 
+        })
       } catch (err) {
         console.warn("Delete failed, removing locally", err)
         setInventory((prev) => prev.filter((i) => i.id !== id))
+        toast.current.show({ 
+          severity: "warn", 
+          summary: "Warning", 
+          detail: "Item removed locally (server error)",
+          life: 3000 
+        })
       }
     }
 
     remove()
+    setShowDeleteModal(false)
+    setItemToDelete(null)
+  }
+
+  const confirmDelete = (item) => {
+    setItemToDelete(item)
+    setShowDeleteModal(true)
   }
 
   const handleEditItem = (item) => {
@@ -370,14 +391,13 @@ function InventoryOverview({ toast }) {
             </div>
             <div className="d-flex align-items-center">
               <div className="position-relative">
-                <i className="bi bi-search position-absolute" style={{ left: "10px", top: "10px" }}></i>
+                <i className="bi bi-search position-absolute" style={{ left: "15px", top: "50%", transform: "translateY(-50%)", color: "var(--text-secondary)", zIndex: 3 }}></i>
                 <Form.Control
                   type="search"
                   placeholder="Search inventory..."
                   value={searchTerm}
                   onChange={handleSearch}
-                  className="ps-4"
-                  style={{ width: "250px" }}
+                  className="search-bar ps-5"
                 />
               </div>
             </div>
@@ -396,7 +416,7 @@ function InventoryOverview({ toast }) {
               <th>Quantity (kg)</th>
                   <th>Status</th>
                   <th>Stock Level</th>
-                  <th className="text-end">Actions</th>
+                  <th className="">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -421,7 +441,7 @@ function InventoryOverview({ toast }) {
                           style={{ height: "10px" }}
                         />
                       </td>
-                      <td className="text-end">
+                      <td className="">
                         <Dropdown align="end">
                           <Dropdown.Toggle variant="outline-primary" size="sm" id={`dropdown-${item.id}`} className="dropdown-toggle">
                             <i className="bi bi-three-dots"></i>
@@ -432,9 +452,7 @@ function InventoryOverview({ toast }) {
                             <Dropdown.Divider />
                             {/* <Dropdown.Item href="#">Reorder</Dropdown.Item> */}
                             <Dropdown.Item className="text-danger" onClick={() => {
-                              if (window.confirm('Are you sure you want to delete this item?')) {
-                                handleDeleteItem(item.id)
-                              }
+                              confirmDelete(item)
                             }}>Delete Item</Dropdown.Item>
                           </Dropdown.Menu>
                         </Dropdown>
@@ -673,6 +691,62 @@ function InventoryOverview({ toast }) {
           </Button>
           <Button variant="primary" onClick={handleUpdateItem} className="btn-enhanced-glow">
             Update Item
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal 
+        show={showDeleteModal} 
+        onHide={() => setShowDeleteModal(false)}
+        size="sm"
+        className="delete-modal"
+        centered
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="text-danger d-flex align-items-center">
+            <i className="bi bi-exclamation-triangle-fill me-2"></i>
+            Delete Item
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-2">
+          {itemToDelete && (
+            <div>
+              <p className="mb-2">Are you sure you want to delete this item?</p>
+              <div className="bg-light p-2 rounded">
+                <small className="text-muted d-block">Material:</small>
+                <strong>{itemToDelete.material}</strong>
+                <small className="text-muted d-block mt-1">Type:</small>
+                <strong>{itemToDelete.material_type}</strong>
+                {itemToDelete.color && (
+                  <>
+                    <small className="text-muted d-block mt-1">Color:</small>
+                    <strong>{itemToDelete.color}</strong>
+                  </>
+                )}
+              </div>
+              <small className="text-muted d-block mt-2">
+                This action cannot be undone.
+              </small>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0">
+          <Button 
+            variant="outline-secondary" 
+            size="sm"
+            onClick={() => setShowDeleteModal(false)}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="danger" 
+            size="sm"
+            onClick={() => handleDeleteItem(itemToDelete?.id)}
+            className="d-flex align-items-center"
+          >
+            <i className="bi bi-trash me-1"></i>
+            Delete
           </Button>
         </Modal.Footer>
       </Modal>

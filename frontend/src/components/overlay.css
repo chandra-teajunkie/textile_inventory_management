@@ -30,6 +30,8 @@
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
     overflow: hidden;
+    background: var(--glass-bg, rgba(30, 41, 59, 0.95)) !important;
+    border-color: var(--glass-border, rgba(255, 255, 255, 0.1)) !important;
 }
 
 .micrositeOuter::before {

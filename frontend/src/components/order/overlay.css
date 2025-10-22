@@ -30,6 +30,8 @@
     border-radius: 6px;
     /* background: var(--translucent-border); */
     background: white;
+    background: var(--glass-bg, rgba(30, 41, 59, 0.95)) !important;
+    border-color: var(--glass-border, rgba(255, 255, 255, 0.1)) !important;
 }
 
 .micrositeClose {
@@ -59,7 +61,11 @@
     border: 1px solid white;
     scale: 1.05;
     animation: scale .2s ease;
-    background-color: black !important;
+    /* background-color: black !important; */
+    background: var(--glass-bg, rgba(30, 41, 59, 0.95)) !important;
+    border-color: var(--glass-border, rgba(255, 255, 255, 0.1)) !important;
+    color: var(--text-primary) !important;
+    background-color: var(--glass-bg, rgba(30, 41, 59, 0.95)) !important
 }
 
 .micrositeIframe {
@@ -88,6 +94,3 @@
     padding: 0.5rem;
     border-radius: 50%;
 } */
-
-
-

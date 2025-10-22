@@ -324,17 +324,6 @@ body {
   transform: translateX(8px);
 }
 
-[data-theme="dark"] .btn-light {
-  background: linear-gradient(135deg, #1f6feb, #388bfd);
-  color: #ffffff !important;
-  box-shadow: 0 8px 25px rgba(31, 111, 235, 0.5), 0 0 16px var(--accent-primary);
-}
-
-[data-theme="light"] .btn-light {
-  background: linear-gradient(135deg, #007bff, #0056b3);
-  color: #ffffff !important;
-  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4), 0 0 12px #007bff;
-}
 
 .btn-light::before {
   content: '';
@@ -531,8 +520,7 @@ body {
 
 /* Forms with Enhanced Visibility */
 .form-control,
-.form-select,
-.form-check-input {
+.form-select{
   /* background: var(--glass-bg); */
   border: 1px solid var(--glass-border);
   border-radius: 12px;
@@ -545,17 +533,15 @@ body {
 }
 
 [data-theme="dark"] .form-control,
-[data-theme="dark"] .form-select,
-[data-theme="dark"] .form-check-input {
+[data-theme="dark"] .form-select{
   background: rgba(22, 27, 34, 0.8);
   border-color: rgba(255, 255, 255, 0.15);
   color: #f0f6fc;
 }
 
 [data-theme="light"] .form-control,
-[data-theme="light"] .form-select,
-[data-theme="light"] .form-check-input {
-  /* background: rgba(255, 255, 255, 0.95); */
+[data-theme="light"] .form-select {
+  background: rgba(255, 255, 255, 0.95);
   border-color: rgba(0, 0, 0, 0.12);
   color: #212529;
 }
@@ -2884,7 +2870,7 @@ small {
 
 /* Badge Text Visibility */
 [data-theme="dark"] .badge {
-  color: var(--text-inverse) !important;
+  /* color: var(--text-inverse) !important; */
 }
 
 /* Responsive Design and Component Stability */

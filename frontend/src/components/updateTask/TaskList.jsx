@@ -141,8 +141,8 @@ export default function TaskList({ toast }) {
         toast.current.show({ severity: "error", summary: "Error", detail: "Could not load tasks" })
       })
       .finally(() => setLoading(false))
-  // Replace in list
-  // setTasks((ts) => ts.map((t) => (t.task_id === updatedTask.task_id ? updatedTask : t)))
+    // Replace in list
+    // setTasks((ts) => ts.map((t) => (t.task_id === updatedTask.task_id ? updatedTask : t)))
     setShowEditModal(false)
     toast.current.show({ severity: "success", summary: "Success", detail: "Task updated" })
   }
@@ -151,8 +151,8 @@ export default function TaskList({ toast }) {
     if (!taskToDelete) return
     try {
       const res = await fetch(`${process.env.REACT_APP_DELETE_TASK}${taskToDelete.task_id}`, { method: "DELETE" })
-        if (!res.ok) throw new Error()
-        setTasks((ts) => ts.filter((t) => t.task_id !== taskToDelete.task_id))
+      if (!res.ok) throw new Error()
+      setTasks((ts) => ts.filter((t) => t.task_id !== taskToDelete.task_id))
       toast.current.show({ severity: "success", summary: "Deleted", detail: "Task deleted" })
     } catch {
       toast.current.show({ severity: "error", summary: "Error", detail: "Could not delete task" })
@@ -179,21 +179,21 @@ export default function TaskList({ toast }) {
           // Loading placeholder for TaskList
           <div className="animate-pulse">
             <div className="d-flex justify-content-between align-items-center mb-4">
-              <div className="h3 bg-light rounded" style={{width: '180px', height: '32px'}}></div>
+              <div className="h3 bg-light rounded" style={{ width: '180px', height: '32px' }}></div>
             </div>
 
             <Card className="mb-4 glass-card-enhanced">
               <Card.Body>
                 <div className="mb-3">
-                  <div className="bg-light rounded mb-2" style={{width: '100px', height: '16px'}}></div>
-                  <div className="bg-light rounded" style={{width: '100%', height: '38px'}}></div>
+                  <div className="bg-light rounded mb-2" style={{ width: '100px', height: '16px' }}></div>
+                  <div className="bg-light rounded" style={{ width: '100%', height: '38px' }}></div>
                 </div>
               </Card.Body>
             </Card>
 
             <div className="mb-3">
               {[1, 2].map(i => (
-                <div key={i} className="bg-light rounded me-2 d-inline-block" style={{width: '120px', height: '42px'}}></div>
+                <div key={i} className="bg-light rounded me-2 d-inline-block" style={{ width: '120px', height: '42px' }}></div>
               ))}
             </div>
 
@@ -201,7 +201,7 @@ export default function TaskList({ toast }) {
               <Card.Header>
                 <div className="d-flex gap-2 align-items-center">
                   {[1, 2, 3].map(i => (
-                    <div key={i} className="bg-light rounded" style={{width: '80px', height: '32px'}}></div>
+                    <div key={i} className="bg-light rounded" style={{ width: '80px', height: '32px' }}></div>
                   ))}
                 </div>
               </Card.Header>
@@ -211,15 +211,15 @@ export default function TaskList({ toast }) {
                     <Card.Body>
                       <div className="d-flex justify-content-between align-items-center">
                         <div className="d-flex align-items-center gap-3">
-                          <div className="bg-light rounded-circle" style={{width: '40px', height: '40px'}}></div>
+                          <div className="bg-light rounded-circle" style={{ width: '40px', height: '40px' }}></div>
                           <div>
-                            <div className="bg-light rounded mb-1" style={{width: '120px', height: '16px'}}></div>
-                            <div className="bg-light rounded" style={{width: '80px', height: '14px'}}></div>
+                            <div className="bg-light rounded mb-1" style={{ width: '120px', height: '16px' }}></div>
+                            <div className="bg-light rounded" style={{ width: '80px', height: '14px' }}></div>
                           </div>
                         </div>
                         <div className="d-flex gap-2">
-                          <div className="bg-light rounded" style={{width: '60px', height: '24px'}}></div>
-                          <div className="bg-light rounded" style={{width: '60px', height: '32px'}}></div>
+                          <div className="bg-light rounded" style={{ width: '60px', height: '24px' }}></div>
+                          <div className="bg-light rounded" style={{ width: '60px', height: '32px' }}></div>
                         </div>
                       </div>
                     </Card.Body>
@@ -231,183 +231,173 @@ export default function TaskList({ toast }) {
         ) : (
           // Actual content
           <>
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h1 className="h3 fw-bold">Tasks Management</h1>
-        </div>
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <h1 className="h3 fw-bold">Tasks Management</h1>
+            </div>
 
-        <Card className="mb-4 glass-card-enhanced">
-          <Card.Body>
-            <Form.Group>
-              <Form.Label className="fw-bold text-primary">Select Order</Form.Label>
-              <Form.Select 
-                value={selectedOrderId} 
-                onChange={handleOrderChange}
-                className="glass-dropdown-enhanced"
-                style={{
-                  background: 'var(--glass-bg)',
-                  border: '1px solid var(--glass-border)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
-                  borderRadius: '12px',
-                  padding: '12px 16px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-              >
-                <option value="">— pick one —</option>
-                {orders.map((o) => (
-                  <option key={o.order_id} value={o.order_id}>
-                    {o.customer_name.toUpperCase()} ({o.types})
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-          </Card.Body>
-        </Card>
+            <Card className="mb-4 glass-card-enhanced">
+              <Card.Body>
+                <Form.Group>
+                  <Form.Label className="fw-bold text-primary">Select Order</Form.Label>
+                  <Form.Select
+                    value={selectedOrderId}
+                    onChange={handleOrderChange}
+                    className="glass-dropdown-enhanced"
+                  >
+                    <option value="">— pick one —</option>
+                    {orders.map((o) => (
+                      <option key={o.order_id} value={o.order_id}>
+                        {o.customer_name.toUpperCase()} ({o.types})
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Card.Body>
+            </Card>
 
-        {selectedOrderId && (
-          <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
-            <Tab eventKey="list" title="📋 Task List">
-              <Card className="mb-4 glass-card-enhanced">
-                <Card.Header>
-                  <div className="d-flex flex-wrap gap-2 align-items-center">
-                    {/* Status Filters */}
-                    <div className="btn-group me-3">
-                      {["all", "NOT STARTED", "IN PROGRESS", "COMPLETED", "BLOCKED"].map((s) => (
-                        <Button
-                          key={s}
-                          size="sm"
-                          variant={filterStatus === s ? "primary" : "outline-primary"}
-                          onClick={() => setFilterStatus(s)}
-                        >
-                          {s === "all" ? "All" : s}
-                        </Button>
-                      ))}
-                    </div>
-
-                    {/* Unit Filters */}
-                    <div className="btn-group">
-                      <Button
-                        size="sm"
-                        variant={filterUnit === "all" ? "success" : "outline-success"}
-                        onClick={() => setFilterUnit("all")}
-                      >
-                        All Units
-                      </Button>
-                      {["PROCUREMENT", "COLLAR", "CUTTING", "PRINTING", "EMBROIDERY", "STITCHING", "PACKAGING", "UNASSIGNED"].map((unit) => (
-                        <Button
-                          key={unit}
-                          size="sm"
-                          variant={filterUnit === unit ? "success" : "outline-success"}
-                          onClick={() => setFilterUnit(unit)}
-                        >
-                          {getTaskUnitIcon(unit)} {unit}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </Card.Header>
-                <Card.Body>
-                  {loading ? (
-                    <div className="text-center p-5">
-                      <div className="spinner-border" role="status" />
-                      <p className="mt-2">Loading tasks...</p>
-                    </div>
-                  ) : filteredTasks.length === 0 ? (
-                    <p className="text-center text-muted">No tasks match the current filters</p>
-                  ) : (
-                    <div className="table-responsive">
-                      <table className="table table-hover">
-                        <thead>
-                          <tr>
-                            <th>Name</th>
-                            <th>Status</th>
-                            <th>Unit</th>
-                            <th>Product</th>
-                            <th>Charts</th>
-                            <th>Dependencies</th>
-                            <th className="text-end">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredTasks.map((t) => (
-                            <tr key={t.task_id}>
-                              <td className="fw-medium">{t.name}</td>
-                              <td>
-                                <Badge bg={getStatusColor(t.status)}>{t.status}</Badge>
-                              </td>
-                              <td className="">
-                                <Badge bg={getTaskUnitColor(t.task_unit)}>
-                                  {getTaskUnitIcon(t.task_unit)} {t.task_unit}
-                                </Badge>
-                              </td>
-                              <td className="d-flex align-items-center gap-1">
-                                <span className="text-muted">{t.product}</span>
-                                {t.color && (
-                                  <Badge bg="light" text="dark" className="ms-1">
-                                    {t.color}
-                                  </Badge>
-                                )}
-                              </td>
-                              <td>
-                                <div className="d-flex align-items-center gap-1">
-                                  {t.incoming_chart && (
-                                    <Badge bg="primary" title="Has incoming chart">
-                                      📥 In
-                                    </Badge>
-                                  )}
-                                  {t.outgoing_chart && (
-                                    <Badge bg="success" title="Has outgoing chart">
-                                      📤 Out
-                                    </Badge>
-                                  )}
-                                  {!hasChartData(t) && (
-                                    <Badge bg="light" text="dark" title="No charts available">
-                                      📊 None
-                                    </Badge>
-                                  )}
-                                </div>
-                              </td>
-                              <td>
-                                {t.dependencies && parseJsonSafe(t.dependencies, []).length > 0
-                                      ? parseJsonSafe(t.dependencies, [])
-                                    .map((id) => {
-                                      const dep = tasks.find((x) => x.task_id === id)
-                                      return dep ? dep.name : id
-                                    })
-                                    .join(", ")
-                                  : "—"}
-                              </td>
-                              <td className="text-end d-flex align-items-center gap-1">
-                                <Button size="sm" onClick={() => handleEditTask(t)} className="me-2">
-                                  Edit
-                                </Button>
-                                <Button size="sm" variant="danger" onClick={() => setTaskToDelete(t)}>
-                                  Delete
-                                </Button>
-                              </td>
-                            </tr>
+            {selectedOrderId && (
+              <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
+                <Tab eventKey="list" title="📋 Task List">
+                  <Card className="mb-4 glass-card-enhanced">
+                    <Card.Header>
+                      <div className="d-flex flex-wrap gap-2 align-items-center">
+                        {/* Status Filters */}
+                        <div className="btn-group me-3">
+                          {["all", "NOT STARTED", "IN PROGRESS", "COMPLETED", "BLOCKED"].map((s) => (
+                            <Button
+                              key={s}
+                              size="sm"
+                              variant={filterStatus === s ? "primary" : "outline-primary"}
+                              onClick={() => setFilterStatus(s)}
+                            >
+                              {s === "all" ? "All" : s}
+                            </Button>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </Card.Body>
-              </Card>
-            </Tab>
+                        </div>
 
-            <Tab eventKey="visualization" title="📊 Unit Visualization">
-              <TaskUnitVisualization tasks={tasks} />
-            </Tab>
-          </Tabs>
-        )}
+                        {/* Unit Filters */}
+                        <div className="btn-group">
+                          <Button
+                            size="sm"
+                            variant={filterUnit === "all" ? "success" : "outline-success"}
+                            onClick={() => setFilterUnit("all")}
+                          >
+                            All Units
+                          </Button>
+                          {["PROCUREMENT", "COLLAR", "CUTTING", "PRINTING", "EMBROIDERY", "STITCHING", "PACKAGING", "UNASSIGNED"].map((unit) => (
+                            <Button
+                              key={unit}
+                              size="sm"
+                              variant={filterUnit === unit ? "success" : "outline-success"}
+                              onClick={() => setFilterUnit(unit)}
+                            >
+                              {getTaskUnitIcon(unit)} {unit}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </Card.Header>
+                    <Card.Body>
+                      {loading ? (
+                        <div className="text-center p-5">
+                          <div className="spinner-border" role="status" />
+                          <p className="mt-2">Loading tasks...</p>
+                        </div>
+                      ) : filteredTasks.length === 0 ? (
+                        <p className="text-center text-muted">No tasks match the current filters</p>
+                      ) : (
+                        <div className="table-responsive">
+                          <table className="table table-hover">
+                            <thead>
+                              <tr>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Unit</th>
+                                <th>Product</th>
+                                <th>Charts</th>
+                                <th>Dependencies</th>
+                                <th className="">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {filteredTasks.map((t) => (
+                                <tr key={t.task_id}>
+                                  <td className="fw-medium">{t.name}</td>
+                                  <td>
+                                    <Badge bg={getStatusColor(t.status)}>{t.status}</Badge>
+                                  </td>
+                                  <td className="">
+                                    <Badge bg={getTaskUnitColor(t.task_unit)}>
+                                      {getTaskUnitIcon(t.task_unit)} {t.task_unit}
+                                    </Badge>
+                                  </td>
+                                  <td className="d-flex align-items-center gap-1">
+                                    <span className="text-muted">{t.product}</span>
+                                    {t.color && (
+                                      <Badge bg="light" text="dark" className="ms-1">
+                                        {t.color}
+                                      </Badge>
+                                    )}
+                                  </td>
+                                  <td>
+                                    <div className="d-flex align-items-center gap-1">
+                                      {t.incoming_chart && (
+                                        <Badge bg="primary" title="Has incoming chart">
+                                          📥 In
+                                        </Badge>
+                                      )}
+                                      {t.outgoing_chart && (
+                                        <Badge bg="success" title="Has outgoing chart">
+                                          📤 Out
+                                        </Badge>
+                                      )}
+                                      {!hasChartData(t) && (
+                                        <Badge bg="light" text="dark" title="No charts available">
+                                          📊 None
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td>
+                                    {t.dependencies && parseJsonSafe(t.dependencies, []).length > 0
+                                      ? parseJsonSafe(t.dependencies, [])
+                                        .map((id) => {
+                                          const dep = tasks.find((x) => x.task_id === id)
+                                          return dep ? dep.name : id
+                                        })
+                                        .join(", ")
+                                      : "—"}
+                                  </td>
+                                  <td className="d-flex align-items-center gap-1">
+                                    <Button size="sm" onClick={() => handleEditTask(t)} className="me-2">
+                                      Edit
+                                    </Button>
+                                    <Button size="sm" variant="danger" onClick={() => setTaskToDelete(t)}>
+                                      Delete
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </Card.Body>
+                  </Card>
+                </Tab>
+
+                <Tab eventKey="visualization" title="📊 Unit Visualization">
+                  <TaskUnitVisualization tasks={tasks} />
+                </Tab>
+              </Tabs>
+            )}
           </>
         )}
 
-        <Modal show={!!taskToDelete} onHide={() => setTaskToDelete(null)} centered>
+        <Modal show={!!taskToDelete} onHide={() => setTaskToDelete(null)} centered
+          size="sm"
+          className="delete-modal"
+        >
           <Modal.Header closeButton>
             <Modal.Title>Confirm Delete</Modal.Title>
           </Modal.Header>
@@ -424,29 +414,29 @@ export default function TaskList({ toast }) {
 
         {/* Edit Modal */}
         {showEditModal && editTask && (
-        <div className="micrositeOverlay">
-          <div className="micrositeOuter minimize">
-            <button className="micrositeClose overlayCloseButton" onClick={() => setShowEditModal(false)}>
-              <GrClose />
-            </button>
-            <div className="overlayBody p-2 bg-white rounded editTaskTabs">
-              <h5 className="mb-3">
-                <FaChartBar className="me-2" />
-                Task Management: {editTask?.name}
-              </h5>
-              <EditTaskModal
-                task={editTask}
-                selectedOrder={orders.find((o) => o.order_id === selectedOrderId)}
-                allTasks={tasks}
-                orderPurchaseUnitNotes={orders.find((o) => o.order_id === selectedOrderId)?.purchase_unit_notes}
-                onClose={() => setShowEditModal(false)}
-                onUpdate={handleTaskUpdated}
-                toast={toast}
-              />
+          <div className="micrositeOverlay">
+            <div className="micrositeOuter minimize">
+              <button className="micrositeClose overlayCloseButton" onClick={() => setShowEditModal(false)}>
+                <GrClose />
+              </button>
+              <div className="overlayBody p-2 bg-white rounded editTaskTabs">
+                <h5 className="mb-3">
+                  <FaChartBar className="me-2" />
+                  Task Management: {editTask?.name}
+                </h5>
+                <EditTaskModal
+                  task={editTask}
+                  selectedOrder={orders.find((o) => o.order_id === selectedOrderId)}
+                  allTasks={tasks}
+                  orderPurchaseUnitNotes={orders.find((o) => o.order_id === selectedOrderId)?.purchase_unit_notes}
+                  onClose={() => setShowEditModal(false)}
+                  onUpdate={handleTaskUpdated}
+                  toast={toast}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div> {/* Main container div */}
     </>
   )
