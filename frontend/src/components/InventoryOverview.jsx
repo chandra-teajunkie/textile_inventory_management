@@ -391,7 +391,7 @@ function InventoryOverview({ toast }) {
             </div>
             <div className="d-flex align-items-center">
               <div className="position-relative">
-                <i className="bi bi-search position-absolute" style={{ left: "15px", top: "50%", transform: "translateY(-50%)", color: "var(--text-secondary)", zIndex: 3 }}></i>
+                {/* <i className="bi bi-search position-absolute" style={{ left: "15px", top: "50%", transform: "translateY(-50%)", color: "var(--text-secondary)", zIndex: 3 }}></i> */}
                 <Form.Control
                   type="search"
                   placeholder="Search inventory..."
