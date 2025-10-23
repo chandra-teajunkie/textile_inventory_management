@@ -562,6 +562,8 @@ label {
   border-bottom: 2px solid var(--glass-border) !important;
   margin-bottom: 24px !important;
   background: transparent !important;
+  backdrop-filter: unset;
+  -webkit-backdrop-filter: unset;
 }
 
 .nav-tabs .nav-link {
@@ -985,6 +987,9 @@ label {
   font-size: 15px !important;
   font-weight: 500 !important;
   border-radius: 8px !important;
+  background: rgba(22, 27, 34, 0.95) !important;
+  border: 1px solid #30363d !important;
+  color: var(--text-primary) !important;
 }
 
 /* Enhanced option visibility for both themes */
@@ -992,6 +997,9 @@ label {
 [data-theme="dark"] .form-select.glass-dropdown-enhanced option {
   background: var(--input-bg) !important;
   color: var(--text-primary, #f0f6fc) !important;
+  background: rgba(22, 27, 34, 0.95) !important;
+  border: 1px solid #30363d !important;
+  color: var(--text-primary) !important;
 }
 
 [data-theme="dark"] .glass-dropdown-enhanced option:hover,
@@ -3462,35 +3470,35 @@ input[type="search"]::placeholder {
 
 /* Fix checkbox focus state to preserve checked appearance */
 input[type="checkbox"]:focus {
-    background: unset !important;
-    background-color: unset !important;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
+  background: unset !important;
+  background-color: unset !important;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
 }
 
 input[type="checkbox"]:checked:focus {
-    background-color: var(--accent-primary) !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
-    border-color: var(--accent-primary) !important;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
+  background-color: var(--accent-primary) !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
 }
 
 input[type="checkbox"]:checked {
-    background-color: var(--accent-primary) !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
-    border-color: var(--accent-primary) !important;
+  background-color: var(--accent-primary) !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
+  border-color: var(--accent-primary) !important;
 }
 
 /* Enhanced checkbox styling with glass effect */
 input[type="checkbox"] {
-    background: var(--glass-bg) !important;
-    border: 1px solid var(--glass-border) !important;
-    border-radius: 4px !important;
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    transition: all 0.2s ease !important;
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 4px !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease !important;
 }
 
 input[type="checkbox"]:hover {
-    border-color: var(--accent-primary) !important;
-    transform: scale(1.05) !important;
+  border-color: var(--accent-primary) !important;
+  transform: scale(1.05) !important;
 }
