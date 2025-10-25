@@ -18,8 +18,8 @@ RUN uv sync
 COPY backend /workdir
 
 # Copy the entrypoint script
-RUN chmod +x /backend_entrypoint.sh
+RUN chmod +x backend_entrypoint.sh
 
 EXPOSE 3002
 
-ENTRYPOINT ["/backend_entrypoint.sh"]
+ENTRYPOINT ["/workdir/backend_entrypoint.sh"]

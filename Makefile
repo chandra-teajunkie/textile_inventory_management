@@ -21,16 +21,13 @@ BACKEND_CONTAINER ?= sidhu-textiles-backend-container
 BACKEND_DETACH ?= true
 
 # === Build Docker Images ===
-build-all:
-	make build-backend
-	make build-frontend
+build-all: build-backend build-frontend
 
 build-backend:
-	docker build -t $(BACKEND_IMAGE) backend
-
+	cd backend && docker build -t $(BACKEND_IMAGE) .
 
 build-frontend:
-	docker build -t $(FRONTEND_IMAGE) frontend
+	cd frontend && docker build -t $(FRONTEND_IMAGE) .
 
 # === Run frontend image locally ===
 # Usage examples:
