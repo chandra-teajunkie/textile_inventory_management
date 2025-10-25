@@ -10,6 +10,7 @@ import "primereact/resources/primereact.min.css"
 import sewingMachineGif from './img/leather.gif';
 import "./App.css"
 import PropTypes from 'prop-types';
+import { ReactComponent as TailorSvg } from './img/tailorMan.svg';
 
 
 // Lazy-loaded components
@@ -31,25 +32,25 @@ const DashboardPlaceholder = () => (
     <div className="placeholder-glow mb-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <div className="placeholder" style={{width: '300px', height: '32px', marginBottom: '8px'}}></div>
-          <div className="placeholder" style={{width: '400px', height: '16px'}}></div>
+          <div className="placeholder" style={{ width: '300px', height: '32px', marginBottom: '8px' }}></div>
+          <div className="placeholder" style={{ width: '400px', height: '16px' }}></div>
         </div>
         <div className="d-flex gap-2">
-          <div className="placeholder" style={{width: '120px', height: '38px'}}></div>
-          <div className="placeholder" style={{width: '120px', height: '38px'}}></div>
+          <div className="placeholder" style={{ width: '120px', height: '38px' }}></div>
+          <div className="placeholder" style={{ width: '120px', height: '38px' }}></div>
         </div>
       </div>
     </div>
 
     {/* KPI Cards Placeholder */}
     <Row className="g-3 mb-4">
-      {[1,2,3,4,5,6].map(i => (
+      {[1, 2, 3, 4, 5, 6].map(i => (
         <Col key={i} xs={6} sm={4} lg={2}>
           <Card className="shadow-sm border-0 placeholder-glow">
             <Card.Body className="text-center">
-              <div className="placeholder" style={{width: '40px', height: '40px', borderRadius: '50%', margin: '0 auto 12px'}}></div>
-              <div className="placeholder" style={{width: '80px', height: '32px', margin: '0 auto 8px'}}></div>
-              <div className="placeholder" style={{width: '60px', height: '16px', margin: '0 auto'}}></div>
+              <div className="placeholder" style={{ width: '40px', height: '40px', borderRadius: '50%', margin: '0 auto 12px' }}></div>
+              <div className="placeholder" style={{ width: '80px', height: '32px', margin: '0 auto 8px' }}></div>
+              <div className="placeholder" style={{ width: '60px', height: '16px', margin: '0 auto' }}></div>
             </Card.Body>
           </Card>
         </Col>
@@ -61,16 +62,16 @@ const DashboardPlaceholder = () => (
       <Col md={6}>
         <Card className="shadow-sm border-0 placeholder-glow">
           <Card.Body>
-            <div className="placeholder" style={{width: '60%', height: '24px', marginBottom: '16px'}}></div>
-            <div className="placeholder" style={{width: '100%', height: '300px'}}></div>
+            <div className="placeholder" style={{ width: '60%', height: '24px', marginBottom: '16px' }}></div>
+            <div className="placeholder" style={{ width: '100%', height: '300px' }}></div>
           </Card.Body>
         </Card>
       </Col>
       <Col md={6}>
         <Card className="shadow-sm border-0 placeholder-glow">
           <Card.Body>
-            <div className="placeholder" style={{width: '60%', height: '24px', marginBottom: '16px'}}></div>
-            <div className="placeholder" style={{width: '100%', height: '300px'}}></div>
+            <div className="placeholder" style={{ width: '60%', height: '24px', marginBottom: '16px' }}></div>
+            <div className="placeholder" style={{ width: '100%', height: '300px' }}></div>
           </Card.Body>
         </Card>
       </Col>
@@ -82,12 +83,12 @@ const OrdersPlaceholder = () => (
   <div className="p-4">
     <div className="d-flex justify-content-between align-items-center mb-4 placeholder-glow">
       <div>
-        <div className="placeholder" style={{width: '200px', height: '32px', marginBottom: '8px'}}></div>
-        <div className="placeholder" style={{width: '300px', height: '16px'}}></div>
+        <div className="placeholder" style={{ width: '200px', height: '32px', marginBottom: '8px' }}></div>
+        <div className="placeholder" style={{ width: '300px', height: '16px' }}></div>
       </div>
       <div className="d-flex gap-2">
-        <div className="placeholder" style={{width: '100px', height: '38px'}}></div>
-        <div className="placeholder" style={{width: '100px', height: '38px'}}></div>
+        <div className="placeholder" style={{ width: '100px', height: '38px' }}></div>
+        <div className="placeholder" style={{ width: '100px', height: '38px' }}></div>
       </div>
     </div>
 
@@ -105,14 +106,14 @@ const OrdersPlaceholder = () => (
             </tr>
           </thead>
           <tbody>
-            {[1,2,3,4,5,6,7,8].map(i => (
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
               <tr key={i} className="placeholder-glow">
-                <td><div className="placeholder" style={{width: '80px', height: '20px'}}></div></td>
-                <td><div className="placeholder" style={{width: '120px', height: '20px'}}></div></td>
-                <td><div className="placeholder" style={{width: '90px', height: '20px'}}></div></td>
-                <td><div className="placeholder" style={{width: '70px', height: '20px'}}></div></td>
-                <td><div className="placeholder" style={{width: '60px', height: '20px'}}></div></td>
-                <td><div className="placeholder" style={{width: '100px', height: '20px'}}></div></td>
+                <td><div className="placeholder" style={{ width: '80px', height: '20px' }}></div></td>
+                <td><div className="placeholder" style={{ width: '120px', height: '20px' }}></div></td>
+                <td><div className="placeholder" style={{ width: '90px', height: '20px' }}></div></td>
+                <td><div className="placeholder" style={{ width: '70px', height: '20px' }}></div></td>
+                <td><div className="placeholder" style={{ width: '60px', height: '20px' }}></div></td>
+                <td><div className="placeholder" style={{ width: '100px', height: '20px' }}></div></td>
               </tr>
             ))}
           </tbody>
@@ -126,28 +127,28 @@ const TasksPlaceholder = () => (
   <div className="p-4">
     <div className="d-flex justify-content-between align-items-center mb-4 placeholder-glow">
       <div>
-        <div className="placeholder" style={{width: '180px', height: '32px', marginBottom: '8px'}}></div>
-        <div className="placeholder" style={{width: '280px', height: '16px'}}></div>
+        <div className="placeholder" style={{ width: '180px', height: '32px', marginBottom: '8px' }}></div>
+        <div className="placeholder" style={{ width: '280px', height: '16px' }}></div>
       </div>
       <div className="d-flex gap-2">
-        <div className="placeholder" style={{width: '120px', height: '38px'}}></div>
+        <div className="placeholder" style={{ width: '120px', height: '38px' }}></div>
       </div>
     </div>
 
     <Row className="g-4">
-      {[1,2,3,4,5,6].map(i => (
+      {[1, 2, 3, 4, 5, 6].map(i => (
         <Col key={i} md={6} lg={4}>
           <Card className="shadow-sm border-0 placeholder-glow">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-start mb-3">
-                <div className="placeholder" style={{width: '60%', height: '20px'}}></div>
-                <div className="placeholder" style={{width: '70px', height: '24px'}}></div>
+                <div className="placeholder" style={{ width: '60%', height: '20px' }}></div>
+                <div className="placeholder" style={{ width: '70px', height: '24px' }}></div>
               </div>
-              <div className="placeholder mb-2" style={{width: '100%', height: '14px'}}></div>
-              <div className="placeholder mb-3" style={{width: '80%', height: '14px'}}></div>
+              <div className="placeholder mb-2" style={{ width: '100%', height: '14px' }}></div>
+              <div className="placeholder mb-3" style={{ width: '80%', height: '14px' }}></div>
               <div className="d-flex justify-content-between">
-                <div className="placeholder" style={{width: '80px', height: '14px'}}></div>
-                <div className="placeholder" style={{width: '90px', height: '32px'}}></div>
+                <div className="placeholder" style={{ width: '80px', height: '14px' }}></div>
+                <div className="placeholder" style={{ width: '90px', height: '32px' }}></div>
               </div>
             </Card.Body>
           </Card>
@@ -160,44 +161,44 @@ const TasksPlaceholder = () => (
 const CreateOrderPlaceholder = () => (
   <div className="p-4">
     <div className="placeholder-glow mb-4">
-      <div className="placeholder" style={{width: '250px', height: '32px', marginBottom: '8px'}}></div>
-      <div className="placeholder" style={{width: '350px', height: '16px'}}></div>
+      <div className="placeholder" style={{ width: '250px', height: '32px', marginBottom: '8px' }}></div>
+      <div className="placeholder" style={{ width: '350px', height: '16px' }}></div>
     </div>
 
     <Card className="shadow-sm border-0">
       <Card.Header className="placeholder-glow">
-        <div className="placeholder" style={{width: '180px', height: '20px'}}></div>
+        <div className="placeholder" style={{ width: '180px', height: '20px' }}></div>
       </Card.Header>
       <Card.Body>
         <Row className="g-4">
           <Col md={6}>
             <div className="placeholder-glow">
-              <div className="placeholder mb-2" style={{width: '120px', height: '16px'}}></div>
-              <div className="placeholder mb-3" style={{width: '100%', height: '38px'}}></div>
-              
-              <div className="placeholder mb-2" style={{width: '100px', height: '16px'}}></div>
-              <div className="placeholder mb-3" style={{width: '100%', height: '38px'}}></div>
-              
-              <div className="placeholder mb-2" style={{width: '80px', height: '16px'}}></div>
-              <div className="placeholder mb-3" style={{width: '100%', height: '38px'}}></div>
+              <div className="placeholder mb-2" style={{ width: '120px', height: '16px' }}></div>
+              <div className="placeholder mb-3" style={{ width: '100%', height: '38px' }}></div>
+
+              <div className="placeholder mb-2" style={{ width: '100px', height: '16px' }}></div>
+              <div className="placeholder mb-3" style={{ width: '100%', height: '38px' }}></div>
+
+              <div className="placeholder mb-2" style={{ width: '80px', height: '16px' }}></div>
+              <div className="placeholder mb-3" style={{ width: '100%', height: '38px' }}></div>
             </div>
           </Col>
           <Col md={6}>
             <div className="placeholder-glow">
-              <div className="placeholder mb-2" style={{width: '100px', height: '16px'}}></div>
-              <div className="placeholder mb-3" style={{width: '100%', height: '38px'}}></div>
-              
-              <div className="placeholder mb-2" style={{width: '90px', height: '16px'}}></div>
-              <div className="placeholder mb-3" style={{width: '100%', height: '38px'}}></div>
-              
-              <div className="placeholder mb-2" style={{width: '110px', height: '16px'}}></div>
-              <div className="placeholder mb-3" style={{width: '100%', height: '100px'}}></div>
+              <div className="placeholder mb-2" style={{ width: '100px', height: '16px' }}></div>
+              <div className="placeholder mb-3" style={{ width: '100%', height: '38px' }}></div>
+
+              <div className="placeholder mb-2" style={{ width: '90px', height: '16px' }}></div>
+              <div className="placeholder mb-3" style={{ width: '100%', height: '38px' }}></div>
+
+              <div className="placeholder mb-2" style={{ width: '110px', height: '16px' }}></div>
+              <div className="placeholder mb-3" style={{ width: '100%', height: '100px' }}></div>
             </div>
           </Col>
         </Row>
         <div className="d-flex gap-2 mt-4 placeholder-glow">
-          <div className="placeholder" style={{width: '100px', height: '38px'}}></div>
-          <div className="placeholder" style={{width: '80px', height: '38px'}}></div>
+          <div className="placeholder" style={{ width: '100px', height: '38px' }}></div>
+          <div className="placeholder" style={{ width: '80px', height: '38px' }}></div>
         </div>
       </Card.Body>
     </Card>
@@ -208,24 +209,24 @@ const InventoryPlaceholder = () => (
   <div className="p-4">
     <div className="d-flex justify-content-between align-items-center mb-4 placeholder-glow">
       <div>
-        <div className="placeholder" style={{width: '220px', height: '32px', marginBottom: '8px'}}></div>
-        <div className="placeholder" style={{width: '320px', height: '16px'}}></div>
+        <div className="placeholder" style={{ width: '220px', height: '32px', marginBottom: '8px' }}></div>
+        <div className="placeholder" style={{ width: '320px', height: '16px' }}></div>
       </div>
       <div className="d-flex gap-2">
-        <div className="placeholder" style={{width: '100px', height: '38px'}}></div>
-        <div className="placeholder" style={{width: '120px', height: '38px'}}></div>
+        <div className="placeholder" style={{ width: '100px', height: '38px' }}></div>
+        <div className="placeholder" style={{ width: '120px', height: '38px' }}></div>
       </div>
     </div>
 
     {/* Inventory Summary Cards */}
     <Row className="g-3 mb-4">
-      {[1,2,3,4].map(i => (
+      {[1, 2, 3, 4].map(i => (
         <Col key={i} md={3}>
           <Card className="shadow-sm border-0 placeholder-glow">
             <Card.Body className="text-center">
-              <div className="placeholder" style={{width: '50px', height: '50px', borderRadius: '50%', margin: '0 auto 12px'}}></div>
-              <div className="placeholder" style={{width: '100px', height: '32px', margin: '0 auto 8px'}}></div>
-              <div className="placeholder" style={{width: '80px', height: '16px', margin: '0 auto'}}></div>
+              <div className="placeholder" style={{ width: '50px', height: '50px', borderRadius: '50%', margin: '0 auto 12px' }}></div>
+              <div className="placeholder" style={{ width: '100px', height: '32px', margin: '0 auto 8px' }}></div>
+              <div className="placeholder" style={{ width: '80px', height: '16px', margin: '0 auto' }}></div>
             </Card.Body>
           </Card>
         </Col>
@@ -247,14 +248,14 @@ const InventoryPlaceholder = () => (
             </tr>
           </thead>
           <tbody>
-            {[1,2,3,4,5,6].map(i => (
+            {[1, 2, 3, 4, 5, 6].map(i => (
               <tr key={i} className="placeholder-glow">
-                <td><div className="placeholder" style={{width: '120px', height: '20px'}}></div></td>
-                <td><div className="placeholder" style={{width: '80px', height: '20px'}}></div></td>
-                <td><div className="placeholder" style={{width: '60px', height: '20px'}}></div></td>
-                <td><div className="placeholder" style={{width: '70px', height: '20px'}}></div></td>
-                <td><div className="placeholder" style={{width: '100px', height: '20px'}}></div></td>
-                <td><div className="placeholder" style={{width: '90px', height: '20px'}}></div></td>
+                <td><div className="placeholder" style={{ width: '120px', height: '20px' }}></div></td>
+                <td><div className="placeholder" style={{ width: '80px', height: '20px' }}></div></td>
+                <td><div className="placeholder" style={{ width: '60px', height: '20px' }}></div></td>
+                <td><div className="placeholder" style={{ width: '70px', height: '20px' }}></div></td>
+                <td><div className="placeholder" style={{ width: '100px', height: '20px' }}></div></td>
+                <td><div className="placeholder" style={{ width: '90px', height: '20px' }}></div></td>
               </tr>
             ))}
           </tbody>
@@ -273,7 +274,7 @@ const NavigationPlaceholder = ({ activeTab }) => {
     tasks: <TasksPlaceholder />,
     inventory: <InventoryPlaceholder />
   }
-  
+
   return placeholders[activeTab] || <DashboardPlaceholder />
 }
 
@@ -297,7 +298,7 @@ function App() {
     }
     return "dashboard"
   }
-  
+
   const [activeTab, setActiveTab] = useState(getInitialTab)
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light')
   const toast = useRef(null)
@@ -364,7 +365,7 @@ function App() {
           whileHover={{ scale: 1.02 }}
           transition={{ duration: 0.2 }}
         >
-          <motion.img
+          {/* <motion.img
             src={sewingMachineGif}
             alt="Sewing Machine"
             style={{
@@ -375,7 +376,23 @@ function App() {
             }}
             whileHover={{ rotate: 8, scale: 1.1 }}
             transition={{ type: "spring", stiffness: 300, damping: 10 }}
-          />
+          /> */}
+          {/* SVG Icon Wrapper */}
+          <motion.div
+            style={{
+              height: "50px",
+              width: "50px",
+              filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.15))',
+              position: 'relative',
+              zIndex: 10,
+              objectFit: 'contain',
+            }}
+            whileHover={{ rotate: 8, scale: 1.1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 10 }}
+            className="tailor-svg-logo"
+          >
+            <TailorSvg />
+          </motion.div>
           <motion.span
             className="text-primary fw-bold brand-text"
             style={{
