@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: textile-inventory-management-frontend:latest
+          image: sidhu-textiles-frontend:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 3000

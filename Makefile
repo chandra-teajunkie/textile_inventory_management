@@ -1,16 +1,89 @@
 # Project Variables
 VERSION ?= latest  # Default to 'latest' unless overridden
 NAMESPACE := default
+
+# Image / container defaults (can be overridden on the make command line)
+# Frontend
+FRONTEND_IMAGE_NAME ?= sidhu-textiles-frontend
+FRONTEND_IMAGE_TAG ?= $(VERSION)
+FRONTEND_IMAGE ?= $(FRONTEND_IMAGE_NAME):$(FRONTEND_IMAGE_TAG)
+FRONTEND_PORT ?= 8080
+FRONTEND_CONTAINER ?= sidhu-textiles-frontend-container
+FRONTEND_DETACH ?= true
+# Optional runtime override for backend URL (passed into frontend container as BACKEND_URL)
+RUNTIME_BACKEND_URL ?=
+# Backend
+BACKEND_IMAGE_NAME ?= sidhu-textiles-backend
+BACKEND_IMAGE_TAG ?= $(VERSION)
+BACKEND_IMAGE ?= $(BACKEND_IMAGE_NAME):$(BACKEND_IMAGE_TAG)
+BACKEND_PORT ?= 3002
+BACKEND_CONTAINER ?= sidhu-textiles-backend-container
+BACKEND_DETACH ?= true
+
 # === Build Docker Images ===
 build-all:
-	docker build -t textile-inventory-management-backend:$(VERSION) -f backend/Dockerfile .
-	docker build -t textile-inventory-management-frontend:$(VERSION) -f frontend/Dockerfile .
+	make build-backend
+	make build-frontend
 
 build-backend:
-	docker build -t textile-inventory-management-backend:$(VERSION) -f backend/Dockerfile .
+	docker build -t $(BACKEND_IMAGE) backend
+
 
 build-frontend:
-	docker build -t textile-inventory-management-frontend:$(VERSION) -f frontend/Dockerfile .
+	docker build -t $(FRONTEND_IMAGE) frontend
+
+# === Run frontend image locally ===
+# Usage examples:
+#   make run-frontend
+#   make run-frontend FRONTEND_PORT=3000 FRONTEND_DETACH=true
+
+FRONTEND_RUN_OPTS := $(if $(filter true,$(FRONTEND_DETACH)),-d,--rm)
+FRONTEND_DOCKER_ENV := $(if $(RUNTIME_BACKEND_URL),-e BACKEND_URL=$(RUNTIME_BACKEND_URL),)
+
+# Cross-platform null redirect (NUL on Windows, /dev/null on Unix)
+ifeq ($(OS),Windows_NT)
+  REDIR_NULL := >NUL 2>&1
+else
+  REDIR_NULL := >/dev/null 2>&1
+endif
+
+run-frontend:
+	-@docker stop $(FRONTEND_CONTAINER) $(REDIR_NULL)
+	-@docker rm -f $(FRONTEND_CONTAINER) $(REDIR_NULL)
+
+	docker run $(FRONTEND_RUN_OPTS) $(FRONTEND_DOCKER_ENV) --name $(FRONTEND_CONTAINER) -p $(FRONTEND_PORT):80 $(FRONTEND_IMAGE)
+
+build-run-frontend: build-frontend run-frontend
+
+stop-frontend:
+	@echo "Stopping frontend container..."
+	-docker stop $(FRONTEND_CONTAINER) $(REDIR_NULL)
+	-docker rm -f $(FRONTEND_CONTAINER) $(REDIR_NULL)
+	@echo "Frontend container stopped."
+
+# === Run backend image locally ===
+# Usage examples:
+#   make run-backend
+#   make run-backend BACKEND_PORT=3333 BACKEND_DETACH=true
+
+BACKEND_RUN_OPTS := $(if $(filter true,$(BACKEND_DETACH)),-d,--rm)
+
+run-backend:
+	-@docker stop $(BACKEND_CONTAINER) $(REDIR_NULL)
+	-@docker rm -f $(BACKEND_CONTAINER) $(REDIR_NULL)
+
+	docker run $(BACKEND_RUN_OPTS) --name $(BACKEND_CONTAINER) -p $(BACKEND_PORT):3002 $(BACKEND_IMAGE)
+
+build-run-backend: build-backend run-backend
+
+stop-backend:
+	@echo "Stopping backend container..."
+	-docker stop $(BACKEND_CONTAINER) $(REDIR_NULL)
+	-docker rm -f $(BACKEND_CONTAINER) $(REDIR_NULL)
+	@echo "Backend container stopped."
+
+# Build and run both frontend and backend
+run-all: build-run-backend build-run-frontend
 
 # === Deploy to Kubernetes ===
 k8s-deploy:

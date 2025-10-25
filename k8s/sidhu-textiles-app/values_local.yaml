@@ -3,11 +3,11 @@ replicaCount: 1
 
 image:
   backend:
-    repository: textile-inventory-management-backend
+    repository: sidhu-textiles-backend
     tag: latest
     pullPolicy: Never
   frontend:
-    repository: textile-inventory-management-frontend
+    repository: sidhu-textiles-frontend
     tag: latest
     pullPolicy: Never
 
