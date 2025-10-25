@@ -17,7 +17,9 @@ RUN uv sync
 
 COPY backend /workdir
 
+# Copy the entrypoint script
+RUN chmod +x /backend_entrypoint.sh
+
 EXPOSE 3002
 
-# Run the FastAPI app with uvicorn
-CMD ["/workdir/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3002"]
+ENTRYPOINT ["/backend_entrypoint.sh"]

@@ -8,6 +8,7 @@ import uvicorn
 from app.routers.purchase_orders import router as purchase_orders_router
 from app.routers.tasks import router as tasks_router
 from app.routers.inventory import router as inventory_router
+from app.routers.health import router as health_router
 from app.utils.logger_setup import logger
 from app.utils.process_app_config import process_app_config
 
@@ -59,6 +60,8 @@ app.add_middleware(
 app.include_router(purchase_orders_router, prefix="/purchase-orders")
 app.include_router(tasks_router, prefix="/tasks")
 app.include_router(inventory_router, prefix="/inventory")
+app.include_router(health_router, prefix="/health")
+logger.info("Routers have been included.")
 
 if __name__ == "__main__":
     uvicorn.run(
