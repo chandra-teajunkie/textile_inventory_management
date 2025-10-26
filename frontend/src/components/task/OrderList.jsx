@@ -20,6 +20,7 @@ import './overlay.css'
 import { parseJsonSafe } from "../../utils/jsonUtils"
 import { OverlayTrigger, Popover } from "react-bootstrap";
 import { generatePrintableHtml, printHtml } from "../../utils/exportUtils";
+import cfg from "../../utils/runtimeConfig";
 
 function OrderList({ toast, setActiveTab }) {
   const [orders, setOrders] = useState([])
@@ -41,7 +42,7 @@ function OrderList({ toast, setActiveTab }) {
   const fetchOrders = async () => {
     try {
       setLoading(true)
-      const response = await fetch(process.env.REACT_APP_GET_ALL_ORDERS)
+      const response = await fetch(cfg.GET_ALL_ORDERS)
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)
@@ -84,7 +85,7 @@ function OrderList({ toast, setActiveTab }) {
       if (normalized.length > 0) {
         const taskPromises = normalized.map((order) => {
           const orderId = order.order_id || order.purchase_order_id || order.id
-          return fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${orderId}`)
+          return fetch(`${cfg.GET_ALL_TASKS}${orderId}`)
             .then((res) => (res.ok ? res.json() : []))
             .then((tasks) => ({ [orderId]: tasks }))
         })
@@ -116,7 +117,7 @@ function OrderList({ toast, setActiveTab }) {
   const deleteTask = async () => {
     if (!deletingId) return
     try {
-      const res = await fetch(`${process.env.REACT_APP_DELETE_ORDER}${deletingId}`, { method: "DELETE" })
+      const res = await fetch(`${cfg.DELETE_ORDER}${deletingId}`, { method: "DELETE" })
       if (!res.ok) throw new Error(`Status ${res.status}`)
       toast.current.show({ severity: "success", summary: "Deleted", detail: "Order removed", life: 3000 })
       await fetchOrders()
@@ -133,7 +134,7 @@ function OrderList({ toast, setActiveTab }) {
   const fetchTasksForOrder = async (orderId) => {
     try {
       const normalizedId = orderId || (orderId === 0 ? 0 : null)
-      const response = await fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${normalizedId}`)
+      const response = await fetch(`${cfg.GET_ALL_TASKS}${normalizedId}`)
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)

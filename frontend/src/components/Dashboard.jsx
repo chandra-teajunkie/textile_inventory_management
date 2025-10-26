@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import EnhancedConsolidatedOverview from "./enhancedUI"
+import cfg from "../utils/runtimeConfig";
 
 function Dashboard({ setActiveTab, toast }) {
   const [orders, setOrders] = useState([])
@@ -10,7 +11,7 @@ function Dashboard({ setActiveTab, toast }) {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch(process.env.REACT_APP_GET_ALL_ORDERS)
+      const res = await fetch(cfg.GET_ALL_ORDERS)
       const data = await res.json()
       // Normalize incoming orders to have `order_id` and safe date fields
       const normalized = (data || []).map(o => ({
@@ -43,7 +44,7 @@ function Dashboard({ setActiveTab, toast }) {
           const allTasks = []
 
           for (const order of orders) {
-            const res = await fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id}`)
+            const res = await fetch(`${cfg.GET_ALL_TASKS}${order.order_id}`)
             const data = await res.json()
             const orderDueDate = new Date(order.due_date)
             if (orderDueDate <= oneWeekFromNow) {

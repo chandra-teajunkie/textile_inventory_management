@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Form, Button } from "react-bootstrap"
 import Select from "react-select"
 import { parseJsonSafe } from "../../utils/jsonUtils"
+import cfg from "../../utils/runtimeConfig"
 
 // Same enums as above
 const TASK_UNITS = [
@@ -76,10 +77,10 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
       special_notes: specialNotes
     }
     setLoading(true)
-    console.log(payload, `${process.env.REACT_APP_PATCH_ALL_TASKS}${task.task_id}`, task)
+    console.log(payload, `${cfg.PATCH_ALL_TASKS}${task.task_id}`, task)
     try {
       const resp = await fetch(
-        `${process.env.REACT_APP_PATCH_ALL_TASKS}${task.task_id}`,
+        `${cfg.PATCH_ALL_TASKS}${task.task_id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },

@@ -4,11 +4,12 @@ import { useState, useEffect } from "react"
 import { Card, Button, Badge, Form, Dropdown, Modal, ProgressBar, Row, Col } from "react-bootstrap"
 import * as XLSX from "xlsx"
 import { saveAs } from "file-saver"
+import cfg from "../utils/runtimeConfig";
 
 function InventoryOverview({ toast }) {
   const [inventory, setInventory] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-  const INVENTORY_API_BASE = process.env.REACT_APP_INVENTORY
+  const INVENTORY_API_BASE = cfg.INVENTORY
 
   // Load inventory from backend on mount
   useEffect(() => {
