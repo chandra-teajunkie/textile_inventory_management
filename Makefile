@@ -30,13 +30,31 @@ build-frontend:
 	cd frontend && docker build --no-cache -t $(FRONTEND_IMAGE) .
 
 # === Run Backend ===
+# Set USE_POSTGRES=1 to use Postgres instead of SQLite
+USE_POSTGRES ?= 1
+
 run-backend:
 	-docker stop $(BACKEND_CONTAINER)
 	-docker rm -f $(BACKEND_CONTAINER)
+ifeq ($(USE_POSTGRES),1)
+	@echo "🚀 Starting backend container with Postgres configuration"
+	docker run -d \
+		--name $(BACKEND_CONTAINER) \
+		--network="host" \
+		-e DB_TYPE=postgres \
+		-e POSTGRES_USER=$(POSTGRES_USER) \
+		-e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+		-e POSTGRES_DB=$(POSTGRES_DB) \
+		-e POSTGRES_HOST=localhost \
+		-e POSTGRES_PORT=$(POSTGRES_PORT) \
+		$(BACKEND_IMAGE)
+else
+	@echo "Starting backend container with default SQLite configuration"
 	docker run -d \
 		--name $(BACKEND_CONTAINER) \
 		-p $(BACKEND_PORT):3002 \
 		$(BACKEND_IMAGE)
+endif
 
 build-run-backend: build-backend run-backend
 
@@ -70,6 +88,23 @@ stop-frontend:
 	-docker stop $(FRONTEND_CONTAINER)
 	-docker rm -f $(FRONTEND_CONTAINER)
 
+# === Logs ===
+# Follow frontend container logs (use CTRL+C to stop)
+logs-frontend:
+	@echo "Starting continuous log stream for container: $(FRONTEND_CONTAINER)"
+	@cmd /k "docker logs --tail 200 -f $(FRONTEND_CONTAINER) || pause"
+
+# Follow backend container logs (use CTRL+C to stop)
+logs-backend:
+	@echo "Starting continuous log stream for container: $(BACKEND_CONTAINER)"
+	@cmd /k "docker logs --tail 200 -f $(BACKEND_CONTAINER) || pause"
+
+# Follow both frontend and backend logs in split windows
+logs-all:
+	@echo "Opening persistent terminal windows for logs..."
+	@start "Frontend Logs" cmd /k "docker logs --tail 200 -f $(FRONTEND_CONTAINER) || pause"
+	@start "Backend Logs" cmd /k "docker logs --tail 200 -f $(BACKEND_CONTAINER) || pause"
+
 run-all: cleanup-ports run-backend run-frontend
 
 stop-all: stop-backend stop-frontend
@@ -78,7 +113,7 @@ stop-all: stop-backend stop-frontend
 clean-run-all: stop-all cleanup-ports run-all
 
 # Build and run both frontend and backend
-build-run-all: build-run-backend build-run-frontend
+build-run-all: build-all run-all
 
 # === Deploy to Kubernetes ===
 k8s-deploy:
@@ -166,6 +201,8 @@ postgres-down:
 	-docker stop $(POSTGRES_CONTAINER_NAME)
 	-docker rm -f $(POSTGRES_CONTAINER_NAME)
 	@echo "✅ PostgreSQL container removed."
+
+build-run-backend-postgres: build-backend run-backend-postgres
 
 # Recreate PostgreSQL container (fresh start)
 postgres-recreate: postgres-down postgres-up

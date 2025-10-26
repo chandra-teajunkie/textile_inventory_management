@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react"
-import { DataGrid } from "react-data-grid"
+import DataGrid from "react-data-grid"
 import { Button, Form, Modal, Card, Dropdown, ButtonGroup } from "react-bootstrap"
 import { FaTrash, FaPlus, FaUpload, FaEdit, FaTimes, FaFileExport, FaPrint, FaUndo } from "react-icons/fa"
 import "react-data-grid/lib/styles.css"
