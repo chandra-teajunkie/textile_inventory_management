@@ -18,6 +18,7 @@ import {
     OverlayTrigger,
     Popover
 } from "react-bootstrap"
+import cfg from "../utils/runtimeConfig";
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import html2canvas from "html2canvas"
@@ -1170,7 +1171,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 const timeoutId = setTimeout(() => timeoutController.abort(), 30000) // 30 second timeout
                 
                 // Fetch all orders with timeout
-                const ordersRes = await fetch(process.env.REACT_APP_GET_ALL_ORDERS, {
+                const ordersRes = await fetch(cfg.GET_ALL_ORDERS, {
                     signal: timeoutController.signal
                 })
                 clearTimeout(timeoutId)
@@ -1197,7 +1198,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                         const taskTimeoutId = setTimeout(() => taskController.abort(), 10000) // 10 second timeout per task
                         
                         const res = await fetch(
-                            `${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id || order.purchase_order_id || order.id}`,
+                            `${cfg.GET_ALL_TASKS}${order.order_id || order.purchase_order_id || order.id}`,
                             { signal: taskController.signal }
                         )
                         clearTimeout(taskTimeoutId)

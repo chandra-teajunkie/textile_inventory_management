@@ -5,6 +5,7 @@ import { Form, Button } from "react-bootstrap"
 import Select from "react-select"
 import { PurchaseOrderUnit } from "../../utils/constants"
 import { parseJsonSafe } from "../../utils/jsonUtils"
+import cfg from "../../utils/runtimeConfig"
 
 // Mirror your backend enums
 const TASK_UNITS = [
@@ -74,7 +75,7 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
     // fetch existing tasks for dependencies
     async function fetchTasks() {
       try {
-        const resp = await fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${orderId}`)
+        const resp = await fetch(`${cfg.GET_ALL_TASKS}${orderId}`)
         if (!resp.ok) throw new Error(resp.statusText)
         setAllTasks(await resp.json())
       } catch (e) {
@@ -128,7 +129,7 @@ function TaskModal({ orderId, selectedOrder, onClose, onTaskCreated, toast, onUp
           special_notes: specialNotes,
         }
 
-        const resp = await fetch(process.env.REACT_APP_POST_ALL_TASKS, {
+        const resp = await fetch(cfg.POST_ALL_TASKS, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),

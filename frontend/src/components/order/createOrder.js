@@ -7,6 +7,7 @@ import "react-datepicker/dist/react-datepicker.css"
 import CreatableSelect from "react-select/creatable"
 import EnhancedDataGrid from "./createCustomChart"
 import { PurchaseOrderUnit } from "../../utils/constants"
+import cfg from "../../utils/runtimeConfig";
 
 function OrderForm({ toast }) {
     const [isLoading, setIsLoading] = useState(true)
@@ -70,7 +71,7 @@ function OrderForm({ toast }) {
     const fetchDropdownOptions = async () => {
         try {
             // Single endpoint for all dropdown options
-            const response = await fetch(process.env.REACT_APP_GET_DROPDOWN_OPTIONS)
+            const response = await fetch(cfg.GET_DROPDOWN_OPTIONS)
 
             if (response.ok) {
                 const data = await response.json()
@@ -220,7 +221,7 @@ function OrderForm({ toast }) {
             console.log("Size chart data being sent:", sizeChartData)
             console.log("Size chart JSON string:", JSON.stringify(sizeChartData))
 
-            const response = await fetch(process.env.REACT_APP_POST_ALL_ORDERS, {
+            const response = await fetch(cfg.POST_ALL_ORDERS, {
                 method: "POST",
                 body: formData,
             })

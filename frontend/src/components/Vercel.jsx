@@ -375,14 +375,14 @@ const ConsolidatedOverview = ({ toast }) => {
             setError(null)
             try {
                 // Fetch all orders
-                const ordersRes = await fetch(process.env.REACT_APP_GET_ALL_ORDERS)
+                const ordersRes = await fetch(cfg.GET_ALL_ORDERS)
                 if (!ordersRes.ok) throw new Error("Failed to fetch orders")
                 let orders = await ordersRes.json()
                 orders = orders.sort((a, b) => new Date(b.order_date) - new Date(a.order_date))
 
                 // Fetch tasks for each order
                 const tasksPromises = orders.map((order) =>
-                    fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${order.order_id || order.purchase_order_id || order.id}`)
+                    fetch(`${cfg.GET_ALL_TASKS}${order.order_id || order.purchase_order_id || order.id}`)
                         .then((res) => (res.ok ? res.json() : []))
                         .catch(() => []),
                 )

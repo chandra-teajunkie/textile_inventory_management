@@ -11,11 +11,20 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
+# Copy package files
 COPY package.json package-lock.json ./
-RUN npm install -f
 
+# Clear npm cache and remove any existing node_modules
+RUN npm install --legacy-peer-deps && \
+    npm cache clean --force
+
+# Install dependencies with exact versions and clean npm cache
+# The previous RUN command is replaced by the one above to handle peer dependency conflicts
+
+# Copy rest of the app
 COPY . .
 
+# Build the app
 RUN npm run build
 
 # EXPOSE 3000
