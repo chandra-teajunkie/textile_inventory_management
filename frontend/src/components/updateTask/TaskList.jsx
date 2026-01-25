@@ -11,6 +11,7 @@ import "./overlay.css"
 import { GiSewingMachine } from 'react-icons/gi'; // Sewing machine icon
 import { GiHeavyCollar } from "react-icons/gi";
 import { TbHttpGet } from "react-icons/tb";
+import cfg from "../../utils/runtimeConfig";
 
 const getTaskUnitIcon = (unit) => {
   switch (unit) {
@@ -89,7 +90,7 @@ export default function TaskList({ toast }) {
   // Fetch orders once
   useEffect(() => {
     setIsInitialLoading(true)
-    fetch(process.env.REACT_APP_GET_ALL_ORDERS)
+    fetch(cfg.GET_ALL_ORDERS)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((data) => {
         // Normalize orders so frontend always has order_id
@@ -113,7 +114,7 @@ export default function TaskList({ toast }) {
   useEffect(() => {
     if (!selectedOrderId) return setTasks([])
     setLoading(true)
-    fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${selectedOrderId}`)
+    fetch(`${cfg.GET_ALL_TASKS}${selectedOrderId}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then(setTasks)
       .catch((err) => {
@@ -133,7 +134,7 @@ export default function TaskList({ toast }) {
   const handleTaskUpdated = (updatedTask) => {
     if (!selectedOrderId) return setTasks([])
     setLoading(true)
-    fetch(`${process.env.REACT_APP_GET_ALL_TASKS}${selectedOrderId}`)
+    fetch(`${cfg.GET_ALL_TASKS}${selectedOrderId}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then(setTasks)
       .catch((err) => {
@@ -150,7 +151,7 @@ export default function TaskList({ toast }) {
   const deleteTask = async () => {
     if (!taskToDelete) return
     try {
-      const res = await fetch(`${process.env.REACT_APP_DELETE_TASK}${taskToDelete.task_id}`, { method: "DELETE" })
+      const res = await fetch(`${cfg.DELETE_TASK}${taskToDelete.task_id}`, { method: "DELETE" })
       if (!res.ok) throw new Error()
       setTasks((ts) => ts.filter((t) => t.task_id !== taskToDelete.task_id))
       toast.current.show({ severity: "success", summary: "Deleted", detail: "Task deleted" })

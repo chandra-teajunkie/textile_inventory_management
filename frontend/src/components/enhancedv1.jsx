@@ -512,7 +512,7 @@ const TaskUnitVisualization = ({ tasks }) => {
         const stats = {}
         TASK_UNITS.forEach((unit) => {
             const unitTasks = tasks.filter((task) => task.task_unit === unit || task.purchase_order_unit === unit)
-                const completed = unitTasks.filter((t) => t.status === "COMPLETED" || t.task_unit === unit).length
+            const completed = unitTasks.filter((t) => t.status === "COMPLETED" || t.task_unit === unit).length
             const inProgress = unitTasks.filter((task) => task.status === "IN PROGRESS").length
             const blocked = unitTasks.filter((task) => task.status === "BLOCKED").length
             const notStarted = unitTasks.filter((task) => task.status === "NOT STARTED").length
@@ -1270,8 +1270,8 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                             <Col md={6} lg={3}>
                                 <Form.Group>
                                     <Form.Label className="fw-bold">Task Status</Form.Label>
-                                    <Form.Select 
-                                        value={filterTaskStatus} 
+                                    <Form.Select
+                                        value={filterTaskStatus}
                                         onChange={(e) => setFilterTaskStatus(e.target.value)}
                                         className="glass-dropdown-enhanced"
                                         style={{
@@ -1301,8 +1301,8 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                             <Col md={6} lg={3}>
                                 <Form.Group>
                                     <Form.Label className="fw-bold">Task Unit</Form.Label>
-                                    <Form.Select 
-                                        value={filterTaskUnit} 
+                                    <Form.Select
+                                        value={filterTaskUnit}
                                         onChange={(e) => setFilterTaskUnit(e.target.value)}
                                         className="glass-dropdown-enhanced"
                                         style={{

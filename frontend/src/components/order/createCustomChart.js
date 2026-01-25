@@ -424,9 +424,16 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
   }, []);
 
   const memoizedColumns = useMemo(() => {
+    // Calculate equal width percentage
+    // base columns (excluding actions which is in state but we filter it) + Total + Actions
+    const visibleBaseColumns = columns.filter(c => c.key !== 'actions');
+    const totalCols = visibleBaseColumns.length + 2; // + Total column + Actions column
+    const colWidth = `${(100 / totalCols).toFixed(4)}%`;
+
     const numericKeys = numericKeysFromColumns(columns);
-    const baseColumns = columns.filter(c => c.key !== 'actions').map(col => ({
+    const baseColumns = visibleBaseColumns.map(col => ({
       ...col,
+      width: colWidth, // Force percentage width
       renderHeader: () => <HeaderRenderer column={col} />,
       renderSummaryCell: numericKeys.includes(col.key)
         ? (props) => (
@@ -440,7 +447,7 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
     const totalColumn = {
       key: "_row_total",
       name: "Total",
-      width: 90,
+      width: colWidth, // Force percentage width
       resizable: false,
       sortable: false,
       editable: false,
@@ -458,7 +465,7 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
     const actionsColumn = {
       key: "actions",
       name: "Actions",
-      width: 80,
+      width: colWidth, // Force percentage width
       resizable: false,
       sortable: false,
       editable: false,
@@ -789,7 +796,13 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
               rowKeyGetter={(row) => row.key}
               bottomSummaryRows={summaryRows}
               className="rdg-light"
-              style={{ "--rdg-header-background-color": "#343a40", "--rdg-header-foreground-color": "#ffffff", "--rdg-border-color": "#dee2e6", fontSize: "13px" }}
+              style={{
+                "--rdg-header-background-color": "#343a40",
+                "--rdg-header-foreground-color": "#ffffff",
+                "--rdg-border-color": "#dee2e6",
+                fontSize: "13px",
+                "--col-count": memoizedColumns.length
+              }}
             />
           </div>
         </div>

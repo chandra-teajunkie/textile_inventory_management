@@ -520,7 +520,7 @@ body {
 
 /* Forms with Enhanced Visibility */
 .form-control,
-.form-select{
+.form-select {
   /* background: var(--glass-bg); */
   border: 1px solid var(--glass-border);
   border-radius: 12px;
@@ -533,7 +533,7 @@ body {
 }
 
 [data-theme="dark"] .form-control,
-[data-theme="dark"] .form-select{
+[data-theme="dark"] .form-select {
   background: rgba(22, 27, 34, 0.8);
   border-color: rgba(255, 255, 255, 0.15);
   color: #f0f6fc;
@@ -1614,6 +1614,19 @@ svg.icon:hover {
   background-color: var(--card-bg);
   color: var(--text-primary);
   border-color: var(--border-color);
+  width: -webkit-fill-available !important;
+}
+
+/* Force all columns to be equal width and fill the table */
+.rdg.rdg-light,
+.rdg.rdg-dark {
+  --column-width: 1fr;
+}
+
+/* Target the grid and override inline styles for equal columns using the JS-passed variable */
+div[role="grid"].rdg {
+  /* Use the column count passed from JS to divide space equally */
+  grid-template-columns: repeat(var(--col-count, 12), 1fr) !important;
 }
 
 .rdg-header-row {

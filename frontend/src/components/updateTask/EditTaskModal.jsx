@@ -8,6 +8,7 @@ import { FaCut, FaPrint, FaEdit, FaBox, FaQuestion, FaShoppingCart, FaTshirt } f
 import { GiSewingMachine } from "react-icons/gi" // Sewing machine icon
 import { PurchaseOrderUnit } from "../../utils/constants"
 import Select from "react-select"
+import cfg from "../../utils/runtimeConfig";
 
 const STATUS_OPTIONS = [
   { value: "NOT STARTED", label: "Not Started" },
@@ -129,7 +130,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
       }
 
 
-      const basic = await fetch(`${process.env.REACT_APP_PATCH_ALL_TASKS}${task.task_id}`, {
+      const basic = await fetch(`${cfg.PATCH_ALL_TASKS}${task.task_id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -155,7 +156,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
         incomingFormData.append("incoming_chart_json", JSON.stringify(incomingChartOnly))
 
 
-        const incomingResponse = await fetch(`${process.env.REACT_APP_INCOMING_CHART_UPLOAD}${task.task_id}`, {
+        const incomingResponse = await fetch(`${cfg.INCOMING_CHART_UPLOAD}${task.task_id}`, {
           method: "PATCH",
           body: incomingFormData,
         })
@@ -176,7 +177,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
         const { chartNotes, ...outgoingChartOnly } = currentOutgoingData
         outgoingFormData.append("outgoing_chart_json", JSON.stringify(outgoingChartOnly))
 
-        const outgoingResponse = await fetch(`${process.env.REACT_APP_OUTGOING_CHART_UPLOAD}${task.task_id}`, {
+        const outgoingResponse = await fetch(`${cfg.OUTGOING_CHART_UPLOAD}${task.task_id}`, {
           method: "PATCH",
           body: outgoingFormData,
         })
@@ -259,8 +260,8 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
                 <div className="col-md-6">
                   <Form.Group className="mb-3">
                     <Form.Label className="fw-bold">Status</Form.Label>
-                    <Form.Select 
-                      value={status} 
+                    <Form.Select
+                      value={status}
                       onChange={(e) => setStatus(e.target.value)}
                       className="glass-dropdown-enhanced"
                       style={{
@@ -291,8 +292,8 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
                 <div className="col-md-6">
                   <Form.Group className="mb-3">
                     <Form.Label className="fw-bold">Task Unit</Form.Label>
-                    <Form.Select 
-                      value={taskUnit} 
+                    <Form.Select
+                      value={taskUnit}
                       onChange={(e) => setTaskUnit(e.target.value)}
                       className="glass-dropdown-enhanced"
                       style={{
