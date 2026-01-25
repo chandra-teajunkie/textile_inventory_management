@@ -207,3 +207,35 @@ build-run-backend-postgres: build-backend run-backend-postgres
 # Recreate PostgreSQL container (fresh start)
 postgres-recreate: postgres-down postgres-up
 	@echo "🔁 Recreated PostgreSQL local dev container successfully."
+
+# === Azure Container Registry (ACR) ===
+ACR_NAME := sidhutextilesacr
+ACR_LOGIN_SERVER := $(ACR_NAME).azurecr.io
+
+# Azure image tags
+AZ_FRONTEND_IMAGE := $(ACR_LOGIN_SERVER)/$(FRONTEND_IMAGE_NAME):$(VERSION)
+AZ_BACKEND_IMAGE := $(ACR_LOGIN_SERVER)/$(BACKEND_IMAGE_NAME):$(VERSION)
+
+acr-login:
+	az acr login --name $(ACR_NAME)
+
+# === Build images for Azure ===
+azure-build-backend:
+	cd backend && docker build --no-cache -t $(AZ_BACKEND_IMAGE) .
+
+azure-build-frontend:
+	cd frontend && docker build --no-cache -t $(AZ_FRONTEND_IMAGE) .
+
+azure-build-all: azure-build-backend azure-build-frontend
+
+# === Push images to Azure ACR ===
+azure-push-backend:
+	docker push $(AZ_BACKEND_IMAGE)
+
+azure-push-frontend:
+	docker push $(AZ_FRONTEND_IMAGE)
+
+azure-push-all: azure-push-backend azure-push-frontend
+
+# === Full Azure Deployment ===
+azure-deploy-images: acr-login azure-build-all azure-push-all

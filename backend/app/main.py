@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel
 from app.database.database import engine
 import uvicorn
-
+import os
 from app.routers.purchase_orders import router as purchase_orders_router
 from app.routers.tasks import router as tasks_router
 from app.routers.inventory import router as inventory_router
@@ -42,19 +42,29 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Allow requests from your frontend origin
+
+def get_cors_origins():
+    cors_origins = os.getenv("CORS_ORIGINS", "")
+
+    if cors_origins.strip() == "":
+        # fallback for local dev
+        return ["http://localhost:3000"]
+
+    return [origin.strip() for origin in cors_origins.split(",")]
+
+
+origins = get_cors_origins()
+
+print("✅ CORS allowed origins:", origins)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://sidhu-textiles.onrender.com",  # ✅ correct deployed frontend
-        "http://localhost:3000",  # ✅ optional for local testing
-        "http://localhost:30000",
-    ],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+logger.info("CORS middleware has been set up.")
 
 # Include the product router with the "/products" prefix
 app.include_router(purchase_orders_router, prefix="/purchase-orders")
