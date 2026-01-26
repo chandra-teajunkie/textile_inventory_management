@@ -228,23 +228,23 @@ azure-login:
 acr-login:
 	az acr login --name $(ACR_NAME)
 
-# Build local images for ACR
-build-acr-backend:
-	cd backend && docker build --no-cache -t $(ACR_BACKEND_IMAGE) .
+# === Build images for Azure ===
+azure-build-backend:
+	cd backend && docker build --no-cache -t $(AZ_BACKEND_IMAGE) .
 
-build-acr-frontend:
-	cd frontend && docker build --no-cache -t $(ACR_FRONTEND_IMAGE) .
+azure-build-frontend:
+	cd frontend && docker build --no-cache -t $(AZ_FRONTEND_IMAGE) .
 
-build-acr-all: build-acr-backend build-acr-frontend
+azure-build-all: azure-build-backend azure-build-frontend
 
-# Push images to ACR
-push-acr-backend:
-	docker push $(ACR_BACKEND_IMAGE)
+# === Push images to Azure ACR ===
+azure-push-backend:
+	docker push $(AZ_BACKEND_IMAGE)
 
-push-acr-frontend:
-	docker push $(ACR_FRONTEND_IMAGE)
+azure-push-frontend:
+	docker push $(AZ_FRONTEND_IMAGE)
 
-# Build and push both
-push-acr-all: push-acr-frontend push-acr-backend
+azure-push-all: azure-push-backend azure-push-frontend
 
-build-push-acr-all: build-acr-backend push-acr-backend build-acr-frontend push-acr-frontend
+# === Full Azure Deployment ===
+azure-deploy-images: acr-login azure-build-all azure-push-all
