@@ -18,6 +18,7 @@ from app.utils.utils import (
 import json
 import pandas as pd
 from collections import defaultdict
+from io import StringIO
 
 router = APIRouter()
 
@@ -64,8 +65,12 @@ async def create_purchase_order(
         size_chart_data = await process_size_chart(size_chart_file)
     elif size_chart_json:
         try:
-            # Validate JSON is parseable to a DataFrame
-            pd.read_json(size_chart_json)  # validation step
+            # Validate JSON properly (cloud-safe)
+            json.loads(size_chart_json)  # ensures it's valid JSON
+
+            # Optional: validate it can be converted to DataFrame
+            pd.read_json(StringIO(size_chart_json))
+
             size_chart_data = size_chart_json
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid size_chart_json: {e}")

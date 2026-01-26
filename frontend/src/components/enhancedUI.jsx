@@ -1115,7 +1115,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
 
     // UI State with navigation persistence
     const [expandedOrders, setExpandedOrders] = useState({})
-    
+
     // Initialize active tab from localStorage or URL hash, fallback to "overview"
     const getInitialTab = () => {
         // Check URL hash first
@@ -1130,7 +1130,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
         }
         return "overview"
     }
-    
+
     const [activeTab, setActiveTab] = useState(getInitialTab)
     const [showFilters, setShowFilters] = useState(false)
 
@@ -1158,29 +1158,29 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
     // Data Fetching with improved error handling and performance
     useEffect(() => {
         let isCancelled = false
-        
+
         const fetchAllData = async () => {
             if (isCancelled) return
-            
+
             setLoading(true)
             setError(null)
-            
+
             try {
                 // Add timeout to prevent hanging requests
                 const timeoutController = new AbortController()
                 const timeoutId = setTimeout(() => timeoutController.abort(), 30000) // 30 second timeout
-                
+
                 // Fetch all orders with timeout
                 const ordersRes = await fetch(cfg.GET_ALL_ORDERS, {
                     signal: timeoutController.signal
                 })
                 clearTimeout(timeoutId)
-                
+
                 if (!ordersRes.ok) throw new Error(`Failed to fetch orders: ${ordersRes.status}`)
                 let orders = await ordersRes.json()
-                
+
                 if (isCancelled) return
-                
+
                 // Normalize order fields to ensure consistent keys across UI
                 orders = (orders || []).map((o) => ({
                     ...o,
@@ -1196,13 +1196,13 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                     try {
                         const taskController = new AbortController()
                         const taskTimeoutId = setTimeout(() => taskController.abort(), 10000) // 10 second timeout per task
-                        
+
                         const res = await fetch(
                             `${cfg.GET_ALL_TASKS}${order.order_id || order.purchase_order_id || order.id}`,
                             { signal: taskController.signal }
                         )
                         clearTimeout(taskTimeoutId)
-                        
+
                         return res.ok ? await res.json() : []
                     } catch (taskError) {
                         console.warn(`Failed to fetch tasks for order ${order.order_id}:`, taskError)
@@ -1211,7 +1211,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 })
 
                 const tasksResults = await Promise.allSettled(tasksPromises)
-                
+
                 if (isCancelled) return
 
                 // Combine orders and tasks
@@ -1236,7 +1236,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 }
             } catch (err) {
                 if (!isCancelled) {
-                    const errorMessage = err.name === 'AbortError' 
+                    const errorMessage = err.name === 'AbortError'
                         ? 'Request timed out. Please check your connection and try again.'
                         : err.message
                     setError(errorMessage)
@@ -1258,7 +1258,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
         }
 
         fetchAllData()
-        
+
         // Cleanup function to cancel requests if component unmounts or effect re-runs
         return () => {
             isCancelled = true
@@ -2064,23 +2064,23 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
     // Enhanced Template Placeholder Components for Better Loading UX
     const TableRowPlaceholder = () => (
         <tr className="placeholder-glow">
-            <td><div className="placeholder" style={{width: '30px', height: '20px'}}></div></td>
-            <td><div className="placeholder" style={{width: '120px', height: '20px'}}></div></td>
-            <td><div className="placeholder" style={{width: '80px', height: '20px'}}></div></td>
-            <td><div className="placeholder" style={{width: '80px', height: '20px'}}></div></td>
-            <td><div className="placeholder" style={{width: '70px', height: '20px'}}></div></td>
-            <td><div className="placeholder" style={{width: '60px', height: '20px'}}></div></td>
-            <td><div className="placeholder" style={{width: '100px', height: '20px'}}></div></td>
-            <td><div className="placeholder" style={{width: '50px', height: '20px'}}></div></td>
-            <td><div className="placeholder" style={{width: '80px', height: '20px'}}></div></td>
+            <td><div className="placeholder" style={{ width: '30px', height: '20px' }}></div></td>
+            <td><div className="placeholder" style={{ width: '120px', height: '20px' }}></div></td>
+            <td><div className="placeholder" style={{ width: '80px', height: '20px' }}></div></td>
+            <td><div className="placeholder" style={{ width: '80px', height: '20px' }}></div></td>
+            <td><div className="placeholder" style={{ width: '70px', height: '20px' }}></div></td>
+            <td><div className="placeholder" style={{ width: '60px', height: '20px' }}></div></td>
+            <td><div className="placeholder" style={{ width: '100px', height: '20px' }}></div></td>
+            <td><div className="placeholder" style={{ width: '50px', height: '20px' }}></div></td>
+            <td><div className="placeholder" style={{ width: '80px', height: '20px' }}></div></td>
         </tr>
     )
 
     const CardPlaceholder = ({ height = '200px', title = true }) => (
         <Card className="shadow-sm border-0 placeholder-glow">
             <Card.Body>
-                {title && <div className="placeholder" style={{width: '60%', height: '24px', marginBottom: '16px'}}></div>}
-                <div className="placeholder" style={{width: '100%', height: height}}></div>
+                {title && <div className="placeholder" style={{ width: '60%', height: '24px', marginBottom: '16px' }}></div>}
+                <div className="placeholder" style={{ width: '100%', height: height }}></div>
             </Card.Body>
         </Card>
     )
@@ -2088,9 +2088,9 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
     const KpiCardPlaceholder = () => (
         <Card className="shadow-sm border-0 placeholder-glow">
             <Card.Body className="text-center">
-                <div className="placeholder" style={{width: '40px', height: '40px', borderRadius: '50%', margin: '0 auto 12px'}}></div>
-                <div className="placeholder" style={{width: '80px', height: '32px', margin: '0 auto 8px'}}></div>
-                <div className="placeholder" style={{width: '60px', height: '16px', margin: '0 auto'}}></div>
+                <div className="placeholder" style={{ width: '40px', height: '40px', borderRadius: '50%', margin: '0 auto 12px' }}></div>
+                <div className="placeholder" style={{ width: '80px', height: '32px', margin: '0 auto 8px' }}></div>
+                <div className="placeholder" style={{ width: '60px', height: '16px', margin: '0 auto' }}></div>
             </Card.Body>
         </Card>
     )
@@ -2119,32 +2119,32 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
         <div className="placeholder-glow">
             {/* Analysis Tab Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <div className="placeholder" style={{width: '250px', height: '28px'}}></div>
+                <div className="placeholder" style={{ width: '250px', height: '28px' }}></div>
                 <div className="d-flex gap-2">
-                    <div className="placeholder" style={{width: '100px', height: '36px'}}></div>
-                    <div className="placeholder" style={{width: '100px', height: '36px'}}></div>
+                    <div className="placeholder" style={{ width: '100px', height: '36px' }}></div>
+                    <div className="placeholder" style={{ width: '100px', height: '36px' }}></div>
                 </div>
             </div>
-            
+
             {/* Production Analysis Charts */}
             <Row className="g-4 mb-4">
                 <Col lg={6}>
                     <Card className="shadow-sm border-0">
                         <Card.Header className="placeholder-glow">
-                            <div className="placeholder" style={{width: '180px', height: '20px'}}></div>
+                            <div className="placeholder" style={{ width: '180px', height: '20px' }}></div>
                         </Card.Header>
                         <Card.Body>
-                            <div className="placeholder" style={{width: '100%', height: '350px'}}></div>
+                            <div className="placeholder" style={{ width: '100%', height: '350px' }}></div>
                         </Card.Body>
                     </Card>
                 </Col>
                 <Col lg={6}>
                     <Card className="shadow-sm border-0">
                         <Card.Header className="placeholder-glow">
-                            <div className="placeholder" style={{width: '160px', height: '20px'}}></div>
+                            <div className="placeholder" style={{ width: '160px', height: '20px' }}></div>
                         </Card.Header>
                         <Card.Body>
-                            <div className="placeholder" style={{width: '100%', height: '350px'}}></div>
+                            <div className="placeholder" style={{ width: '100%', height: '350px' }}></div>
                         </Card.Body>
                     </Card>
                 </Col>
@@ -2171,16 +2171,16 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
             <Card className="shadow-sm border-0 mb-4">
                 <Card.Header>
                     <div className="d-flex justify-content-between align-items-center">
-                        <div className="placeholder" style={{width: '200px', height: '24px'}}></div>
+                        <div className="placeholder" style={{ width: '200px', height: '24px' }}></div>
                         <div className="d-flex gap-2">
-                            {[1,2,3,4].map(i => (
-                                <div key={i} className="placeholder" style={{width: '80px', height: '32px'}}></div>
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="placeholder" style={{ width: '80px', height: '32px' }}></div>
                             ))}
                         </div>
                     </div>
                 </Card.Header>
                 <Card.Body>
-                    <div className="placeholder" style={{width: '100%', height: '400px'}}></div>
+                    <div className="placeholder" style={{ width: '100%', height: '400px' }}></div>
                 </Card.Body>
             </Card>
 
@@ -2189,17 +2189,17 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 <Col md={8}>
                     <Card className="shadow-sm border-0">
                         <Card.Header className="placeholder-glow">
-                            <div className="placeholder" style={{width: '150px', height: '20px'}}></div>
+                            <div className="placeholder" style={{ width: '150px', height: '20px' }}></div>
                         </Card.Header>
                         <Card.Body>
-                            {[1,2,3,4,5].map(i => (
+                            {[1, 2, 3, 4, 5].map(i => (
                                 <div key={i} className="d-flex align-items-center p-3 border-bottom">
-                                    <div className="placeholder" style={{width: '40px', height: '40px', borderRadius: '50%', marginRight: '12px'}}></div>
+                                    <div className="placeholder" style={{ width: '40px', height: '40px', borderRadius: '50%', marginRight: '12px' }}></div>
                                     <div className="flex-grow-1">
-                                        <div className="placeholder mb-2" style={{width: '70%', height: '16px'}}></div>
-                                        <div className="placeholder" style={{width: '50%', height: '14px'}}></div>
+                                        <div className="placeholder mb-2" style={{ width: '70%', height: '16px' }}></div>
+                                        <div className="placeholder" style={{ width: '50%', height: '14px' }}></div>
                                     </div>
-                                    <div className="placeholder" style={{width: '80px', height: '24px'}}></div>
+                                    <div className="placeholder" style={{ width: '80px', height: '24px' }}></div>
                                 </div>
                             ))}
                         </Card.Body>
@@ -2213,7 +2213,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
     )
 
     const TabContentPlaceholder = ({ activeTab }) => {
-        switch(activeTab) {
+        switch (activeTab) {
             case 'analysis':
                 return <AnalysisTabPlaceholder />
             case 'timeline':
@@ -2239,7 +2239,7 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {[1,2,3,4,5,6,7,8].map(i => <TableRowPlaceholder key={i} />)}
+                                        {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <TableRowPlaceholder key={i} />)}
                                     </tbody>
                                 </Table>
                             </Card.Body>
@@ -2256,18 +2256,18 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 {/* Header Placeholder */}
                 <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3 placeholder-glow">
                     <div>
-                        <div className="placeholder" style={{width: '300px', height: '32px', marginBottom: '8px'}}></div>
-                        <div className="placeholder" style={{width: '400px', height: '16px'}}></div>
+                        <div className="placeholder" style={{ width: '300px', height: '32px', marginBottom: '8px' }}></div>
+                        <div className="placeholder" style={{ width: '400px', height: '16px' }}></div>
                     </div>
                     <div className="d-flex gap-2">
-                        <div className="placeholder" style={{width: '120px', height: '38px'}}></div>
-                        <div className="placeholder" style={{width: '120px', height: '38px'}}></div>
+                        <div className="placeholder" style={{ width: '120px', height: '38px' }}></div>
+                        <div className="placeholder" style={{ width: '120px', height: '38px' }}></div>
                     </div>
                 </div>
 
                 {/* KPI Cards Placeholder */}
                 <Row className="g-3 mb-4">
-                    {[1,2,3,4,5,6].map(i => (
+                    {[1, 2, 3, 4, 5, 6].map(i => (
                         <Col key={i} xs={6} sm={4} lg={2}>
                             <KpiCardPlaceholder />
                         </Col>
@@ -2277,9 +2277,9 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                 {/* Tabs Placeholder */}
                 <div className="placeholder-glow mb-3">
                     <div className="d-flex gap-3 border-bottom pb-2">
-                        <div className="placeholder" style={{width: '150px', height: '24px'}}></div>
-                        <div className="placeholder" style={{width: '120px', height: '24px'}}></div>
-                        <div className="placeholder" style={{width: '100px', height: '24px'}}></div>
+                        <div className="placeholder" style={{ width: '150px', height: '24px' }}></div>
+                        <div className="placeholder" style={{ width: '120px', height: '24px' }}></div>
+                        <div className="placeholder" style={{ width: '100px', height: '24px' }}></div>
                     </div>
                 </div>
 
@@ -2297,8 +2297,8 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
                         <FaExclamationTriangle className="text-danger mb-3" size={48} />
                         <h4 className="text-danger mb-2">Failed to Load Data</h4>
                         <p className="text-muted mb-3">{error}</p>
-                        <Button 
-                            variant="outline-danger" 
+                        <Button
+                            variant="outline-danger"
                             onClick={() => window.location.reload()}
                         >
                             Retry
@@ -2467,14 +2467,14 @@ const EnhancedConsolidatedOverview = ({ toast }) => {
             )}
 
             {/* Main Content Tabs */}
-            <Tabs 
-                activeKey={activeTab} 
+            <Tabs
+                activeKey={activeTab}
                 onSelect={(k) => {
                     // Prevent tab switching during loading to avoid getting stuck
                     if (!loading && k) {
                         handleTabChange(k)
                     }
-                }} 
+                }}
                 className="mb-3"
             >
                 <Tab

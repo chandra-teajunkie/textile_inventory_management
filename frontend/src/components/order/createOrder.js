@@ -34,7 +34,7 @@ function OrderForm({ toast }) {
     // State for active notes tab and refs for textareas
     const [activeNoteTab, setActiveNoteTab] = useState(Object.values(PurchaseOrderUnit)[0]);
     const noteTextareaRefs = useRef(new Map());
-    
+
     // Ref for the types dropdown to enable autofocus
     const typesSelectRef = useRef(null);
 
@@ -214,12 +214,36 @@ function OrderForm({ toast }) {
             const formData = new FormData()
             // Backend expects a form field named 'purchase_order' containing a JSON string
             formData.append("purchase_order", JSON.stringify(orderPayload))
-            // size_chart_json is accepted by backend as an optional form field
-            formData.append("size_chart_json", JSON.stringify(sizeChartData))
+            // Convert size chart to a CSV file upload (Blob) instead of JSON string
+            // Backend's pd.read_json() treats JSON strings as file paths, causing validation errors
+            // So we create a CSV Blob from the data and upload it as size_chart_file
+            if (sizeChartData) {
+                const columns = Object.keys(sizeChartData)
+                if (columns.length > 0) {
+                    // Get the number of rows from the first column
+                    const firstCol = columns[0]
+                    const rowIndices = Object.keys(sizeChartData[firstCol]).map(idx => parseInt(idx, 10)).sort((a, b) => a - b)
+
+                    // Build CSV content
+                    const csvHeader = columns.join(',')
+                    const csvRows = rowIndices.map(idx => {
+                        return columns.map(col => {
+                            const val = sizeChartData[col][idx.toString()] !== undefined ? sizeChartData[col][idx.toString()] : ""
+                            // Escape values that contain commas
+                            return typeof val === 'string' && val.includes(',') ? `"${val}"` : val
+                        }).join(',')
+                    })
+                    const csvContent = [csvHeader, ...csvRows].join('\n')
+
+                    // Create a Blob and append as file
+                    const blob = new Blob([csvContent], { type: 'text/csv' })
+                    formData.append("size_chart_file", blob, "size_chart.csv")
+                }
+            }
 
             console.log("Order payload:", orderPayload)
-            console.log("Size chart data being sent:", sizeChartData)
-            console.log("Size chart JSON string:", JSON.stringify(sizeChartData))
+            console.log("Size chart data (original):", sizeChartData)
+            console.log("Sending size chart as CSV file upload to avoid backend JSON parsing bug")
 
             const response = await fetch(cfg.POST_ALL_ORDERS, {
                 method: "POST",
@@ -246,7 +270,8 @@ function OrderForm({ toast }) {
                 setSizeChartData(null)
             } else {
                 const errorData = await response.json()
-                showToast("error", "Error", errorData.message || "Failed to create order")
+                console.error("Backend error response:", errorData)
+                showToast("error", "Error", errorData.detail || errorData.message || "Failed to create order")
             }
         } catch (err) {
             console.error("Error creating order:", err)
@@ -336,14 +361,14 @@ function OrderForm({ toast }) {
                 // Loading placeholder for OrderForm
                 <div className="animate-pulse">
                     <div className="d-flex justify-content-between align-items-center mb-4">
-                        <div className="h3 bg-light rounded" style={{width: '200px', height: '32px'}}></div>
+                        <div className="h3 bg-light rounded" style={{ width: '200px', height: '32px' }}></div>
                     </div>
-                    
+
                     <Card className="shadow-sm border-0 glass-card-enhanced">
                         <Card.Header className="bg-white">
                             <div className="d-flex flex-column">
-                                <div className="bg-light rounded mb-2" style={{width: '150px', height: '24px'}}></div>
-                                <div className="bg-light rounded" style={{width: '250px', height: '16px'}}></div>
+                                <div className="bg-light rounded mb-2" style={{ width: '150px', height: '24px' }}></div>
+                                <div className="bg-light rounded" style={{ width: '250px', height: '16px' }}></div>
                             </div>
                         </Card.Header>
                         <Card.Body>
@@ -351,23 +376,23 @@ function OrderForm({ toast }) {
                                 <Col md={6}>
                                     {[1, 2, 3, 4].map(i => (
                                         <div key={i} className="mb-3">
-                                            <div className="bg-light rounded mb-2" style={{width: '120px', height: '16px'}}></div>
-                                            <div className="bg-light rounded" style={{width: '100%', height: '38px'}}></div>
+                                            <div className="bg-light rounded mb-2" style={{ width: '120px', height: '16px' }}></div>
+                                            <div className="bg-light rounded" style={{ width: '100%', height: '38px' }}></div>
                                         </div>
                                     ))}
                                 </Col>
                                 <Col md={6}>
                                     {[1, 2, 3].map(i => (
                                         <div key={i} className="mb-3">
-                                            <div className="bg-light rounded mb-2" style={{width: '100px', height: '16px'}}></div>
-                                            <div className="bg-light rounded" style={{width: '100%', height: '38px'}}></div>
+                                            <div className="bg-light rounded mb-2" style={{ width: '100px', height: '16px' }}></div>
+                                            <div className="bg-light rounded" style={{ width: '100%', height: '38px' }}></div>
                                         </div>
                                     ))}
                                 </Col>
                             </Row>
                             <div className="d-flex justify-content-between mt-4">
-                                <div className="bg-light rounded" style={{width: '120px', height: '38px'}}></div>
-                                <div className="bg-primary rounded" style={{width: '100px', height: '38px', opacity: 0.3}}></div>
+                                <div className="bg-light rounded" style={{ width: '120px', height: '38px' }}></div>
+                                <div className="bg-primary rounded" style={{ width: '100px', height: '38px', opacity: 0.3 }}></div>
                             </div>
                         </Card.Body>
                     </Card>
@@ -375,214 +400,214 @@ function OrderForm({ toast }) {
             ) : (
                 // Actual form content
                 <>
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <h1 className="h3 fw-bold">Create Order</h1>
-            </div>
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                        <h1 className="h3 fw-bold">Create Order</h1>
+                    </div>
 
-            <Card className="shadow-sm border-0 glass-card-enhanced">
-                <Card.Header className="bg-white">
-                    <Card.Title>Order Details</Card.Title>
-                    <Card.Subtitle className="text-muted">Enter order info and create size chart</Card.Subtitle>
-                </Card.Header>
-                <Card.Body>
-                    <Form onSubmit={handleSubmit}>
-                        <Row>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Number of Pieces *</Form.Label>
-                                    <Form.Control
-                                        type="number"
-                                        disabled
-                                        value={form.overallPieces}
-                                        placeholder="Enter total pieces"
-                                        required
-                                    />
-                                </Form.Group>
+                    <Card className="shadow-sm border-0 glass-card-enhanced">
+                        <Card.Header className="bg-white">
+                            <Card.Title>Order Details</Card.Title>
+                            <Card.Subtitle className="text-muted">Enter order info and create size chart</Card.Subtitle>
+                        </Card.Header>
+                        <Card.Body>
+                            <Form onSubmit={handleSubmit}>
+                                <Row>
+                                    <Col md={6}>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Number of Pieces *</Form.Label>
+                                            <Form.Control
+                                                type="number"
+                                                disabled
+                                                value={form.overallPieces}
+                                                placeholder="Enter total pieces"
+                                                required
+                                            />
+                                        </Form.Group>
 
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Types * (Multi-select)</Form.Label>
-                                    <CreatableSelect
-                                        ref={typesSelectRef}
-                                        isMulti
-                                        isClearable
-                                        autoFocus
-                                        placeholder="Select or enter types"
-                                        value={formatValuesForSelect(form.types)}
-                                        onChange={(selectedOptions) => handleMultiSelectChange("types", selectedOptions)}
-                                        onCreateOption={(inputValue) => handleCreateOption(inputValue, "types")}
-                                        options={formatOptionsForSelect(dropdownOptions.types)}
-                                        className="glass-react-select"
-                                        classNamePrefix="react-select"
-                                    />
-                                    {form.types.length > 0 && (
-                                        <div className="mt-2">
-                                            <small className="text-muted">Selected: </small>
-                                            {form.types.map((type, index) => (
-                                                <Badge key={index} bg="primary" className="me-1">
-                                                    {type}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    )}
-                                </Form.Group>
-
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Colors * (Multi-select)</Form.Label>
-                                    <CreatableSelect
-                                        isMulti
-                                        isClearable
-                                        placeholder="Select or enter colors"
-                                        value={formatValuesForSelect(form.colors)}
-                                        onChange={(selectedOptions) => handleMultiSelectChange("colors", selectedOptions)}
-                                        onCreateOption={(inputValue) => handleCreateOption(inputValue, "colors")}
-                                        options={formatOptionsForSelect(dropdownOptions.colors)}
-                                        className="glass-react-select"
-                                        classNamePrefix="react-select"
-                                    />
-                                    {form.colors.length > 0 && (
-                                        <div className="mt-2">
-                                            <small className="text-muted">Selected: </small>
-                                            {form.colors.map((color, index) => (
-                                                <Badge key={index} bg="success" className="me-1">
-                                                    {color}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    )}
-                                </Form.Group>
-
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Customer Name * (Single select)</Form.Label>
-                                    <CreatableSelect
-                                        isClearable
-                                        placeholder="Select or enter customer name"
-                                        value={form.customer_name ? { label: form.customer_name, value: form.customer_name } : null}
-                                        onChange={(selectedOption) => handleSingleSelectChange("customer_name", selectedOption)}
-                                        onCreateOption={(inputValue) => handleCreateOption(inputValue, "customer_name")}
-                                        options={formatOptionsForSelect(dropdownOptions.customer_name)}
-                                        className="glass-react-select"
-                                        classNamePrefix="react-select"
-                                    />
-                                </Form.Group>
-                            </Col>
-
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Special Notes *</Form.Label>
-                                    <Form.Control
-                                        as="textarea"
-                                        rows={3}
-                                        value={form.specialNotes}
-                                        onChange={(e) => handleChange("specialNotes", e.target.value)}
-                                        placeholder="Enter any special instructions"
-                                        required
-                                    />
-                                </Form.Group>
-
-                                <h5 className="mb-3">Purchase Unit Notes</h5>
-                                <Tabs activeKey={activeNoteTab} onSelect={(k) => setActiveNoteTab(k)} id="purchase-unit-notes-tabs" className="mb-3">
-                                    {Object.values(PurchaseOrderUnit).map((unit) => (
-                                        <Tab
-                                            eventKey={unit}
-                                            title={
-                                                <>
-                                                    {unit.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                                                    {form.purchase_unit_notes[unit] && (
-                                                        <Badge pill bg="success" className="ms-2">
-                                                            <i className="bi bi-check"></i>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Types * (Multi-select)</Form.Label>
+                                            <CreatableSelect
+                                                ref={typesSelectRef}
+                                                isMulti
+                                                isClearable
+                                                autoFocus
+                                                placeholder="Select or enter types"
+                                                value={formatValuesForSelect(form.types)}
+                                                onChange={(selectedOptions) => handleMultiSelectChange("types", selectedOptions)}
+                                                onCreateOption={(inputValue) => handleCreateOption(inputValue, "types")}
+                                                options={formatOptionsForSelect(dropdownOptions.types)}
+                                                className="glass-react-select"
+                                                classNamePrefix="react-select"
+                                            />
+                                            {form.types.length > 0 && (
+                                                <div className="mt-2">
+                                                    <small className="text-muted">Selected: </small>
+                                                    {form.types.map((type, index) => (
+                                                        <Badge key={index} bg="primary" className="me-1">
+                                                            {type}
                                                         </Badge>
-                                                    )}
-                                                </>
-                                            }
-                                            key={unit}
-                                        >
-                                            <Form.Group className="mb-3 mt-3">
-                                                <Form.Control
-                                                    as="textarea"
-                                                    rows={3}
-                                                    ref={(el) => noteTextareaRefs.current.set(unit, el)} // Assign ref dynamically
-                                                    value={form.purchase_unit_notes[unit] || ''}
-                                                    onChange={(e) =>
-                                                        setForm((prev) => ({
-                                                            ...prev,
-                                                            purchase_unit_notes: { ...prev.purchase_unit_notes, [unit]: e.target.value },
-                                                        }))
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </Form.Group>
+
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Colors * (Multi-select)</Form.Label>
+                                            <CreatableSelect
+                                                isMulti
+                                                isClearable
+                                                placeholder="Select or enter colors"
+                                                value={formatValuesForSelect(form.colors)}
+                                                onChange={(selectedOptions) => handleMultiSelectChange("colors", selectedOptions)}
+                                                onCreateOption={(inputValue) => handleCreateOption(inputValue, "colors")}
+                                                options={formatOptionsForSelect(dropdownOptions.colors)}
+                                                className="glass-react-select"
+                                                classNamePrefix="react-select"
+                                            />
+                                            {form.colors.length > 0 && (
+                                                <div className="mt-2">
+                                                    <small className="text-muted">Selected: </small>
+                                                    {form.colors.map((color, index) => (
+                                                        <Badge key={index} bg="success" className="me-1">
+                                                            {color}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </Form.Group>
+
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Customer Name * (Single select)</Form.Label>
+                                            <CreatableSelect
+                                                isClearable
+                                                placeholder="Select or enter customer name"
+                                                value={form.customer_name ? { label: form.customer_name, value: form.customer_name } : null}
+                                                onChange={(selectedOption) => handleSingleSelectChange("customer_name", selectedOption)}
+                                                onCreateOption={(inputValue) => handleCreateOption(inputValue, "customer_name")}
+                                                options={formatOptionsForSelect(dropdownOptions.customer_name)}
+                                                className="glass-react-select"
+                                                classNamePrefix="react-select"
+                                            />
+                                        </Form.Group>
+                                    </Col>
+
+                                    <Col md={6}>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Special Notes *</Form.Label>
+                                            <Form.Control
+                                                as="textarea"
+                                                rows={3}
+                                                value={form.specialNotes}
+                                                onChange={(e) => handleChange("specialNotes", e.target.value)}
+                                                placeholder="Enter any special instructions"
+                                                required
+                                            />
+                                        </Form.Group>
+
+                                        <h5 className="mb-3">Purchase Unit Notes</h5>
+                                        <Tabs activeKey={activeNoteTab} onSelect={(k) => setActiveNoteTab(k)} id="purchase-unit-notes-tabs" className="mb-3">
+                                            {Object.values(PurchaseOrderUnit).map((unit) => (
+                                                <Tab
+                                                    eventKey={unit}
+                                                    title={
+                                                        <>
+                                                            {unit.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                                                            {form.purchase_unit_notes[unit] && (
+                                                                <Badge pill bg="success" className="ms-2">
+                                                                    <i className="bi bi-check"></i>
+                                                                </Badge>
+                                                            )}
+                                                        </>
                                                     }
-                                                    placeholder={`Enter notes for the ${unit.toLowerCase().replace(/_/g, " ")} unit`}
-                                                />
-                                            </Form.Group>
-                                        </Tab>
-                                    ))}
-                                </Tabs>
+                                                    key={unit}
+                                                >
+                                                    <Form.Group className="mb-3 mt-3">
+                                                        <Form.Control
+                                                            as="textarea"
+                                                            rows={3}
+                                                            ref={(el) => noteTextareaRefs.current.set(unit, el)} // Assign ref dynamically
+                                                            value={form.purchase_unit_notes[unit] || ''}
+                                                            onChange={(e) =>
+                                                                setForm((prev) => ({
+                                                                    ...prev,
+                                                                    purchase_unit_notes: { ...prev.purchase_unit_notes, [unit]: e.target.value },
+                                                                }))
+                                                            }
+                                                            placeholder={`Enter notes for the ${unit.toLowerCase().replace(/_/g, " ")} unit`}
+                                                        />
+                                                    </Form.Group>
+                                                </Tab>
+                                            ))}
+                                        </Tabs>
 
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Order Date *</Form.Label>
-                                    <DatePicker
-                                        selected={form.orderDate}
-                                        onChange={(date) => handleChange("orderDate", date)}
-                                        className="form-control"
-                                        dateFormat="MMMM d, yyyy"
-                                        required
-                                    />
-                                </Form.Group>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Order Date *</Form.Label>
+                                            <DatePicker
+                                                selected={form.orderDate}
+                                                onChange={(date) => handleChange("orderDate", date)}
+                                                className="form-control"
+                                                dateFormat="MMMM d, yyyy"
+                                                required
+                                            />
+                                        </Form.Group>
 
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Start Date *</Form.Label>
-                                    <DatePicker
-                                        selected={form.startDate}
-                                        onChange={(date) => handleChange("startDate", date)}
-                                        className="form-control"
-                                        dateFormat="MMMM d, yyyy"
-                                        required
-                                    />
-                                </Form.Group>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Start Date *</Form.Label>
+                                            <DatePicker
+                                                selected={form.startDate}
+                                                onChange={(date) => handleChange("startDate", date)}
+                                                className="form-control"
+                                                dateFormat="MMMM d, yyyy"
+                                                required
+                                            />
+                                        </Form.Group>
 
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Due Date *</Form.Label>
-                                    <DatePicker
-                                        selected={form.dueDate}
-                                        onChange={(date) => handleChange("dueDate", date)}
-                                        className="form-control"
-                                        dateFormat="MMMM d, yyyy"
-                                        required
-                                    />
-                                </Form.Group>
-                            </Col>
-                        </Row>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Due Date *</Form.Label>
+                                            <DatePicker
+                                                selected={form.dueDate}
+                                                onChange={(date) => handleChange("dueDate", date)}
+                                                className="form-control"
+                                                dateFormat="MMMM d, yyyy"
+                                                required
+                                            />
+                                        </Form.Group>
+                                    </Col>
+                                </Row>
 
-                        <hr />
+                                <hr />
 
-                        <h5 className="mb-3">Size Chart *</h5>
-                        <p className="text-muted mb-4">
-                            Create a size chart or upload a file to generate one.
-                            {form.types.length > 0 && form.colors.length > 0 && (
-                                <span className="fw-bold text-primary">
-                                    {" "}
-                                    Auto-generating {form.types.length * form.colors.length} rows based on your type-color combinations.
-                                </span>
-                            )}
-                        </p>
+                                <h5 className="mb-3">Size Chart *</h5>
+                                <p className="text-muted mb-4">
+                                    Create a size chart or upload a file to generate one.
+                                    {form.types.length > 0 && form.colors.length > 0 && (
+                                        <span className="fw-bold text-primary">
+                                            {" "}
+                                            Auto-generating {form.types.length * form.colors.length} rows based on your type-color combinations.
+                                        </span>
+                                    )}
+                                </p>
 
-                        <div style={{ marginBottom: "20px", overflow: "hidden" }}>
-                            <EnhancedDataGrid onSubmit={handleTableSubmit} orderTypes={form.types} orderColors={form.colors}
-                                setForm={setForm} form={form} sizeChartData={sizeChartData} />
-                        </div>
+                                <div style={{ marginBottom: "20px", overflow: "hidden" }}>
+                                    <EnhancedDataGrid onSubmit={handleTableSubmit} orderTypes={form.types} orderColors={form.colors}
+                                        setForm={setForm} form={form} sizeChartData={sizeChartData} />
+                                </div>
 
-                        <div className="d-flex justify-content-end mt-4">
-                            <Button variant="primary" type="submit" disabled={isSubmitting} className="px-4 btn-enhanced-glow">
-                                {isSubmitting ? (
-                                    <>
-                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                        Submitting...
-                                    </>
-                                ) : (
-                                    "Submit Order"
-                                )}
-                            </Button>
-                        </div>
-                    </Form>
-                </Card.Body>
-            </Card>
+                                <div className="d-flex justify-content-end mt-4">
+                                    <Button variant="primary" type="submit" disabled={isSubmitting} className="px-4 btn-enhanced-glow">
+                                        {isSubmitting ? (
+                                            <>
+                                                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                Submitting...
+                                            </>
+                                        ) : (
+                                            "Submit Order"
+                                        )}
+                                    </Button>
+                                </div>
+                            </Form>
+                        </Card.Body>
+                    </Card>
                 </>
             )}
         </div>

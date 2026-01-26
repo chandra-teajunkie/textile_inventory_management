@@ -508,7 +508,7 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
     setIsAddColumnOpen(false);
   };
 
-  const handleEditColumn = (columnKey) => {
+  const handleEditColumn = useCallback((columnKey) => {
     if (!editColumnName.trim() || editColumnName === columnKey) {
       setEditingColumn(null);
       return;
@@ -521,7 +521,7 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
       return newRow;
     }));
     setEditingColumn(null);
-  };
+  }, [editColumnName]);
 
   const onRowsChange = (newRows) => {
     // const updatedRows = [...rows];
@@ -557,6 +557,13 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
   };
 
   const memoizedColumns = useMemo(() => {
+    // Calculate equal width percentage
+    let totalCols = columns.length + 1; // + Total column
+    if (chartType !== "incoming") {
+      totalCols += 1; // + Actions column
+    }
+    const colWidth = `${(100 / totalCols).toFixed(4)}%`;
+
     const numericKeys = columns.filter(c => c.dataType === 'number').map(c => c.key);
 
     const sortedBaseColumns = [...columns].sort((a, b) => {
@@ -572,6 +579,7 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
 
     const baseColumns = sortedBaseColumns.map(col => ({
       ...col,
+      width: colWidth, // Force percentage width
       renderHeader: () => (
         <div className="d-flex align-items-center justify-content-between w-100 h-100 px-2" style={{ minHeight: "35px", backgroundColor: "var(--bg-tertiary)", color: "var(--text-primary)" }}>
           {editingColumn === col.key ? (
@@ -595,7 +603,7 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
     }));
 
     const totalColumn = {
-      key: "_row_total", name: "Total", width: 90, resizable: false, sortable: false, editable: false,
+      key: "_row_total", name: "Total", width: colWidth, resizable: false, sortable: false, editable: false,
       renderCell: (props) => {
         const val = numericKeys.reduce((s, k) => s + (Number(props.row[k]) || 0), 0);
         return <div style={{ textAlign: 'center', padding: 4 }}>{val}</div>;
@@ -608,11 +616,11 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
     }
 
     const actionsColumn = {
-      key: "actions", name: "Actions", width: 80, resizable: false, sortable: false, editable: false,
+      key: "actions", name: "Actions", width: colWidth, resizable: false, sortable: false, editable: false,
       renderCell: ActionCellRenderer
     };
     return [...baseColumns, totalColumn, actionsColumn];
-  }, [columns, editingColumn, editColumnName, deleteColumn, ActionCellRenderer]);
+  }, [columns, editingColumn, editColumnName, deleteColumn, ActionCellRenderer, chartType, handleEditColumn]);
 
   const summaryRows = useMemo(() => {
     const totals = { _row_total: 0 };
@@ -716,7 +724,13 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
           rowKeyGetter={(row) => row.key}
           bottomSummaryRows={summaryRows}
           className={"rdg-light " + (chartType === "incoming" ? " rdg-no-actions" : "")}
-          style={{ height: "300px", "--rdg-header-background-color": "var(--bg-tertiary)", "--rdg-border-color": "var(--border-color)", fontSize: "14px" }}
+          style={{
+            height: "300px",
+            "--rdg-header-background-color": "var(--bg-tertiary)",
+            "--rdg-border-color": "var(--border-color)",
+            fontSize: "14px",
+            "--col-count": memoizedColumns.length
+          }}
         />
       )}
 

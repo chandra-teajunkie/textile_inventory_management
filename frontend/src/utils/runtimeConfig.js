@@ -9,7 +9,7 @@ const BACKEND_URL = R.BACKEND_URL || 'http://localhost:3002';
 
 export const cfg = {
   BACKEND_URL,
-  
+
   // These endpoints are now constructed from BACKEND_URL
   GET_ALL_ORDERS: `${BACKEND_URL}/purchase-orders/`,
   POST_ALL_ORDERS: `${BACKEND_URL}/purchase-orders/`,
@@ -28,6 +28,13 @@ export const cfg = {
   INVENTORY: `${BACKEND_URL}/inventory/`,
 
   // Add any other endpoints used in the app as needed
+};
+
+// Helper function to safely get order ID from order objects
+// Backend returns 'purchase_order_id' but frontend may use 'order_id' or 'id'
+export const getOrderId = (order) => {
+  if (!order) return null;
+  return order.purchase_order_id || order.order_id || order.id;
 };
 
 export default cfg;

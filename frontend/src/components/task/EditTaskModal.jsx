@@ -77,7 +77,7 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
       special_notes: specialNotes
     }
     setLoading(true)
-    console.log(payload, `${cfg.PATCH_ALL_TASKS}${task.task_id}`, task)
+    console.log("Updating task with payload:", payload, `${cfg.PATCH_ALL_TASKS}${task.task_id}`)
     try {
       const resp = await fetch(
         `${cfg.PATCH_ALL_TASKS}${task.task_id}`,
@@ -87,17 +87,33 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
           body: JSON.stringify(payload)
         }
       )
-      if (!resp.ok) throw new Error(resp.statusText)
-      // const updated = await resp.json()
+
+      // Parse response data first to check for errors
+      const responseData = await resp.json()
+
+      if (!resp.ok) {
+        console.error("Task update failed:", responseData)
+        toast.current.show({
+          severity: "error",
+          summary: "Update Failed",
+          detail: responseData.detail || responseData.message || "Failed to update task"
+        })
+        return  // Exit early on error - do NOT close modal
+      }
+
+      // Only proceed if successful
+      console.log("Task updated successfully:", responseData)
       await fetchOrders()
       if (selectedOrder) {
-        await fetchTasksForOrder(selectedOrder.order_id)
+        // Fix: Use purchase_order_id as that's what backend returns
+        await fetchTasksForOrder(selectedOrder.purchase_order_id || selectedOrder.order_id)
       }
       onUpdate()
-      toast.current.show({ severity: "success", summary: "Success", detail: "Task updated" })
+      toast.current.show({ severity: "success", summary: "Success", detail: "Task updated successfully" })
+      onClose()  // Close modal only on success
     } catch (err) {
-      console.error(err)
-      toast.current.show({ severity: "error", summary: "Error", detail: "Update failed" })
+      console.error("Network error updating task:", err)
+      toast.current.show({ severity: "error", summary: "Network Error", detail: err.message || "Failed to update task" })
     } finally {
       setLoading(false)
     }
@@ -120,8 +136,8 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
 
         <Form.Group className="mb-3">
           <Form.Label>Task Unit</Form.Label>
-          <Form.Select 
-            value={taskUnit} 
+          <Form.Select
+            value={taskUnit}
             onChange={e => setTaskUnit(e.target.value)}
             className="glass-dropdown-enhanced"
             style={{
@@ -236,8 +252,8 @@ function EditTaskModal({ task, allTasks, onClose, onUpdate, toast, fetchOrders, 
 
         <Form.Group className="mb-3">
           <Form.Label>Status</Form.Label>
-          <Form.Select 
-            value={status} 
+          <Form.Select
+            value={status}
             onChange={e => setStatus(e.target.value)}
             className="glass-dropdown-enhanced"
             style={{
