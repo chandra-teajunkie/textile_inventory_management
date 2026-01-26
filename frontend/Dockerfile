@@ -44,7 +44,7 @@ EXPOSE 3000
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh /
-RUN chmod +x /docker-entrypoint.sh
+RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
 # Simple healthcheck
 HEALTHCHECK --interval=30s --timeout=3s CMD wget -qS --spider http://localhost/ || exit 1
