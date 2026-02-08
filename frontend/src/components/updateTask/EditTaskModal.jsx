@@ -166,13 +166,23 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
 
         // If parent task and incoming chart was modified, also update the order's size chart
         if (isParentTask && incomingChartModified) {
+          const orderUpdateFormData = new FormData()
+          // Backend expects 'purchase_order_update' form field containing JSON string
+          // The JSON object inside it should have 'size_chart' field which is ALSO a JSON string
+          orderUpdateFormData.append("purchase_order_update", JSON.stringify({
+            size_chart: JSON.stringify(incomingChartOnly)
+          }))
+
           const orderUpdateResponse = await fetch(`${cfg.POST_ALL_ORDERS}${selectedOrder.purchase_order_id}`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ size_chart: JSON.stringify(incomingChartOnly) }),
+            // meaningful headers are set automatically by browser for FormData (multipart/form-data)
+            body: orderUpdateFormData,
           })
+
           if (!orderUpdateResponse.ok) {
             console.warn("Failed to update order size chart:", await orderUpdateResponse.text())
+            // Optional: Show toast warning but don't block the UI flow since task update succeeded
+            // toast.current.show({ severity: "warn", summary: "Order Update Warning", detail: "Task updated but order chart sync failed." })
           } else {
             console.log("Order size chart updated successfully")
           }
