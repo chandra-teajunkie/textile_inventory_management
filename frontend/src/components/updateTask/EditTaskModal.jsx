@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, Fragment, useRef } from "react"
-import { Form, Button, Tab, Tabs, Card, Alert } from "react-bootstrap"
+import { Form, Button, Tab, Tabs, Card, Alert, Modal } from "react-bootstrap"
 import { parseJsonSafe } from "../../utils/jsonUtils"
 import CustomChartComponent from "./CustomChartComponent"
 import { FaCut, FaPrint, FaEdit, FaBox, FaQuestion, FaShoppingCart, FaTshirt } from "react-icons/fa"
@@ -54,6 +54,14 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
   const [activeTab, setActiveTab] = useState("details")
   const [taskUnitName, setTaskUnitName] = useState(task.task_unit_name || "")
   const [specialNotes, setSpecialNotes] = useState(task.special_notes || "")
+  // Track if incoming chart was modified (for parent tasks)
+  const [incomingChartModified, setIncomingChartModified] = useState(false)
+  // State for confirmation dialog
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [pendingSubmit, setPendingSubmit] = useState(false)
+
+  // Detect if this is a parent task (no dependencies)
+  const isParentTask = !task.dependencies || parseJsonSafe(task.dependencies, []).length === 0
 
   // Use refs to store the latest chart data
   const incomingDataRef = useRef(null)
@@ -94,6 +102,10 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
     // console.log("Incoming data change received:", newData)
     setIncomingData(newData)
     incomingDataRef.current = newData // Store in ref for immediate access
+    // Mark incoming chart as modified for parent tasks
+    if (isParentTask) {
+      setIncomingChartModified(true)
+    }
   }
 
   const handleOutgoingDataChange = (newData) => {
@@ -102,17 +114,8 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
     outgoingDataRef.current = newData // Store in ref for immediate access
   }
 
-  const handleSubmit = async (e) => {
-    // Prevent default form submission if called from form
-    if (e) {
-      e.preventDefault()
-    }
-
-    if (!name.trim()) {
-      toast.current.show({ severity: "warn", summary: "Warning", detail: "Task name is required" })
-      return
-    }
-
+  // Handler for direct submit (internal, bypasses confirmation)
+  const doActualSubmit = async () => {
     setLoading(true)
     try {
       const payload = {
@@ -122,13 +125,11 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
         task_unit: taskUnit,
         task_unit_name: taskUnitName,
         status,
-        dependencies: dependencies, // Send as array directly
+        dependencies: dependencies,
         special_notes: specialNotes,
-        // Save chart notes on the main PATCH endpoint (backend expects these fields there)
         incoming_chart_notes: incomingData?.chartNotes || "",
         outgoing_chart_notes: outgoingData?.chartNotes || "",
       }
-
 
       const basic = await fetch(`${cfg.PATCH_ALL_TASKS}${task.task_id}`, {
         method: "PATCH",
@@ -141,20 +142,14 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
         throw new Error(`Failed to update basic task info: ${basic.status} - ${errorText}`)
       }
 
-      // Use refs to get the latest chart data
       const currentIncomingData = incomingDataRef.current
       const currentOutgoingData = outgoingDataRef.current
 
-      // console.log("About to upload incoming chart:", currentIncomingData)
-      // console.log("About to upload outgoing chart:", currentOutgoingData)
-
-      // 2) Upload incoming chart if data exists using FormData
+      // Upload incoming chart
       if (currentIncomingData && Object.keys(currentIncomingData).length > 0) {
         const incomingFormData = new FormData()
-        // Make sure we don't send UI-only keys like chartNotes as part of the chart JSON
         const { chartNotes, ...incomingChartOnly } = currentIncomingData
         incomingFormData.append("incoming_chart_json", JSON.stringify(incomingChartOnly))
-
 
         const incomingResponse = await fetch(`${cfg.INCOMING_CHART_UPLOAD}${task.task_id}`, {
           method: "PATCH",
@@ -168,12 +163,25 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
         } else {
           console.log("Incoming chart uploaded successfully")
         }
+
+        // If parent task and incoming chart was modified, also update the order's size chart
+        if (isParentTask && incomingChartModified) {
+          const orderUpdateResponse = await fetch(`${cfg.POST_ALL_ORDERS}${selectedOrder.purchase_order_id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ size_chart: JSON.stringify(incomingChartOnly) }),
+          })
+          if (!orderUpdateResponse.ok) {
+            console.warn("Failed to update order size chart:", await orderUpdateResponse.text())
+          } else {
+            console.log("Order size chart updated successfully")
+          }
+        }
       }
 
-      // 3) Upload outgoing chart if data exists using FormData
+      // Upload outgoing chart
       if (currentOutgoingData && Object.keys(currentOutgoingData).length > 0) {
         const outgoingFormData = new FormData()
-        // Strip UI-only keys like chartNotes before sending
         const { chartNotes, ...outgoingChartOnly } = currentOutgoingData
         outgoingFormData.append("outgoing_chart_json", JSON.stringify(outgoingChartOnly))
 
@@ -191,18 +199,38 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
         }
       }
 
-      // 4) Re-fetch task to get updated charts
-      // const updated = await fetch(`${process.env.REACT_APP_TASK_DETAILS}${task.purchase_order_id}`).then((r) => r.json())
-
       onUpdate()
-
     } catch (err) {
       console.error("Update error:", err)
       toast.current.show({ severity: "error", summary: "Update failed", detail: err.message })
     } finally {
       setLoading(false)
+      setShowConfirmDialog(false)
+      setPendingSubmit(false)
     }
   }
+
+  const handleSubmit = async (e) => {
+    if (e) {
+      e.preventDefault()
+    }
+
+    if (!name.trim()) {
+      toast.current.show({ severity: "warn", summary: "Warning", detail: "Task name is required" })
+      return
+    }
+
+    // If parent task and incoming chart was modified, show confirmation dialog
+    if (isParentTask && incomingChartModified) {
+      setShowConfirmDialog(true)
+      setPendingSubmit(true)
+      return
+    }
+
+    // Otherwise, submit directly
+    await doActualSubmit()
+  }
+
 
   const resetIncomingChart = () => {
     const fallback = selectedOrder?.size_chart ? parseJsonSafe(selectedOrder.size_chart, {}) : {}
@@ -213,6 +241,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
     }
     setIncomingData(newData)
     incomingDataRef.current = newData
+    setIncomingChartModified(false) // Reset modification flag
   }
 
   const resetOutgoingChart = () => {
@@ -424,7 +453,7 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
                 <CustomChartComponent
                   data={incomingData}
                   onSubmit={handleIncomingDataChange}
-                  chartType="incoming"
+                  chartType={isParentTask ? "incoming-editable" : "incoming"}
                   onResetToOrderChart={resetIncomingChart}
                   orderNotes={(parseJsonSafe(orderPurchaseUnitNotes)[taskUnit] || 'No order-level notes for this task.')}
                   specialNotes={specialNotes || 'No special notes for this task.'}
@@ -472,6 +501,26 @@ export function EditTaskModal({ task, selectedOrder, allTasks, onClose, onUpdate
           </Button>
         </div>
       </div>
+
+      {/* Confirmation Dialog for Original Size Chart Changes */}
+      <Modal show={showConfirmDialog} onHide={() => { setShowConfirmDialog(false); setPendingSubmit(false); }} centered>
+        <Modal.Header closeButton className="bg-warning text-dark">
+          <Modal.Title>⚠️ Update Original Size Chart?</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>You have modified the <strong>incoming chart</strong> for this parent task.</p>
+          <p>This will also update the <strong>original order size chart</strong>. This change will affect all dependent tasks and future references to this order.</p>
+          <p className="mb-0"><strong>Are you sure you want to proceed?</strong></p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={() => { setShowConfirmDialog(false); setPendingSubmit(false); }}>
+            Cancel
+          </Button>
+          <Button variant="warning" onClick={doActualSubmit} disabled={loading}>
+            {loading ? "Saving..." : "Yes, Update Both"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Fragment>
   )
 }

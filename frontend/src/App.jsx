@@ -362,6 +362,8 @@ function App() {
       >
         <motion.div
           className="d-flex align-items-center gap-3 fw-semibold"
+          style={{ cursor: 'pointer' }}
+          onClick={() => handleTabChange('dashboard')}
           whileHover={{ scale: 1.02 }}
           transition={{ duration: 0.2 }}
         >

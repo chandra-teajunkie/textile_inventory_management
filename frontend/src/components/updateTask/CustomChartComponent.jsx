@@ -21,9 +21,11 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
   const [isAddColumnOpen, setIsAddColumnOpen] = useState(false)
   const [editingColumn, setEditingColumn] = useState(null)
   const [newColumnName, setNewColumnName] = useState("")
-  const [newColumnType, setNewColumnType] = useState("string")
+  const [newColumnType, setNewColumnType] = useState("number") // Default to number for size columns
   const [editColumnName, setEditColumnName] = useState("")
   const [isInitialized, setIsInitialized] = useState(false)
+  // Undo history stack - stores {row, index} for each deleted row
+  const [undoHistory, setUndoHistory] = useState([])
   const submitTimeoutRef = useRef(null)
 
   const dataTypeEditors = useMemo(() => ({
@@ -71,8 +73,33 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
   ];
 
   const deleteRow = useCallback((rowKey) => {
-    setRows((prevRows) => prevRows.filter((row) => row.key !== rowKey));
+    setRows((prevRows) => {
+      const rowIndex = prevRows.findIndex((row) => row.key === rowKey);
+      if (rowIndex === -1) return prevRows;
+      const deletedRow = prevRows[rowIndex];
+      // Push to undo history with the row's original index
+      setUndoHistory((prev) => [...prev, { row: deletedRow, index: rowIndex }]);
+      return prevRows.filter((row) => row.key !== rowKey);
+    });
   }, []);
+
+  // Undo the last row deletion
+  const undoRowDelete = useCallback(() => {
+    if (undoHistory.length === 0) return;
+    setUndoHistory((prev) => {
+      const newHistory = [...prev];
+      const lastDeleted = newHistory.pop();
+      if (lastDeleted) {
+        setRows((prevRows) => {
+          const newRows = [...prevRows];
+          const insertIndex = Math.min(lastDeleted.index, newRows.length);
+          newRows.splice(insertIndex, 0, lastDeleted.row);
+          return newRows;
+        });
+      }
+      return newHistory;
+    });
+  }, [undoHistory.length]);
 
   const deleteColumn = useCallback((key) => {
     setColumns(cols => cols.filter(c => c.key !== key));
@@ -495,16 +522,50 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
 
   const handleAddColumn = () => {
     if (!newColumnName.trim()) return;
-    const key = newColumnName.replace(/\s+/g, "_");
+
+    // Validate that column name is numeric (for size columns)
+    const numericValue = parseFloat(newColumnName.trim());
+    if (isNaN(numericValue)) {
+      alert("Please enter a numeric size value (e.g., 22, 46, 48)");
+      return;
+    }
+
+    const key = newColumnName.trim();
     const newColumn = {
-      key, name: newColumnName, dataType: newColumnType, editable: true,
-      renderEditCell: dataTypeEditors[newColumnType],
-      renderCell: dataTypeFormatters[newColumnType]
+      key,
+      name: newColumnName.trim(),
+      dataType: "number", // Always number for size columns
+      editable: true,
+      renderEditCell: dataTypeEditors["number"],
+      renderCell: dataTypeFormatters["number"]
     };
-    setColumns(prev => [...prev, newColumn]);
-    setRows(rows.map(row => ({ ...row, [key]: newColumnType === 'number' ? 0 : '' })));
+
+    // Insert and sort columns - keep Item and Color first, then sort numeric columns
+    setColumns(prev => {
+      const newCols = [...prev, newColumn];
+      return newCols.sort((a, b) => {
+        // Item always first
+        if (a.key === 'Item') return -1;
+        if (b.key === 'Item') return 1;
+        // Color always second
+        if (a.key === 'Color') return -1;
+        if (b.key === 'Color') return 1;
+        // Sort numeric columns in ascending order
+        const aNum = parseFloat(a.key);
+        const bNum = parseFloat(b.key);
+        const aIsNum = !isNaN(aNum);
+        const bIsNum = !isNaN(bNum);
+        if (aIsNum && bIsNum) return aNum - bNum;
+        // Non-numeric columns come after numeric ones
+        if (aIsNum) return -1;
+        if (bIsNum) return 1;
+        return a.key.localeCompare(b.key);
+      });
+    });
+
+    setRows(rows.map(row => ({ ...row, [key]: 0 })));
     setNewColumnName("");
-    setNewColumnType("string");
+    setNewColumnType("number");
     setIsAddColumnOpen(false);
   };
 
@@ -611,10 +672,12 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
       renderSummaryCell: (props) => <div style={{ textAlign: 'center', padding: 4, fontWeight: 'bold' }}>{props.row._row_total}</div>
     };
 
-    if (chartType == "incoming") {
+    if (chartType === "incoming") {
+      // Regular incoming charts are read-only - no actions column
       return [...baseColumns, totalColumn];
     }
 
+    // For outgoing and incoming-editable charts, add actions column
     const actionsColumn = {
       key: "actions", name: "Actions", width: colWidth, resizable: false, sortable: false, editable: false,
       renderCell: ActionCellRenderer
@@ -693,8 +756,19 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
             </div>
             <Button onClick={addRow} variant="outline-success" size="sm"><FaPlus className="me-1" />Add Row</Button>
             <Button onClick={() => setIsAddColumnOpen(true)} variant="outline-info" size="sm"><FaPlus className="me-1" />Add Column</Button> */}
+          {/* Add Column button - only for editable incoming charts (without dependencies) */}
+          {chartType === "incoming-editable" && (
+            <Button onClick={() => setIsAddColumnOpen(true)} variant="outline-info" size="sm"><FaPlus className="me-1" />Add Column</Button>
+          )}
+          {/* Undo button - show for editable charts when there are deletions to undo */}
+          {undoHistory.length > 0 && chartType !== "incoming" && (
+            <Button onClick={undoRowDelete} variant="outline-warning" size="sm" title="Undo last row deletion (Ctrl+Z style)">
+              <FaUndo className="me-1" />
+              Undo ({undoHistory.length})
+            </Button>
+          )}
           {(onResetToOrderChart && (chartType === "outgoing")) && (
-            <Button onClick={() => { onResetToOrderChart(); setIsInitialized(false); }} variant="outline-warning" size="sm"><FaUndo className="me-1" />Reset to Order Chart</Button>
+            <Button onClick={() => { onResetToOrderChart(); setIsInitialized(false); setUndoHistory([]); }} variant="outline-warning" size="sm"><FaUndo className="me-1" />Reset to Order Chart</Button>
           )}
         </div>
         <div className="d-flex gap-2 flex-wrap">
@@ -739,29 +813,27 @@ export default function CustomChartComponent({ data, onSubmit, chartType = "char
         <Form.Control as="textarea" rows={2} value={chartNotes} onChange={(e) => setChartNotes(e.target.value)} placeholder={`Notes specific to this ${chartType} chart...`} />
       </Form.Group>
 
-      {/* <Modal show={isAddColumnOpen} onHide={() => setIsAddColumnOpen(false)} centered>
-          <Modal.Header closeButton className="bg-primary text-white"><Modal.Title><FaPlus className="me-2" />Add New Column</Modal.Title></Modal.Header>
-          <Modal.Body>
-            <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Column Name</Form.Label>
-              <Form.Select value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} className="mb-2">
-                <option value="">Select suggested name...</option>
-                {COLUMN_SUGGESTIONS.map(name => <option key={name} value={name}>{name}</option>)}
-              </Form.Select>
-              <Form.Control placeholder="Or enter custom name" value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Data Type</Form.Label>
-              <Form.Select value={newColumnType} onChange={(e) => setNewColumnType(e.target.value)}>
-                {DATA_TYPES.map(type => <option key={type.value} value={type.value}>{type.icon} {type.label}</option>)}
-              </Form.Select>
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="outline-secondary" onClick={() => setIsAddColumnOpen(false)}>Cancel</Button>
-            <Button variant="primary" onClick={handleAddColumn} disabled={!newColumnName.trim()}>Add Column</Button>
-          </Modal.Footer>
-        </Modal> */}
+      <Modal show={isAddColumnOpen} onHide={() => setIsAddColumnOpen(false)} centered>
+        <Modal.Header closeButton className="bg-primary text-white"><Modal.Title><FaPlus className="me-2" />Add Size Column</Modal.Title></Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-bold">Size Value (Numeric)</Form.Label>
+            <Form.Control
+              type="number"
+              placeholder="Enter size value (e.g., 22, 46, 48)"
+              value={newColumnName}
+              onChange={(e) => setNewColumnName(e.target.value)}
+            />
+            <Form.Text className="text-muted">
+              Size columns will be automatically sorted in ascending order after Item and Color columns.
+            </Form.Text>
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={() => setIsAddColumnOpen(false)}>Cancel</Button>
+          <Button variant="primary" onClick={handleAddColumn} disabled={!newColumnName.trim()}>Add Column</Button>
+        </Modal.Footer>
+      </Modal>
     </>
     //   </Card.Body>
     // </Card>

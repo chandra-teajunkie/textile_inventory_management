@@ -1,17 +1,17 @@
 .micrositeOverlay {
-    top: 0;
+    position: fixed;
+    top: 3rem;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    /* width: 100vw; */
+    height: 100vh;
     display: flex;
-    position: absolute;
-    width: -webkit-fill-available;
-    height: -webkit-fill-available;
     justify-content: center;
-    align-content: center;
-    align-items: center;
-    flex-wrap: nowrap;
-    flex-direction: row;
     align-items: center;
     z-index: 1000;
-    background: #7d879773;
+    background: rgba(125, 135, 151, 0.45);
+    -webkit-backdrop-filter: blur(15px);
     backdrop-filter: blur(15px);
 }
 
@@ -36,23 +36,18 @@
 
 .micrositeClose {
     display: flex;
-    /* width: -webkit-fill-available; */
     position: absolute;
-    /* top: 13.3%;
-    left: 84%; */
     color: white;
     border: .1px solid white;
     border-radius: 50%;
     padding: 0.5rem;
     background: var(--background-color);
-    /* backdrop-filter: blur(10px); */
     z-index: 1001;
     font-size: .8rem;
     margin: -1rem;
     top: 0;
     right: 0;
     cursor: pointer;
-
     background-color: black;
 }
 
@@ -61,7 +56,6 @@
     border: 1px solid white;
     scale: 1.05;
     animation: scale .2s ease;
-    /* background-color: black !important; */
     background: var(--glass-bg, rgba(30, 41, 59, 0.95)) !important;
     border-color: var(--glass-border, rgba(255, 255, 255, 0.1)) !important;
     color: var(--text-primary) !important;
@@ -75,13 +69,13 @@
 }
 
 .maximize {
-    width: 95%;
-    height: 95%;
+    width: 95vw;
+    height: 95vh;
 }
 
 .minimize {
-    width: 70%;
-    height: 70%;
+    width: 70vw;
+    height: 85vh;
 }
 
 /* .overlayCloseButton {

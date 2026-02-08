@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { Card, Button, Badge, Form, Modal, Tab, Tabs } from "react-bootstrap"
 import { EditTaskModal } from "./EditTaskModal"
 import { parseJsonSafe } from "../../utils/jsonUtils"
@@ -395,50 +396,53 @@ export default function TaskList({ toast }) {
           </>
         )}
 
-        <Modal show={!!taskToDelete} onHide={() => setTaskToDelete(null)} centered
-          size="sm"
-          className="delete-modal"
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>Confirm Delete</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>Are you sure you want to delete "{taskToDelete?.name}"?</Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setTaskToDelete(null)}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={deleteTask}>
-              Delete
-            </Button>
-          </Modal.Footer>
-        </Modal>
-
-        {/* Edit Modal */}
         {showEditModal && editTask && (
-          <div className="micrositeOverlay">
-            <div className="micrositeOuter minimize">
-              <button className="micrositeClose overlayCloseButton" onClick={() => setShowEditModal(false)}>
-                <GrClose />
-              </button>
-              <div className="overlayBody p-2 bg-white rounded editTaskTabs">
-                <h5 className="mb-3">
-                  <FaChartBar className="me-2" />
-                  Task Management: {editTask?.name}
-                </h5>
-                <EditTaskModal
-                  task={editTask}
-                  selectedOrder={orders.find((o) => o.order_id === selectedOrderId)}
-                  allTasks={tasks}
-                  orderPurchaseUnitNotes={orders.find((o) => o.order_id === selectedOrderId)?.purchase_unit_notes}
-                  onClose={() => setShowEditModal(false)}
-                  onUpdate={handleTaskUpdated}
-                  toast={toast}
-                />
-              </div>
-            </div>
-          </div>
+          <Modal show={!!taskToDelete} onHide={() => setTaskToDelete(null)} centered
+            size="sm"
+            className="delete-modal"
+          >
+            <Modal.Header closeButton>
+              <Modal.Title>Confirm Delete</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>Are you sure you want to delete "{taskToDelete?.name}"?</Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={() => setTaskToDelete(null)}>
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={deleteTask}>
+                Delete
+              </Button>
+            </Modal.Footer>
+          </Modal>
         )}
       </div> {/* Main container div */}
+
+      {/* Edit Modal - Using Portal to render to document.body for proper viewport coverage */}
+      {showEditModal && editTask && createPortal(
+        <div className="micrositeOverlay">
+          <div className="micrositeOuter minimize">
+            <button className="micrositeClose overlayCloseButton" onClick={() => setShowEditModal(false)}>
+              <GrClose />
+            </button>
+            <div className="overlayBody p-2 bg-white rounded editTaskTabs">
+              <h5 className="mb-3">
+                <FaChartBar className="me-2" />
+                Task Management: {editTask?.name}
+              </h5>
+              <EditTaskModal
+                task={editTask}
+                selectedOrder={orders.find((o) => o.order_id === selectedOrderId)}
+                allTasks={tasks}
+                orderPurchaseUnitNotes={orders.find((o) => o.order_id === selectedOrderId)?.purchase_unit_notes}
+                onClose={() => setShowEditModal(false)}
+                onUpdate={handleTaskUpdated}
+                toast={toast}
+              />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   )
 }

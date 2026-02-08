@@ -1,21 +1,15 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { Card, Button, Badge, Dropdown, Modal, Form } from "react-bootstrap"
 import { TaskModal } from "./TaskModal"
 import { EditTaskModal } from "./EditTaskModal";
 import {
   FaTrash, FaPrint,
-  FaChevronDown,
-  FaChevronRight,
-  FaCut,
-  FaEdit,
-  FaBox,
-  FaQuestion,
-  FaPrint as FaPrintIcon,
 } from "react-icons/fa"
 
-import { GrLanguage, GrClose } from "react-icons/gr";
+import { GrClose } from "react-icons/gr";
 import './overlay.css'
 import { parseJsonSafe } from "../../utils/jsonUtils"
 import { OverlayTrigger, Popover } from "react-bootstrap";
@@ -615,7 +609,7 @@ function OrderList({ toast, setActiveTab }) {
         )}
       </div>
 
-      {showTaskModal && <div className="micrositeOverlay">
+      {showTaskModal && createPortal(<div className="micrositeOverlay">
         <div className={`micrositeOuter minimize`}>
           <button type="button" className={"micrositeClose overlayCloseButton"} onClick={() => setShowTaskModal(false)} title={"Close"}>
             <GrClose className="closeSearchBtn" tooltip="Close" />
@@ -649,9 +643,9 @@ function OrderList({ toast, setActiveTab }) {
             </Modal.Body>
             {/* </Modal> */}
           </div>
-        </div></div>}
+        </div></div>, document.body)}
 
-      {showEditModal && <div className="micrositeOverlay">
+      {showEditModal && createPortal(<div className="micrositeOverlay">
         <div className={`micrositeOuter minimize`}>
           <button type="button" className={"micrositeClose overlayCloseButton"} onClick={() => setShowEditModal(false)} title={"Close"}>
             <GrClose className="closeSearchBtn" tooltip="Close" />
@@ -684,7 +678,7 @@ function OrderList({ toast, setActiveTab }) {
             </Modal.Body>
             {/* </Modal> */}
           </div>
-        </div></div>}
+        </div></div>, document.body)}
 
       <Modal show={!!taskToDelete} onHide={() => {
         setTaskToDelete(null)

@@ -47,8 +47,15 @@ def get_cors_origins():
     cors_origins = os.getenv("CORS_ORIGINS", "")
 
     if cors_origins.strip() == "":
-        # fallback for local dev
-        return ["http://localhost:3000"]
+        # fallback for local dev - include various common ports
+        return [
+            "http://localhost:3000", 
+            "http://localhost:30000", 
+            "http://127.0.0.1:3000", 
+            "http://127.0.0.1:30000",
+            "http://localhost:5173", 
+            "http://127.0.0.1:5173"
+        ]
 
     return [origin.strip() for origin in cors_origins.split(",")]
 

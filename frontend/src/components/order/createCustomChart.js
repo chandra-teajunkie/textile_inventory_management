@@ -23,9 +23,12 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
   const [fileName, setFileName] = useState("Size Chart");
   const [isAddColumnOpen, setIsAddColumnOpen] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
-  const [newColumnType, setNewColumnType] = useState("string");
+  const [newColumnType, setNewColumnType] = useState("number"); // Default to number for size columns
+  const [newColumnPosition, setNewColumnPosition] = useState("end"); // 'start' or 'end'
   const [hasCustomChart, setHasCustomChart] = useState(false);
   const [originalColumnOrder, setOriginalColumnOrder] = useState([]);
+  // Undo history stack - stores {row, index} for each deleted row
+  const [undoHistory, setUndoHistory] = useState([]);
   const gridRef = useRef(null);
   const submitTimeoutRef = useRef(null);
   const lastSubmittedDataRef = useRef(null);
@@ -84,8 +87,34 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
   ];
 
   const deleteRow = useCallback((rowKey) => {
-    setRows((prevRows) => prevRows.filter((row) => row.key !== rowKey));
+    setRows((prevRows) => {
+      const rowIndex = prevRows.findIndex((row) => row.key === rowKey);
+      if (rowIndex === -1) return prevRows;
+      const deletedRow = prevRows[rowIndex];
+      // Push to undo history with the row's original index
+      setUndoHistory((prev) => [...prev, { row: deletedRow, index: rowIndex }]);
+      return prevRows.filter((row) => row.key !== rowKey);
+    });
   }, []);
+
+  // Undo the last row deletion
+  const undoRowDelete = useCallback(() => {
+    if (undoHistory.length === 0) return;
+    setUndoHistory((prev) => {
+      const newHistory = [...prev];
+      const lastDeleted = newHistory.pop();
+      if (lastDeleted) {
+        setRows((prevRows) => {
+          const newRows = [...prevRows];
+          // Insert at original index, or at end if index is out of bounds
+          const insertIndex = Math.min(lastDeleted.index, newRows.length);
+          newRows.splice(insertIndex, 0, lastDeleted.row);
+          return newRows;
+        });
+      }
+      return newHistory;
+    });
+  }, [undoHistory.length]);
 
   const deleteColumn = useCallback((key) => {
     if (key === "actions") return;
@@ -173,6 +202,7 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
     setFileName("");
     setHasCustomChart(false);
     setOriginalColumnOrder(["Item", "Color", "24", "26", "28", "30", "32", "34", "36", "38", "40", "42", "44"]);
+    setUndoHistory([]); // Clear undo history on reset
   }, [initialColumns, generateInitialRowsWithKeys, orderTypes, orderColors]);
 
   useEffect(() => {
@@ -391,28 +421,59 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
 
   const handleAddColumn = useCallback(() => {
     if (!newColumnName.trim()) return;
-    const key = newColumnName.replace(/\s+/g, "_");
+
+    // Validate that column name is numeric (for size columns)
+    const numericValue = parseFloat(newColumnName.trim());
+    if (isNaN(numericValue)) {
+      alert("Please enter a numeric size value (e.g., 22, 46, 48)");
+      return;
+    }
+
+    const key = newColumnName.trim();
     const newColumn = {
       key,
-      name: newColumnName,
-      dataType: newColumnType,
+      name: newColumnName.trim(),
+      dataType: "number", // Always number for size columns
       editable: true,
-      width: getColumnWidth(newColumnType, newColumnName),
-      renderEditCell: dataTypeEditors[newColumnType],
-      renderCell: dataTypeFormatters[newColumnType],
+      width: getColumnWidth("number", newColumnName),
+      renderEditCell: dataTypeEditors["number"],
+      renderCell: dataTypeFormatters["number"],
     };
-    setColumns(prev => [...prev, newColumn]);
+
+    // Insert and sort columns - keep Item and Color first, then sort numeric columns
+    setColumns(prev => {
+      const newCols = [...prev, newColumn];
+      return newCols.sort((a, b) => {
+        // Item always first
+        if (a.key === 'Item') return -1;
+        if (b.key === 'Item') return 1;
+        // Color always second
+        if (a.key === 'Color') return -1;
+        if (b.key === 'Color') return 1;
+        // Sort numeric columns in ascending order
+        const aNum = parseFloat(a.key);
+        const bNum = parseFloat(b.key);
+        const aIsNum = !isNaN(aNum);
+        const bIsNum = !isNaN(bNum);
+        if (aIsNum && bIsNum) return aNum - bNum;
+        // Non-numeric columns come after numeric ones
+        if (aIsNum) return -1;
+        if (bIsNum) return 1;
+        return a.key.localeCompare(b.key);
+      });
+    });
+
     setOriginalColumnOrder((prevOrder) => [...prevOrder, key]);
     setRows((prev) =>
       prev.map((row) => ({
         ...row,
-        [key]: newColumnType === "number" ? 0 : "",
+        [key]: 0, // Always number type
       }))
     );
     setNewColumnName("");
-    setNewColumnType("string");
+    setNewColumnPosition("end");
     setIsAddColumnOpen(false);
-  }, [newColumnName, newColumnType, dataTypeEditors, dataTypeFormatters]);
+  }, [newColumnName, dataTypeEditors, dataTypeFormatters]);
 
   const onRowsChange = useCallback((newRows) => {
     if (resizeTimeoutRef.current) {
@@ -760,6 +821,13 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
             Add Column
           </Button>
 
+          {undoHistory.length > 0 && (
+            <Button onClick={undoRowDelete} variant="outline-warning" size="sm" title="Undo last row deletion (Ctrl+Z style)">
+              <FaUndo className="me-1" />
+              Undo ({undoHistory.length})
+            </Button>
+          )}
+
           {hasCustomChart && (
             <Button onClick={resetToDefault} variant="outline-danger" size="sm">
               <FaUndo className="me-1" />
@@ -812,32 +880,23 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
         <Modal.Header closeButton className="bg-primary text-white">
           <Modal.Title className="d-flex align-items-center">
             <FaPlus className="me-2" />
-            Add New Column
+            Add Size Column
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form.Group className="mb-3">
-            <Form.Label className="fw-bold">Column Name</Form.Label>
-            <Form.Select value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} className="mb-2">
-              <option value="">Select suggested name...</option>
-              {COLUMN_SUGGESTIONS.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </Form.Select>
-            <Form.Control placeholder="Or enter custom name" value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} />
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label className="fw-bold">Data Type</Form.Label>
-            <Form.Select value={newColumnType} onChange={(e) => setNewColumnType(e.target.value)}>
-              {DATA_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.icon} {type.label}
-                </option>
-              ))}
-            </Form.Select>
+            <Form.Label className="fw-bold">Size Number</Form.Label>
+            <Form.Control
+              type="number"
+              placeholder="Enter size number (e.g., 22, 46, 48)"
+              value={newColumnName}
+              onChange={(e) => setNewColumnName(e.target.value)}
+              min="1"
+              step="1"
+            />
+            <Form.Text className="text-muted">
+              Enter a numeric size value. The column will be automatically sorted in ascending order.
+            </Form.Text>
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
@@ -845,7 +904,7 @@ export default function EnhancedDataGrid({ onSubmit, orderTypes = [], orderColor
             Cancel
           </Button>
           <Button variant="primary" onClick={handleAddColumn} disabled={!newColumnName.trim()}>
-            Add Column
+            Add Size Column
           </Button>
         </Modal.Footer>
       </Modal>
