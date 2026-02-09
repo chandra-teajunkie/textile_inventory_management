@@ -118,9 +118,14 @@ async def update_purchase_order(
     # Convert to Pydantic model (optional validation)
     purchase_order_update_model = PurchaseOrderUpdate(**update_data)
 
+    propagate_to_all_incoming_charts = (
+        purchase_order_update_model.propagate_to_all_incoming_charts
+    )
+
     # Apply updates dynamically using ** to unpack fields, excluding task_unit_notes
     update_fields = purchase_order_update_model.dict(
-        exclude_unset=True, exclude={"task_unit_notes"}
+        exclude_unset=True,
+        exclude={"task_unit_notes", "propagate_to_all_incoming_charts"},
     )
     for key, value in update_fields.items():
         setattr(db_purchase_order, key, value)
@@ -132,15 +137,28 @@ async def update_purchase_order(
             normalized_notes  # This is a dict, safe for JSON column
         )
 
-    # Handle the file upload for size_chart
+    size_chart_updated = False
+    new_size_chart_data = None
+
     if size_chart_file:
-        # Process the uploaded file
-        size_chart_data = await process_size_chart(size_chart_file)
-        db_purchase_order.size_chart = (
-            size_chart_data  # Update size_chart with new data
-        )
+        new_size_chart_data = await process_size_chart(size_chart_file)
+
+        if new_size_chart_data != db_purchase_order.size_chart:
+            db_purchase_order.size_chart = new_size_chart_data
+            size_chart_updated = True
 
     session.add(db_purchase_order)
+
+    # 🔁 propagate to Task.incoming_chart
+    if size_chart_updated and propagate_to_all_incoming_charts is True:
+        tasks = session.exec(
+            select(Task).where(Task.purchase_order_id == purchase_order_id)
+        ).all()
+
+        for task in tasks:
+            task.incoming_chart = new_size_chart_data
+            session.add(task)
+
     session.commit()
     session.refresh(db_purchase_order)
 

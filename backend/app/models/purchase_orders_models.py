@@ -51,6 +51,7 @@ class PurchaseOrderUpdate(SQLModel):
     special_notes: Optional[str] = None
     size_chart: Optional[str] = Field(default=None)
     task_unit_notes: Optional[dict] = None
+    propagate_to_all_incoming_charts: Optional[bool] = None
 
 
 class PurchaseOrderMetadata(SQLModel, table=True):
